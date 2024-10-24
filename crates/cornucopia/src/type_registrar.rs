@@ -41,7 +41,7 @@ impl CornucopiaType {
     pub fn is_ref(&self) -> bool {
         match self {
             CornucopiaType::Simple { pg_ty, .. } => match *pg_ty {
-                Type::BYTEA | Type::TEXT | Type::VARCHAR | Type::JSON | Type::JSONB => false,
+                Type::BYTEA | Type::TEXT | Type::VARCHAR | Type::BPCHAR | Type::JSON | Type::JSONB => false,
                 _ => !self.is_copy(),
             },
             CornucopiaType::Domain { inner, .. } | CornucopiaType::Array { inner } => {
@@ -188,7 +188,7 @@ impl CornucopiaType {
                     traits.push(format!("{client_name}::BytesSql"));
                     idx_char(traits.len())
                 }
-                Type::TEXT | Type::VARCHAR => {
+                Type::TEXT | Type::VARCHAR | Type::BPCHAR => {
                     traits.push(format!("{client_name}::StringSql"));
                     idx_char(traits.len())
                 }
@@ -264,7 +264,7 @@ impl CornucopiaType {
                 pg_ty, rust_name, ..
             } => match *pg_ty {
                 Type::BYTEA => format!("&{lifetime} [u8]"),
-                Type::TEXT | Type::VARCHAR => format!("&{lifetime} str"),
+                Type::TEXT | Type::VARCHAR | Type::BPCHAR => format!("&{lifetime} str"),
                 Type::JSON | Type::JSONB => {
                     format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
                 }
@@ -380,7 +380,7 @@ impl TypeRegistrar {
                     Type::INT8 => ("i64", true),
                     Type::FLOAT4 => ("f32", true),
                     Type::FLOAT8 => ("f64", true),
-                    Type::TEXT | Type::VARCHAR => ("String", false),
+                    Type::TEXT | Type::VARCHAR | Type::BPCHAR => ("String", false),
                     Type::BYTEA => ("Vec<u8>", false),
                     Type::TIMESTAMP => ("time::PrimitiveDateTime", true),
                     Type::TIMESTAMPTZ => ("time::OffsetDateTime", true),
