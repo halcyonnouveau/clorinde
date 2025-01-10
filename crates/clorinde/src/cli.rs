@@ -18,7 +18,7 @@ struct Args {
     #[clap(short, long)]
     podman: bool,
     /// Folder containing the queries
-    #[clap(short, long, default_value = "queries/")]
+    #[clap(short, long, alias = "queries_path", default_value = "queries/")]
     queries: PathBuf,
     /// Destination folder for generated modules
     #[clap(short, long, default_value = "clorinde")]
@@ -71,7 +71,7 @@ pub fn run() -> Result<(), Error> {
     cfg.queries = queries;
     cfg.destination = destination;
     cfg.sync = sync;
-    cfg.r#async = r#async;
+    cfg.r#async = r#async || !sync;
     cfg.serialize = serialize;
 
     match action {
