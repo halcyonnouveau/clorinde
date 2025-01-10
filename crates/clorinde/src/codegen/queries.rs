@@ -356,12 +356,12 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> String {
     // TODO: remove all the .clone()
     let sync_specific = |w: &mut String| {
         let gen_sync = {
-            let gs = gen_specific(module.clone(), config.clone(), ModCtx::CLientQueries, false);
+            let gs = gen_specific(module.clone(), config.clone(), ModCtx::ClientQueries, false);
             move |w: &mut String| gs(w)
         };
 
         let gen_async = {
-            let ga = gen_specific(module.clone(), config.clone(), ModCtx::CLientQueries, true);
+            let ga = gen_specific(module.clone(), config.clone(), ModCtx::ClientQueries, true);
             move |w: &mut String| ga(w)
         };
 

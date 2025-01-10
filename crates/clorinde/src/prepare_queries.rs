@@ -120,7 +120,7 @@ impl PreparedItem {
                 unreachable!()
             }
             ModCtx::Queries => self.name.to_string(),
-            ModCtx::CLientQueries => format!("super::{}", self.name),
+            ModCtx::ClientQueries => format!("super::{}", self.name),
         }
     }
 }

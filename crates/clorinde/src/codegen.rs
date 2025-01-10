@@ -23,7 +23,7 @@ pub enum ModCtx {
     Types,         // crate::types
     SchemaTypes,   // crate::types::schema
     Queries,       // crate::queries
-    CLientQueries, // crate::queries::sync
+    ClientQueries, // crate::queries::sync
 }
 
 #[derive(Clone, Copy)]
@@ -50,7 +50,7 @@ impl GenCtx {
             match self.hierarchy {
                 ModCtx::Types => struct_name.to_string(),
                 ModCtx::SchemaTypes => format!("super::{struct_name}"),
-                ModCtx::Queries | ModCtx::CLientQueries => {
+                ModCtx::Queries | ModCtx::ClientQueries => {
                     format!("crate::types::{struct_name}")
                 }
             }
@@ -58,7 +58,7 @@ impl GenCtx {
             match self.hierarchy {
                 ModCtx::Types => format!("{schema}::{struct_name}"),
                 ModCtx::SchemaTypes => format!("super::{schema}::{struct_name}"),
-                ModCtx::Queries | ModCtx::CLientQueries => {
+                ModCtx::Queries | ModCtx::ClientQueries => {
                     format!("crate::types::{schema}::{struct_name}")
                 }
             }
