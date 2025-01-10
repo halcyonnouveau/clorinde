@@ -1,8 +1,8 @@
 use core::str;
 
 use crate::{
+    config::Config,
     prepare_queries::{Preparation, PreparedField},
-    CodegenSettings,
 };
 
 mod cargo;
@@ -133,21 +133,17 @@ pub fn idx_char(idx: usize) -> String {
     format!("T{idx}")
 }
 
-pub(crate) fn gen(name: &str, preparation: Preparation, settings: CodegenSettings) -> Vfs {
+pub(crate) fn gen(preparation: Preparation, config: &Config) -> Vfs {
     let mut vfs = Vfs::empty();
-    let cargo = cargo::gen_cargo_file(name, &preparation.dependency_analysis, settings.clone());
+    let cargo = cargo::gen_cargo_file(&preparation.dependency_analysis, &config);
     vfs.add("Cargo.toml", cargo);
     vfs.add(
         "src/lib.rs",
-        client::gen_lib(&preparation.dependency_analysis, &settings),
+        client::gen_lib(&preparation.dependency_analysis, &config),
     );
-    let types = gen_type_modules(&preparation.types, &settings.clone());
+    let types = gen_type_modules(&preparation.types, &config);
     vfs.add("src/types.rs", types);
-    queries::gen_queries(&mut vfs, &preparation, settings.clone());
-    client::gen_clients(
-        &mut vfs,
-        &preparation.dependency_analysis,
-        &settings.clone(),
-    );
+    queries::gen_queries(&mut vfs, &preparation, &config);
+    client::gen_clients(&mut vfs, &preparation.dependency_analysis, &config);
     vfs
 }

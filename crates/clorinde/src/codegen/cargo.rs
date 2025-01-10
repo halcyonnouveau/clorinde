@@ -3,7 +3,7 @@ use std::fmt::Write;
 use indoc::{formatdoc, writedoc};
 use postgres_types::{Kind, Type};
 
-use crate::{config::CrateDependency, CodegenSettings};
+use crate::config::{Config, CrateDependency};
 
 /// Register use of typed requiring specific dependencies
 #[derive(Debug, Clone, Default)]
@@ -42,22 +42,18 @@ impl DependencyAnalysis {
     }
 }
 
-pub fn gen_cargo_file(
-    name: &str,
-    dependency_analysis: &DependencyAnalysis,
-    settings: CodegenSettings,
-) -> String {
-    const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
+    let package = config
+        .package
+        .to_string()
+        .expect("unable to serialize package");
+
     let mut buf = formatdoc! {r#"
         # This file was generated with `clorinde`. Do not modify
-        [package]
-        name = "{name}"
-        version = "{VERSION}"
-        edition = "2021"
-        publish = false
+        {package}
     "#};
 
-    if settings.gen_async {
+    if config.r#async {
         let mut default_features = vec!["\"deadpool\""];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
             default_features.push("\"chrono\"");
@@ -127,9 +123,9 @@ pub fn gen_cargo_file(
     .unwrap();
 
     // add custom type crates
-    if !settings.config.types.mapping.is_empty() {
-        if !settings.config.types.crate_info.is_empty() {
-            for (name, dep) in &settings.config.types.crate_info {
+    if !config.types.mapping.is_empty() {
+        if !config.types.crate_info.is_empty() {
+            for (name, dep) in &config.types.crate_info {
                 match dep {
                     CrateDependency::Simple(version) => {
                         writedoc! { buf, r#"
@@ -251,7 +247,7 @@ pub fn gen_cargo_file(
         }
     }
 
-    if settings.gen_sync {
+    if config.sync {
         writedoc! { buf, r#"
 
             ## Sync client dependencies
@@ -261,7 +257,7 @@ pub fn gen_cargo_file(
         .unwrap();
     }
 
-    if settings.gen_async {
+    if config.r#async {
         writedoc! { buf, r#"
 
             ## Async client dependencies

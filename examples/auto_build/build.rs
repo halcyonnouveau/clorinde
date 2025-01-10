@@ -1,4 +1,6 @@
-use clorinde::{CodegenSettings, Error};
+use std::{path::PathBuf, str::FromStr};
+
+use clorinde::{config::Config, Error};
 
 // This script will generate a new clorinde crate every time your schema or queries change.
 // In this example, we generate the module in our project, but
@@ -8,21 +10,16 @@ use clorinde::{CodegenSettings, Error};
 fn main() -> Result<(), Error> {
     let queries_path = "queries";
     let schema_file = "schema.sql";
-    let destination = "auto_build_codegen";
-    let settings = CodegenSettings {
-        gen_async: true,
-        gen_sync: false,
-        derive_ser: false,
-        config: Default::default(),
-    };
+
+    let mut cfg = Config::default();
+    cfg.destination = PathBuf::from_str("auto_build_codegen").unwrap();
 
     // This can be removed in your code
     let run_build = std::env::var("RUN_AUTO_BUILD");
-
     if run_build.is_ok() {
         println!("cargo:rerun-if-changed={queries_path}");
         println!("cargo:rerun-if-changed={schema_file}");
-        clorinde::gen_managed(queries_path, &[schema_file], destination, false, settings)?;
+        clorinde::gen_managed(&[schema_file], cfg)?;
     }
 
     Ok(())

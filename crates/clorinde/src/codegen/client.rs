@@ -1,14 +1,11 @@
 use codegen_template::code;
 use std::fmt::Write;
 
-use crate::CodegenSettings;
+use crate::config::Config;
 
 use super::{vfs::Vfs, DependencyAnalysis, WARNING};
 
-pub(crate) fn gen_lib(
-    dependency_analysis: &DependencyAnalysis,
-    settings: &CodegenSettings,
-) -> String {
+pub(crate) fn gen_lib(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
     let mut w = String::new();
     code!(w => $WARNING
         #[allow(clippy::all, clippy::pedantic)]
@@ -35,7 +32,7 @@ pub(crate) fn gen_lib(
         pub use type_traits::{ArraySql, BytesSql, IterSql, StringSql};
     );
 
-    if settings.gen_async {
+    if config.r#async {
         code!(w =>
             #[cfg(feature = "deadpool")]
             pub use deadpool_postgres;
@@ -60,17 +57,17 @@ pub(crate) fn gen_lib(
 pub(crate) fn gen_clients(
     vfs: &mut Vfs,
     dependency_analysis: &DependencyAnalysis,
-    settings: &CodegenSettings,
+    config: &Config,
 ) {
     // Generate common files
     vfs.add("src/utils.rs", core_utils());
     vfs.add("src/domain.rs", core_domain());
     vfs.add("src/array_iterator.rs", core_array());
     vfs.add("src/type_traits.rs", core_type_traits(dependency_analysis));
-    if settings.gen_sync {
+    if config.sync {
         vfs.add("src/client/sync.rs", sync());
     }
-    if settings.gen_async {
+    if config.r#async {
         vfs.add("src/client/async_.rs", async_());
         vfs.add(
             "src/client/async_/generic_client.rs",
@@ -78,12 +75,12 @@ pub(crate) fn gen_clients(
         );
         vfs.add("src/client/async_/deadpool.rs", async_deadpool());
     }
-    vfs.add("src/client.rs", client(settings))
+    vfs.add("src/client.rs", client(config))
 }
 
-pub fn client(settings: &CodegenSettings) -> String {
+pub fn client(config: &Config) -> String {
     let mut w = String::new();
-    match (settings.gen_async, settings.gen_sync) {
+    match (config.r#async, config.sync) {
         (true, false) => code!(w =>
             pub(crate) mod async_;
             pub use async_::*;

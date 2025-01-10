@@ -1,4 +1,6 @@
-use clorinde::{CodegenSettings, Error};
+use std::{path::PathBuf, str::FromStr};
+
+use clorinde::{config::Config, Error};
 use owo_colors::OwoColorize;
 
 use crate::{
@@ -14,7 +16,7 @@ pub(crate) fn run_errors_test(
     let mut successful = true;
     let original_pwd = std::env::current_dir()?;
     let test_suites = TestSuite::<ErrorTest>::read("fixtures/errors");
-    let tmp = tempfile::tempdir()?;
+    let tmp = tempfile::tempdir()?.into_path();
 
     for mut suite in test_suites {
         println!("{} {}", "[error]".magenta(), suite.name.magenta());
@@ -45,17 +47,14 @@ pub(crate) fn run_errors_test(
                 test.query.as_deref().unwrap_or_default(),
             )?;
 
+            let mut cfg = Config::from(&*test);
+            cfg.queries = PathBuf::from_str("queries")?;
+            cfg.destination = tmp.clone();
+
             // Run codegen
             let result = clorinde::load_schema(client, &["schema.sql"])
                 .map_err(Error::from)
-                .and_then(|_| {
-                    clorinde::gen_live(
-                        client,
-                        "queries".as_ref(),
-                        tmp.path(),
-                        CodegenSettings::from(&*test),
-                    )
-                });
+                .and_then(|_| clorinde::gen_live(client, cfg));
 
             let err = result.unwrap_err().report();
             let err_trimmed = err.trim();

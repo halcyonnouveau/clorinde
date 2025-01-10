@@ -1,9 +1,10 @@
 # This file was generated with `clorinde`. Do not modify
 [package]
 name = "basic_async_codegen"
-version = "0.10.2"
+version = "0.1.0"
 edition = "2021"
 publish = false
+
 
 [features]
 default = ["deadpool", "chrono"]

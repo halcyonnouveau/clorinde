@@ -154,7 +154,7 @@ dependencies = [
 
 [[package]]
 name = "auto_build_codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "deadpool-postgres",
@@ -227,7 +227,7 @@ dependencies = [
 
 [[package]]
 name = "basic_async_codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -242,7 +242,7 @@ dependencies = [
 
 [[package]]
 name = "basic_async_wasm_codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "deadpool-postgres",
@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "basic_sync_codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "fallible-iterator",
  "postgres",
@@ -516,7 +516,7 @@ dependencies = [
 
 [[package]]
 name = "codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -672,7 +672,7 @@ dependencies = [
 
 [[package]]
 name = "custom_types_codegen"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "generated"
-version = "0.10.2"
+version = "0.1.0"
 dependencies = [
  "async-trait",
  "deadpool-postgres",

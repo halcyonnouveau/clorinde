@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clorinde::{config::Config, CodegenSettings};
+use clorinde::config::Config;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -68,17 +68,25 @@ fn default_queries_path() -> PathBuf {
     PathBuf::from("queries/")
 }
 
-impl From<&CodegenTest> for CodegenSettings {
+impl From<&CodegenTest> for Config {
     fn from(codegen_test: &CodegenTest) -> Self {
-        Self {
-            gen_async: codegen_test.r#async || !codegen_test.sync,
-            gen_sync: codegen_test.sync,
-            derive_ser: codegen_test.derive_ser,
-            config: match codegen_test.config {
-                true => Config::from_file(Path::new("./clorinde.toml")).unwrap(),
-                false => Default::default(),
-            },
-        }
+        let mut cfg = match codegen_test.config {
+            true => Config::from_file(Path::new("./clorinde.toml")).unwrap(),
+            false => {
+                let mut cfg = Config::default();
+                cfg.package.name = codegen_test.destination.to_str().unwrap().to_string();
+                cfg
+            }
+        };
+
+        cfg.queries = codegen_test.queries_path.clone();
+        cfg.destination = codegen_test.destination.clone();
+
+        cfg.r#async = codegen_test.r#async;
+        cfg.sync = codegen_test.sync;
+        cfg.serialize = codegen_test.derive_ser;
+
+        cfg
     }
 }
 
@@ -91,13 +99,14 @@ pub(crate) struct ErrorTest {
     pub(crate) error: String,
 }
 
-impl From<&ErrorTest> for CodegenSettings {
+impl From<&ErrorTest> for Config {
     fn from(_error_test: &ErrorTest) -> Self {
-        Self {
-            derive_ser: false,
-            gen_async: false,
-            gen_sync: true,
-            config: Default::default(),
-        }
+        let mut cfg = Config::default();
+
+        cfg.r#async = false;
+        cfg.sync = true;
+        cfg.serialize = false;
+
+        cfg
     }
 }

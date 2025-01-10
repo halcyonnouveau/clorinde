@@ -1,12 +1,37 @@
-use miette::Diagnostic;
+use miette::{Diagnostic, IntoDiagnostic, Result};
 use postgres_types::Type;
-use serde::Deserialize;
-use std::{collections::HashMap, fs, path::Path};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Config {
+    #[serde(default = "default_false")]
+    pub podman: bool,
+    /// Directory containing the queries
+    #[serde(default = "default_queries")]
+    pub queries: PathBuf,
+    /// Destination folder for generated modules
+    #[serde(default = "default_destination")]
+    pub destination: PathBuf,
+    /// Generate synchronous rust code
+    #[serde(default = "default_false")]
+    pub sync: bool,
+    /// Generate asynchronous rust code
+    #[serde(default = "default_true")]
+    pub r#async: bool,
+    /// Derive serde's `Serialize` trait for generated types.
+    #[serde(default = "default_false")]
+    pub serialize: bool,
+
     #[serde(default)]
     pub types: Types,
+    #[serde(default)]
+    pub package: Package,
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
@@ -24,11 +49,8 @@ pub enum CrateDependency {
     Detailed {
         version: Option<String>,
         path: Option<String>,
-        #[serde(default)]
         features: Option<Vec<String>>,
-        #[serde(default)]
         default_features: Option<bool>,
-        #[serde(default)]
         optional: Option<bool>,
     },
 }
@@ -48,12 +70,61 @@ pub enum TypeMapping {
     },
 }
 
-fn default_true() -> bool {
-    true
-}
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Package {
+    #[serde(default = "default_name")]
+    pub name: String,
+    #[serde(default = "default_version")]
+    pub version: String,
+    #[serde(default = "default_edition")]
+    pub edition: String,
+    #[serde(default = "default_false")]
+    pub publish: bool,
 
-fn default_kind() -> String {
-    "simple".to_string()
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authors: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub documentation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readme: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub homepage: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<String>,
+    #[serde(rename = "license-file", skip_serializing_if = "Option::is_none")]
+    pub license_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub keywords: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub categories: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub links: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<toml::Value>,
+    #[serde(rename = "default-run", skip_serializing_if = "Option::is_none")]
+    pub default_run: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autobins: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autoexamples: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autotests: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub autobenches: Option<bool>,
+    #[serde(rename = "rust-version", skip_serializing_if = "Option::is_none")]
+    pub rust_version: Option<String>,
 }
 
 impl Config {
@@ -69,10 +140,83 @@ impl Config {
     }
 }
 
+impl Package {
+    pub fn to_string(&self) -> Result<String> {
+        let mut output = String::from("[package]\n");
+        output.push_str(&toml::to_string_pretty(self).into_diagnostic()?);
+        Ok(output)
+    }
+}
+
+impl Default for Package {
+    fn default() -> Self {
+        Self {
+            name: default_name(),
+            version: default_version(),
+            edition: default_edition(),
+            publish: default_false(),
+            authors: None,
+            description: None,
+            documentation: None,
+            readme: None,
+            homepage: None,
+            repository: None,
+            license: None,
+            license_file: None,
+            keywords: None,
+            categories: None,
+            workspace: None,
+            build: None,
+            links: None,
+            exclude: None,
+            include: None,
+            metadata: None,
+            default_run: None,
+            autobins: None,
+            autoexamples: None,
+            autotests: None,
+            autobenches: None,
+            rust_version: None,
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum ConfigError {
     #[error("Failed to read config file: {0}")]
     Io(#[from] std::io::Error),
     #[error("Failed to parse TOML: {0}")]
     Toml(#[from] toml::de::Error),
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_false() -> bool {
+    false
+}
+
+fn default_queries() -> PathBuf {
+    PathBuf::from_str("queries/").unwrap()
+}
+
+fn default_destination() -> PathBuf {
+    PathBuf::from_str("clorinde").unwrap()
+}
+
+fn default_kind() -> String {
+    "simple".to_string()
+}
+
+fn default_name() -> String {
+    "clorinde".to_string()
+}
+
+fn default_version() -> String {
+    "0.1.0".to_string()
+}
+
+fn default_edition() -> String {
+    "2021".to_string()
 }

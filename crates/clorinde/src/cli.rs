@@ -1,26 +1,28 @@
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
-
-use crate::{
-    config::Config, conn, container, error::Error, gen_live, gen_managed, CodegenSettings,
-};
+use crate::{config::Config, conn, container, error::Error, gen_live, gen_managed};
 
 /// Command line interface to interact with Clorinde SQL.
 #[derive(Parser, Debug)]
 #[clap(version)]
 struct Args {
+    #[clap(subcommand)]
+    action: Action,
+
+    /// Config file path
+    #[clap(short, long, default_value = "clorinde.toml")]
+    config: PathBuf,
+
     /// Use `podman` instead of `docker`
     #[clap(short, long)]
     podman: bool,
     /// Folder containing the queries
     #[clap(short, long, default_value = "queries/")]
-    queries_path: PathBuf,
+    queries: PathBuf,
     /// Destination folder for generated modules
     #[clap(short, long, default_value = "clorinde")]
     destination: PathBuf,
-    #[clap(subcommand)]
-    action: Action,
     /// Generate synchronous rust code
     #[clap(long)]
     sync: bool,
@@ -30,9 +32,6 @@ struct Args {
     /// Derive serde's `Serialize` trait for generated types.
     #[clap(long)]
     serialize: bool,
-    /// Config file path
-    #[clap(short, long, default_value = "clorinde.toml")]
-    config: PathBuf,
 }
 
 #[derive(Debug, Subcommand)]
@@ -54,7 +53,7 @@ enum Action {
 pub fn run() -> Result<(), Error> {
     let Args {
         podman,
-        queries_path,
+        queries,
         destination,
         action,
         sync,
@@ -63,27 +62,26 @@ pub fn run() -> Result<(), Error> {
         config,
     } = Args::parse();
 
-    let cfg = match config.is_file() {
+    let mut cfg = match config.is_file() {
         true => Config::from_file(config)?,
         false => Config::default(),
     };
 
-    let settings = CodegenSettings {
-        gen_async: r#async || !sync,
-        gen_sync: sync,
-        derive_ser: serialize,
-        config: cfg,
-    };
+    cfg.podman = podman;
+    cfg.queries = queries;
+    cfg.destination = destination;
+    cfg.sync = sync;
+    cfg.r#async = r#async;
+    cfg.serialize = serialize;
 
     match action {
         Action::Live { url } => {
             let mut client = conn::from_url(&url)?;
-            gen_live(&mut client, &queries_path, &destination, settings)?;
+            gen_live(&mut client, cfg)?;
         }
         Action::Schema { schema_files } => {
             // Run the generate command. If the command is unsuccessful, cleanup Clorinde's container
-            if let Err(e) = gen_managed(queries_path, &schema_files, destination, podman, settings)
-            {
+            if let Err(e) = gen_managed(&schema_files, cfg) {
                 container::cleanup(podman).ok();
                 return Err(e);
             }

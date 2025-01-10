@@ -31,39 +31,23 @@ pub use cli::run;
 pub use error::Error;
 pub use load_schema::load_schema;
 
-/// Struct containing the settings for code generation.
-#[derive(Clone)]
-pub struct CodegenSettings {
-    pub gen_async: bool,
-    pub gen_sync: bool,
-    pub derive_ser: bool,
-    pub config: Config,
-}
-
 #[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`,
 /// using a live database managed by you. Code generation settings are
 /// set using the `settings` parameter.
-pub fn gen_live<P: AsRef<Path>>(
-    client: &mut Client,
-    queries_path: P,
-    destination: P,
-    settings: CodegenSettings,
-) -> Result<(), Error> {
+pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
     // Read
-    let modules = read_query_modules(queries_path.as_ref())?
+    let modules = read_query_modules(config.queries.as_ref())?
         .into_iter()
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;
+
     // Generate
-    let prepared_modules = prepare(client, modules, settings.clone())?;
-    let generated = codegen::gen(
-        extract_name(destination.as_ref()),
-        prepared_modules,
-        settings,
-    );
+    let prepared_modules = prepare(client, modules, &config)?;
+    let generated = codegen::gen(prepared_modules, &config);
+
     // Write
-    generated.persist(destination)?;
+    generated.persist(config.destination)?;
 
     Ok(())
 }
@@ -75,37 +59,22 @@ pub fn gen_live<P: AsRef<Path>>(
 ///
 /// By default, the container manager is Docker, but Podman can be used by setting the
 /// `podman` parameter to `true`.
-pub fn gen_managed<P: AsRef<Path>>(
-    queries_path: P,
-    schema_files: &[P],
-    destination: P,
-    podman: bool,
-    settings: CodegenSettings,
-) -> Result<(), Error> {
+pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result<(), Error> {
     // Read
-    let modules = read_query_modules(queries_path.as_ref())?
+    let modules = read_query_modules(config.queries.as_ref())?
         .into_iter()
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;
-    container::setup(podman)?;
+
+    container::setup(config.podman)?;
     let mut client = conn::clorinde_conn()?;
     load_schema(&mut client, schema_files)?;
-    let prepared_modules = prepare(&mut client, modules, settings.clone())?;
-    let generated = codegen::gen(
-        extract_name(destination.as_ref()),
-        prepared_modules,
-        settings,
-    );
-    container::cleanup(podman)?;
+    let prepared_modules = prepare(&mut client, modules, &config)?;
+    let generated = codegen::gen(prepared_modules, &config);
+    container::cleanup(config.podman)?;
+
     // Write
-    generated.persist(destination)?;
+    generated.persist(config.destination)?;
 
     Ok(())
-}
-
-fn extract_name(destination: &Path) -> &str {
-    destination
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("clorinde")
 }

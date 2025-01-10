@@ -5,15 +5,15 @@ use indexmap::IndexMap;
 
 use crate::{
     codegen::{ModCtx, WARNING},
+    config::Config,
     prepare_queries::{Ident, PreparedContent, PreparedField, PreparedType},
-    CodegenSettings,
 };
 
 use super::GenCtx;
 
 pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
-    settings: &CodegenSettings,
+    config: &Config,
 ) -> String {
     let mut w = String::new();
 
@@ -36,7 +36,7 @@ pub(crate) fn gen_type_modules(
 
     for (schema, types) in prepared {
         if schema == "public" {
-            let ctx = GenCtx::new(ModCtx::Types, settings.gen_async, settings.derive_ser);
+            let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
             {
                 let mut module_content = String::new();
                 for ty in types {
@@ -45,7 +45,7 @@ pub(crate) fn gen_type_modules(
                 w.push_str(&module_content);
             }
         } else {
-            let ctx = GenCtx::new(ModCtx::SchemaTypes, settings.gen_async, settings.derive_ser);
+            let ctx = GenCtx::new(ModCtx::SchemaTypes, config.r#async, config.serialize);
             {
                 let mut module_content = String::new();
                 for ty in types {

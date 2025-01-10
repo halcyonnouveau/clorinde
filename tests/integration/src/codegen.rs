@@ -3,7 +3,7 @@ use crate::{
     utils::{reset_db, rustfmt_lib},
 };
 
-use clorinde::{CodegenSettings, Error};
+use clorinde::{config::Config, Error};
 use owo_colors::OwoColorize;
 use std::{env::set_current_dir, process::Command};
 use tempfile::tempdir;
@@ -35,13 +35,7 @@ pub(crate) fn run_codegen_test(
             // Otherwise, it is only checked.
             if apply {
                 // Generate
-                clorinde::gen_live(
-                    client,
-                    &test.queries_path,
-                    &test.destination,
-                    CodegenSettings::from(&test),
-                )
-                .map_err(Error::report)?;
+                clorinde::gen_live(client, Config::from(&test)).map_err(Error::report)?;
                 // Format the generated crate
                 rustfmt_lib(&test.destination);
             } else {
@@ -49,14 +43,12 @@ pub(crate) fn run_codegen_test(
                     .path()
                     .join(test.destination.file_name().unwrap_or("clorinde".as_ref()));
                 std::fs::create_dir(&tmp_path)?;
+
+                let mut cfg = Config::from(&test);
+                cfg.destination = tmp_path.clone();
+
                 // Generate
-                clorinde::gen_live(
-                    client,
-                    &test.queries_path,
-                    &tmp_path,
-                    CodegenSettings::from(&test),
-                )
-                .map_err(Error::report)?;
+                clorinde::gen_live(client, cfg).map_err(Error::report)?;
                 // Format the generated crate
                 rustfmt_lib(&tmp_path);
 

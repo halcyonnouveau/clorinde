@@ -7,11 +7,12 @@ use postgres_types::{Kind, Type};
 
 use crate::{
     codegen::{DependencyAnalysis, GenCtx, ModCtx},
+    config::Config,
     parser::{Module, NullableIdent, Query, Span, TypeAnnotation},
     read_queries::ModuleInfo,
     type_registrar::{ClorindeType, TypeRegistrar},
     utils::KEYWORD,
-    validation, CodegenSettings,
+    validation,
 };
 
 use self::error::Error;
@@ -239,9 +240,9 @@ impl PreparedModule {
 pub(crate) fn prepare(
     client: &mut Client,
     modules: Vec<Module>,
-    settings: CodegenSettings,
+    config: &Config,
 ) -> Result<Preparation, Error> {
-    let mut registrar = TypeRegistrar::new(settings.config);
+    let mut registrar = TypeRegistrar::new(config.clone());
     let mut prepared_types: IndexMap<String, Vec<PreparedType>> = IndexMap::new();
     let mut prepared_modules = Vec::new();
 

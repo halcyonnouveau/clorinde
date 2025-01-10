@@ -1,4 +1,6 @@
-use clorinde::{config::Config, conn::clorinde_conn, CodegenSettings};
+use std::{path::PathBuf, str::FromStr};
+
+use clorinde::{config::Config, conn::clorinde_conn};
 use criterion::Criterion;
 
 fn bench(c: &mut Criterion) {
@@ -7,37 +9,24 @@ fn bench(c: &mut Criterion) {
     let client = &mut clorinde_conn().unwrap();
     let tmp = tempfile::tempdir().unwrap();
     clorinde::load_schema(client, &["../test_codegen/schema.sql"]).unwrap();
+
+    let mut cfg = Config::default();
+
+    cfg.queries = PathBuf::from_str("../test_codegen/queries").unwrap();
+    cfg.destination = tmp.into_path();
+    cfg.sync = true;
+    cfg.r#async = false;
+    cfg.serialize = true;
+
     c.bench_function("codegen_sync", |b| {
-        b.iter(|| {
-            clorinde::gen_live(
-                client,
-                "../test_codegen/queries".as_ref(),
-                tmp.path(),
-                CodegenSettings {
-                    gen_sync: true,
-                    gen_async: false,
-                    derive_ser: true,
-                    config: Config::default(),
-                },
-            )
-            .unwrap()
-        })
+        b.iter(|| clorinde::gen_live(client, cfg.clone()).unwrap())
     });
+
+    cfg.sync = false;
+    cfg.r#async = true;
+
     c.bench_function("codegen_async", |b| {
-        b.iter(|| {
-            clorinde::gen_live(
-                client,
-                "../test_codegen/queries".as_ref(),
-                tmp.path(),
-                CodegenSettings {
-                    gen_sync: true,
-                    gen_async: false,
-                    derive_ser: true,
-                    config: Config::default(),
-                },
-            )
-            .unwrap()
-        })
+        b.iter(|| clorinde::gen_live(client, cfg.clone()).unwrap())
     });
     clorinde::container::cleanup(false).unwrap();
 }

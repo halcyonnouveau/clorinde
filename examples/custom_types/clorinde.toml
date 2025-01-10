@@ -1,2 +1,5 @@
+[package]
+name = "custom_types_codegen"
+
 [types.mapping]
 "pg_catalog.date" = "ctypes::date::Date"

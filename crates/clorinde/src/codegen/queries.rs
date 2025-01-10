@@ -4,8 +4,8 @@ use codegen_template::code;
 
 use crate::{
     codegen::ModCtx,
+    config::Config,
     prepare_queries::{Preparation, PreparedItem, PreparedModule, PreparedQuery},
-    CodegenSettings,
 };
 
 use super::{idx_char, vfs::Vfs, GenCtx, WARNING};
@@ -340,8 +340,8 @@ fn gen_query_fn<W: Write>(w: &mut W, module: &PreparedModule, query: &PreparedQu
     }
 }
 
-fn gen_query_module(module: &PreparedModule, settings: CodegenSettings) -> String {
-    let ctx = GenCtx::new(ModCtx::Queries, settings.gen_async, settings.derive_ser);
+fn gen_query_module(module: &PreparedModule, config: &Config) -> String {
+    let ctx = GenCtx::new(ModCtx::Queries, config.r#async, config.serialize);
     let mut w = String::new();
     code!(w => $WARNING);
 
@@ -356,26 +356,16 @@ fn gen_query_module(module: &PreparedModule, settings: CodegenSettings) -> Strin
     // TODO: remove all the .clone()
     let sync_specific = |w: &mut String| {
         let gen_sync = {
-            let gs = gen_specific(
-                module.clone(),
-                settings.clone(),
-                ModCtx::CLientQueries,
-                false,
-            );
+            let gs = gen_specific(module.clone(), config.clone(), ModCtx::CLientQueries, false);
             move |w: &mut String| gs(w)
         };
 
         let gen_async = {
-            let ga = gen_specific(
-                module.clone(),
-                settings.clone(),
-                ModCtx::CLientQueries,
-                true,
-            );
+            let ga = gen_specific(module.clone(), config.clone(), ModCtx::CLientQueries, true);
             move |w: &mut String| ga(w)
         };
 
-        if settings.gen_async && settings.gen_sync {
+        if config.r#async && config.sync {
             code!(w =>
                 pub mod sync {
                     $!gen_sync
@@ -384,10 +374,10 @@ fn gen_query_module(module: &PreparedModule, settings: CodegenSettings) -> Strin
                     $!gen_async
                 }
             );
-        } else if settings.gen_sync {
-            gen_specific(module.clone(), settings, ModCtx::Queries, false)(w);
+        } else if config.sync {
+            gen_specific(module.clone(), config.clone(), ModCtx::Queries, false)(w);
         } else {
-            gen_specific(module.clone(), settings, ModCtx::Queries, true)(w);
+            gen_specific(module.clone(), config.clone(), ModCtx::Queries, true)(w);
         }
     };
 
@@ -398,12 +388,12 @@ fn gen_query_module(module: &PreparedModule, settings: CodegenSettings) -> Strin
 
 fn gen_specific(
     module: PreparedModule,
-    settings: CodegenSettings,
+    config: Config,
     hierarchy: ModCtx,
     is_async: bool,
 ) -> impl Fn(&mut String) {
     move |w: &mut String| {
-        let ctx = GenCtx::new(hierarchy, is_async, settings.derive_ser);
+        let ctx = GenCtx::new(hierarchy, is_async, config.serialize);
         let import = if is_async {
             "use futures::{self, StreamExt, TryStreamExt}; use crate::client::async_::GenericClient;"
         } else {
@@ -422,9 +412,9 @@ fn gen_specific(
     }
 }
 
-pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, settings: CodegenSettings) {
+pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Config) {
     for module in &preparation.modules {
-        let gen = gen_query_module(module, settings.clone());
+        let gen = gen_query_module(module, config);
         vfs.add(format!("src/queries/{}.rs", module.info.name), gen);
     }
 
@@ -435,7 +425,7 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, settings: Co
         $(pub mod $modules_name;)
     );
 
-    if settings.gen_async && settings.gen_sync {
+    if config.r#async && config.sync {
         let mut sync_content = String::new();
         let mut async_content = String::new();
 
