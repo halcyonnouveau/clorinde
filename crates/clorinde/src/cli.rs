@@ -18,8 +18,8 @@ struct Args {
     #[clap(short, long)]
     podman: bool,
     /// Folder containing the queries
-    #[clap(short, long, alias = "queries_path", default_value = "queries/")]
-    queries: PathBuf,
+    #[clap(short, long, default_value = "queries/")]
+    queries_path: PathBuf,
     /// Destination folder for generated modules
     #[clap(short, long, default_value = "clorinde")]
     destination: PathBuf,
@@ -53,7 +53,7 @@ enum Action {
 pub fn run() -> Result<(), Error> {
     let Args {
         podman,
-        queries,
+        queries_path,
         destination,
         action,
         sync,
@@ -68,7 +68,7 @@ pub fn run() -> Result<(), Error> {
     };
 
     cfg.podman = podman;
-    cfg.queries = queries;
+    cfg.queries = queries_path;
     cfg.destination = destination;
     cfg.sync = sync;
     cfg.r#async = r#async || !sync;
