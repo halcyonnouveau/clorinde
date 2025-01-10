@@ -80,8 +80,8 @@ impl PreparedField {
         Self {
             ident: Ident::new(db_ident),
             ty,
-            is_nullable: nullity.map_or(false, |it| it.nullable),
-            is_inner_nullable: nullity.map_or(false, |it| it.inner_nullable),
+            is_nullable: nullity.is_some_and(|it| it.nullable),
+            is_inner_nullable: nullity.is_some_and(|it| it.inner_nullable),
         }
     }
 }
