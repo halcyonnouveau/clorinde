@@ -101,12 +101,11 @@ pub(crate) struct ErrorTest {
 
 impl From<&ErrorTest> for Config {
     fn from(_error_test: &ErrorTest) -> Self {
-        let mut cfg = Config::default();
-
-        cfg.r#async = false;
-        cfg.sync = true;
-        cfg.serialize = false;
-
-        cfg
+        Config {
+            r#async: false,
+            sync: true,
+            serialize: false,
+            ..Default::default()
+        }
     }
 }

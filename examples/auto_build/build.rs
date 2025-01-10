@@ -11,8 +11,10 @@ fn main() -> Result<(), Error> {
     let queries_path = "queries";
     let schema_file = "schema.sql";
 
-    let mut cfg = Config::default();
-    cfg.destination = PathBuf::from_str("auto_build_codegen").unwrap();
+    let cfg = Config {
+        destination: PathBuf::from_str("auto_build_codegen").unwrap(),
+        ..Default::default()
+    };
 
     // This can be removed in your code
     let run_build = std::env::var("RUN_AUTO_BUILD");

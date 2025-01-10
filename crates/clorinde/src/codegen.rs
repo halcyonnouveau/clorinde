@@ -135,15 +135,15 @@ pub fn idx_char(idx: usize) -> String {
 
 pub(crate) fn gen(preparation: Preparation, config: &Config) -> Vfs {
     let mut vfs = Vfs::empty();
-    let cargo = cargo::gen_cargo_file(&preparation.dependency_analysis, &config);
+    let cargo = cargo::gen_cargo_file(&preparation.dependency_analysis, config);
     vfs.add("Cargo.toml", cargo);
     vfs.add(
         "src/lib.rs",
-        client::gen_lib(&preparation.dependency_analysis, &config),
+        client::gen_lib(&preparation.dependency_analysis, config),
     );
-    let types = gen_type_modules(&preparation.types, &config);
+    let types = gen_type_modules(&preparation.types, config);
     vfs.add("src/types.rs", types);
-    queries::gen_queries(&mut vfs, &preparation, &config);
-    client::gen_clients(&mut vfs, &preparation.dependency_analysis, &config);
+    queries::gen_queries(&mut vfs, &preparation, config);
+    client::gen_clients(&mut vfs, &preparation.dependency_analysis, config);
     vfs
 }
