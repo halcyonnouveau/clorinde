@@ -42,7 +42,7 @@ impl ClorindeType {
     pub fn is_ref(&self) -> bool {
         match self {
             ClorindeType::Simple {
-                pg_ty: Type::BYTEA | Type::TEXT | Type::VARCHAR | Type::JSON | Type::JSONB,
+                pg_ty: Type::BYTEA | Type::TEXT | Type::VARCHAR | Type::BPCHAR | Type::JSON | Type::JSONB,
                 ..
             } => false,
             ClorindeType::Simple { .. } => !self.is_copy(),
@@ -176,7 +176,7 @@ impl ClorindeType {
                     traits.push("crate::BytesSql".to_string());
                     idx_char(traits.len())
                 }
-                Type::TEXT | Type::VARCHAR => {
+                Type::TEXT | Type::VARCHAR | Type::BPCHAR => {
                     traits.push("crate::StringSql".to_string());
                     idx_char(traits.len())
                 }
@@ -252,7 +252,7 @@ impl ClorindeType {
                 pg_ty, rust_name, ..
             } => match *pg_ty {
                 Type::BYTEA => format!("&{lifetime} [u8]"),
-                Type::TEXT | Type::VARCHAR => format!("&{lifetime} str"),
+                Type::TEXT | Type::VARCHAR | Type::BPCHAR => format!("&{lifetime} str"),
                 Type::JSON | Type::JSONB => {
                     format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
                 }
@@ -387,13 +387,12 @@ impl TypeRegistrar {
                 let (rust_name, is_copy) = match *ty {
                     Type::BOOL => ("bool", true),
                     Type::CHAR => ("i8", true),
-                    Type::BPCHAR => ("i8", true),
                     Type::INT2 => ("i16", true),
                     Type::INT4 => ("i32", true),
                     Type::INT8 => ("i64", true),
                     Type::FLOAT4 => ("f32", true),
                     Type::FLOAT8 => ("f64", true),
-                    Type::TEXT | Type::VARCHAR => ("String", false),
+                    Type::TEXT | Type::VARCHAR | Type::BPCHAR => ("String", false),
                     Type::BYTEA => ("Vec<u8>", false),
                     Type::TIMESTAMP => ("crate::types::time::Timestamp", true),
                     Type::TIMESTAMPTZ => ("crate::types::time::TimestampTz", true),
