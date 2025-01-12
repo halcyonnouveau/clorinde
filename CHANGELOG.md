@@ -15,10 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - clorinde.toml adds to generated crate package (#11)
 - add optional time feature
 
-### Fixed
-
-- fix features
-
 ## [0.10.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.10.1...clorinde-v0.10.2) - 2025-01-07
 
 ### Fixed
