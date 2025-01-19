@@ -61,8 +61,8 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
         let mut wasm_features = vec!["\"tokio-postgres/js\""];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("\"chrono/wasmbind\"");
-            wasm_features.push("\"time/wasm-bindgen\"");
+            wasm_features.push("\"chrono?/wasmbind\"");
+            wasm_features.push("\"time?/wasm-bindgen\"");
         }
 
         let default_features = default_features.join(", ");
@@ -79,7 +79,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     } else {
         let mut wasm_features = vec![];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("\"chrono/wasmbind\"");
+            wasm_features.push("\"chrono?/wasmbind\"");
         }
 
         let wasm_features = wasm_features.join(", ");
