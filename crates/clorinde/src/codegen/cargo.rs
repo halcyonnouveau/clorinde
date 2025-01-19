@@ -124,6 +124,13 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
     // add custom type crates
     if !config.types.mapping.is_empty() {
+        let references_default_crate = config.types.mapping.values().any(|t| {
+            match t {
+                crate::config::TypeMapping::Simple(t) => t,
+                crate::config::TypeMapping::Detailed { rust_type, .. } => rust_type,
+            }
+            .starts_with("ctypes::")
+        });
         if !config.types.crate_info.is_empty() {
             for (name, dep) in &config.types.crate_info {
                 match dep {
@@ -191,7 +198,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                     }
                 }
             }
-        } else {
+        } else if references_default_crate {
             writedoc! { buf, r#"
             ctypes = {{ path = "../ctypes" }}
         "#}
