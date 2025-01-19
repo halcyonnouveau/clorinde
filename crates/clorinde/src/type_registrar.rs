@@ -257,7 +257,11 @@ impl ClorindeType {
                 Type::JSON | Type::JSONB => {
                     format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
                 }
-                _ => (*rust_name).to_string(),
+                _ => match rust_name.as_str() {
+                    "String" => format!("&{lifetime} str"),
+                    "Vec<u8>" => format!("&{lifetime} [u8]"),
+                    _ => rust_name.to_string(),
+                },
             },
             ClorindeType::Array { inner, .. } => {
                 let inner = inner.brw_ty(is_inner_nullable, has_lifetime, ctx);
