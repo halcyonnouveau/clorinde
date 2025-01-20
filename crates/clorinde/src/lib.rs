@@ -34,7 +34,7 @@ pub use load_schema::load_schema;
 #[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`,
 /// using a live database managed by you. Code generation settings are
-/// set using the `settings` parameter.
+/// set using the `config` parameter.
 pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
     // Read
     let modules = read_query_modules(config.queries.as_ref())?
@@ -55,7 +55,7 @@ pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
 #[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`, using
 /// a container managed by clorinde. The database schema is created using `schema_files`.
-/// Code generation settings are set using the `settings` parameter.
+/// Code generation settings are set using the `config` parameter.
 ///
 /// By default, the container manager is Docker, but Podman can be used by setting the
 /// `podman` parameter to `true`.
