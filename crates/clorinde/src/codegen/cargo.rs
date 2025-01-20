@@ -210,15 +210,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
     if dependency_analysis.has_dependency() {
         writeln!(buf, "\n## Types dependencies").unwrap();
-        if dependency_analysis.json {
-            writedoc! { buf, r#"
-                # JSON or JSONB
-                serde_json = {{ version = "1.0.134", features = ["raw_value"] }}
-                serde = {{ version = "1.0.217", features = ["derive"] }}
-            "#}
-            .unwrap();
-            write!(client_features, r#""with-serde_json-1","#).unwrap();
-        }
         if dependency_analysis.chrono {
             writedoc! { buf, r#"
                 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
@@ -252,6 +243,26 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             "#}
             .unwrap();
         }
+
+        if dependency_analysis.json {
+            writedoc! { buf, r#"
+                # JSON or JSONB
+                serde_json = {{ version = "1.0.134", features = ["raw_value"] }}
+                serde = {{ version = "1.0.217", features = ["derive"] }}
+            "#}
+            .unwrap();
+            write!(client_features, r#""with-serde_json-1","#).unwrap();
+        }
+    }
+
+    // add serde if serializing but not using json type
+    if config.serialize && !dependency_analysis.json {
+        writedoc! { buf, r#"
+
+            ## Serialize
+            serde = {{ version = "1.0.217", features = ["derive"] }}
+        "#}
+        .unwrap();
     }
 
     if config.sync {
