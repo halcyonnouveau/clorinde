@@ -9,7 +9,7 @@ publish = false
 [features]
 default = ["deadpool", "chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
-wasm-async = ["tokio-postgres/js", "chrono/wasmbind", "time/wasm-bindgen"]
+wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
 
 chrono = ["dep:chrono"]
 time = ["dep:time"]
