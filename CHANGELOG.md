@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.0...clorinde-v0.11.1) - 2025-01-21
+
+### Fixed
+
+- add serde for serialize without json (#27)
+- Don't force enable optional dependencies if wasm-async is enabled (#19)
+
+### Other
+
+- Detect borrowed type based on std Rust types ([#17](https://github.com/halcyonnouveau/clorinde/pull/17))
+- Only depend on "ctypes" crate if it is referenced ([#18](https://github.com/halcyonnouveau/clorinde/pull/18))
+- rename settings parameter to config (#24)
+
+### Refactor
+
+- remove async-trait dependency (#28)
+
 ## [0.11.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.10.2...clorinde-v0.11.0) - 2025-01-12
 
 ### Added
