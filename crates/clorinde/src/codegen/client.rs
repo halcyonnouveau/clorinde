@@ -1,9 +1,9 @@
-use codegen_template::code;
 use std::fmt::Write;
 
-use crate::config::Config;
+use codegen_template::code;
 
 use super::{vfs::Vfs, DependencyAnalysis, WARNING};
+use crate::config::Config;
 
 pub(crate) fn gen_lib(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
     let mut w = String::new();
@@ -568,7 +568,7 @@ pub fn async_() -> String {
 pub fn async_generic_client() -> String {
     let mut w = String::new();
     code!(w => $WARNING
-        use async_trait::async_trait;
+        use std::future::Future;
         use tokio_postgres::{
             types::BorrowToSql, Client, Error, RowStream, Statement, ToStatement, Transaction,
         };
@@ -578,43 +578,42 @@ pub fn async_generic_client() -> String {
         ///
         /// In addition, when the `deadpool` feature is enabled (default), this trait also
         /// abstracts over deadpool clients and transactions
-        #[async_trait]
         pub trait GenericClient: Send + Sync {
-            async fn prepare(&self, query: &str) -> Result<Statement, Error>;
-            async fn execute<T>(
+            fn prepare(&self, query: &str) -> impl Future<Output = Result<Statement, Error>> + Send;
+            fn execute<T>(
                 &self,
                 query: &T,
                 params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<u64, Error>
+            ) -> impl Future<Output = Result<u64, Error>> + Send
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
-            async fn query_one<T>(
+            fn query_one<T>(
                 &self,
                 statement: &T,
                 params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<tokio_postgres::Row, Error>
+            ) -> impl Future<Output = Result<tokio_postgres::Row, Error>> + Send
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
-            async fn query_opt<T>(
+            fn query_opt<T>(
                 &self,
                 statement: &T,
                 params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Option<tokio_postgres::Row>, Error>
+            ) -> impl Future<Output = Result<Option<tokio_postgres::Row>, Error>> + Send
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
-            async fn query<T>(
+            fn query<T>(
                 &self,
                 query: &T,
                 params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Vec<tokio_postgres::Row>, Error>
+            ) -> impl Future<Output = Result<Vec<tokio_postgres::Row>, Error>> + Send
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
 
-            async fn query_raw<T, P, I>(
+            fn query_raw<T, P, I>(
                 &self,
                 statement: &T,
                 params: I,
-            ) -> Result<RowStream, Error>
+            ) -> impl Future<Output = Result<RowStream, Error>> + Send
             where
                 T: ?Sized + ToStatement + Sync + Send,
                 P: BorrowToSql,
@@ -622,7 +621,6 @@ pub fn async_generic_client() -> String {
                 I::IntoIter: ExactSizeIterator;
         }
 
-        #[async_trait]
         impl GenericClient for Transaction<'_> {
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 Transaction::prepare(self, query).await
@@ -683,7 +681,6 @@ pub fn async_generic_client() -> String {
             }
         }
 
-        #[async_trait]
         impl GenericClient for Client {
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 Client::prepare(self, query).await
@@ -751,7 +748,6 @@ pub fn async_generic_client() -> String {
 pub fn async_deadpool() -> String {
     let mut w = String::new();
     code!(w => $WARNING
-        use async_trait::async_trait;
         use deadpool_postgres::{
             Client as DeadpoolClient, ClientWrapper, Transaction as DeadpoolTransaction,
         };
@@ -762,7 +758,6 @@ pub fn async_deadpool() -> String {
 
         use super::generic_client::GenericClient;
 
-        #[async_trait]
         impl GenericClient for DeadpoolClient {
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 ClientWrapper::prepare_cached(self, query).await
@@ -823,7 +818,6 @@ pub fn async_deadpool() -> String {
             }
         }
 
-        #[async_trait]
         impl GenericClient for DeadpoolTransaction<'_> {
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 DeadpoolTransaction::prepare_cached(self, query).await

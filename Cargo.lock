@@ -156,7 +156,6 @@ dependencies = [
 name = "auto_build_codegen"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "deadpool-postgres",
  "fallible-iterator",
  "futures",
@@ -229,7 +228,6 @@ dependencies = [
 name = "basic_async_codegen"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "deadpool-postgres",
  "fallible-iterator",
@@ -244,7 +242,6 @@ dependencies = [
 name = "basic_async_wasm_codegen"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "deadpool-postgres",
  "fallible-iterator",
  "futures",
@@ -518,7 +515,6 @@ dependencies = [
 name = "codegen"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "deadpool-postgres",
  "eui48",
@@ -674,7 +670,6 @@ dependencies = [
 name = "custom_types_codegen"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "ctypes",
  "deadpool-postgres",
@@ -1003,7 +998,6 @@ dependencies = [
 name = "generated"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "deadpool-postgres",
  "fallible-iterator",
  "futures",

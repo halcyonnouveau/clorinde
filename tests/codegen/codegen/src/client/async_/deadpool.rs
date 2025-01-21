@@ -1,7 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
 use super::generic_client::GenericClient;
-use async_trait::async_trait;
 use deadpool_postgres::{
     Client as DeadpoolClient, ClientWrapper, Transaction as DeadpoolTransaction,
 };
@@ -9,7 +8,6 @@ use tokio_postgres::{
     types::BorrowToSql, Client as PgClient, Error, RowStream, Statement, ToStatement,
     Transaction as PgTransaction,
 };
-#[async_trait]
 impl GenericClient for DeadpoolClient {
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {
         ClientWrapper::prepare_cached(self, query).await
@@ -64,7 +62,6 @@ impl GenericClient for DeadpoolClient {
         PgClient::query_raw(self, statement, params).await
     }
 }
-#[async_trait]
 impl GenericClient for DeadpoolTransaction<'_> {
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {
         DeadpoolTransaction::prepare_cached(self, query).await

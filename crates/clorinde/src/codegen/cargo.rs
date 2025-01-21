@@ -282,7 +282,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             # Postgres async client
             tokio-postgres = {{ version = "0.7.12", default-features = false, features = [{client_features}] }}
             # Async utils
-            async-trait = "0.1.78"
             futures = "0.3.31"
 
             ## Async features dependencies
