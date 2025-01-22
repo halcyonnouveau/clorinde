@@ -12,10 +12,17 @@ mod types;
 mod vfs;
 
 pub use cargo::DependencyAnalysis;
+use quote::quote;
 
 use self::{types::gen_type_modules, vfs::Vfs};
 
 const WARNING: &str = "// This file was generated with `clorinde`. Do not modify.\n\n";
+
+pub(crate) fn warning_tokens() -> proc_macro2::TokenStream {
+    quote! {
+        // This file was generated with `clorinde`. Do not modify
+    }
+}
 
 /// Module when codegen is happening
 #[derive(Clone, Copy)]

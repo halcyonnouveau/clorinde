@@ -1,10 +1,8 @@
-use std::fmt::Write;
-
-use codegen_template::code;
 use indexmap::IndexMap;
+use quote::{format_ident, quote, ToTokens};
 
 use crate::{
-    codegen::{ModCtx, WARNING},
+    codegen::{warning_tokens, ModCtx},
     config::Config,
     prepare_queries::{Ident, PreparedContent, PreparedField, PreparedType},
 };
@@ -15,9 +13,10 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> String {
-    let mut w = String::new();
+    let warning = warning_tokens();
+    let mut tokens = quote! {
+        #warning
 
-    code!(w => $WARNING
         #[cfg(feature = "chrono")]
         pub mod time {
             pub type Timestamp = chrono::NaiveDateTime;
@@ -32,40 +31,46 @@ pub(crate) fn gen_type_modules(
             pub type Date = time::Date;
             pub type Time = time::Time;
         }
-    );
+    };
 
     for (schema, types) in prepared {
         if schema == "public" {
             let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
             {
-                let mut module_content = String::new();
                 for ty in types {
-                    gen_custom_type(&mut module_content, schema, ty, &ctx);
+                    tokens.extend(gen_custom_type(schema, ty, &ctx))
                 }
-                w.push_str(&module_content);
             }
         } else {
             let ctx = GenCtx::new(ModCtx::SchemaTypes, config.r#async, config.serialize);
             {
-                let mut module_content = String::new();
+                let mut p_tokens = quote!();
                 for ty in types {
-                    gen_custom_type(&mut module_content, schema, ty, &ctx);
+                    p_tokens.extend(gen_custom_type(schema, ty, &ctx))
                 }
-                code!(w =>
-                    pub mod $schema {
-                        $module_content
+                let schema_name = format_ident!("{}", schema);
+                tokens.extend(quote! {
+                    pub mod #schema_name {
+                        #p_tokens
                     }
-                );
+
+                });
             }
         }
     }
 
-    w
+    let contents =
+        syn::parse2(tokens.to_token_stream()).expect("Unable to parse the tokens as a syn::File");
+    prettyplease::unparse(&contents)
 }
 
 /// Generates type definitions for custom user types. This includes domains, composites and enums.
 /// If the type is not `Copy`, then a Borrowed version will be generated.
-fn gen_custom_type(w: &mut String, schema: &str, prepared: &PreparedType, ctx: &GenCtx) {
+fn gen_custom_type(
+    schema: &str,
+    prepared: &PreparedType,
+    ctx: &GenCtx,
+) -> proc_macro2::TokenStream {
     let PreparedType {
         struct_name,
         content,
@@ -73,115 +78,189 @@ fn gen_custom_type(w: &mut String, schema: &str, prepared: &PreparedType, ctx: &
         is_params,
         name,
     } = prepared;
-    let copy = if *is_copy { "Copy," } else { "" };
-    let ser_str = if ctx.gen_derive {
-        "serde::Serialize,"
+
+    let struct_name_ident = format_ident!("{}", struct_name);
+    let struct_name_ident_borrowed = format_ident!("{}Borrowed", struct_name);
+    let struct_name_ident_params = format_ident!("{}Params", struct_name);
+    let name_lit = syn::LitStr::new(name, proc_macro2::Span::call_site());
+
+    let copy_attr = if *is_copy { quote!(Copy,) } else { quote!() };
+    let ser_attr = if ctx.gen_derive {
+        quote!(serde::Serialize,)
     } else {
-        ""
+        quote!()
     };
+
     match content {
         PreparedContent::Enum(variants) => {
-            let variants_ident = variants.iter().map(|v| &v.rs);
-            code!(w =>
-                #[derive($ser_str Debug, Clone, Copy, PartialEq, Eq)]
+            let variants_ident: Vec<_> =
+                variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
+
+            let enum_def = quote! {
+                #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq)]
                 #[allow(non_camel_case_types)]
-                pub enum $struct_name {
-                    $($variants_ident,)
+                pub enum #struct_name_ident {
+                    #(#variants_ident,)*
                 }
-            );
-            enum_sql(w, name, struct_name, variants);
+            };
+
+            let enum_impl = enum_sql(name, struct_name, variants);
+            quote! {
+                #enum_def
+                #enum_impl
+            }
         }
         PreparedContent::Composite(fields) => {
-            let fields_original_name = fields.iter().map(|p| &p.ident.db);
-            let fields_name = fields.iter().map(|p| &p.ident.rs);
-            {
-                let fields_ty = fields.iter().map(|p| p.own_struct(ctx));
-                code!(w =>
-                    #[derive($ser_str Debug,postgres_types::FromSql,$copy Clone, PartialEq)]
-                    #[postgres(name = "$name")]
-                    pub struct $struct_name {
-                        $(
-                            #[postgres(name = "$fields_original_name")]
-                            pub $fields_name: $fields_ty,
-                        )
-                    }
-                );
-            }
+            let fields_original_name: Vec<_> = fields
+                .iter()
+                .map(|p| syn::LitStr::new(&p.ident.db, proc_macro2::Span::call_site()))
+                .collect();
+
+            let fields_name: Vec<_> = fields
+                .iter()
+                .map(|p| format_ident!("{}", p.ident.rs))
+                .collect();
+
+            let fields_ty: Vec<_> = fields
+                .iter()
+                .map(|p| syn::parse_str::<syn::Type>(&p.own_struct(ctx)).unwrap())
+                .collect();
+
+            let struct_def = quote! {
+                #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq)]
+                #[postgres(name = #name_lit)]
+                pub struct #struct_name_ident {
+                    #(
+                        #[postgres(name = #fields_original_name)]
+                        pub #fields_name: #fields_ty,
+                    )*
+                }
+            };
+
             if *is_copy {
-                struct_tosql(w, struct_name, fields, name, false, *is_params, ctx);
+                let tosql_impl = struct_tosql(struct_name, fields, name, false, *is_params, ctx);
+                quote! {
+                    #struct_def
+                    #tosql_impl
+                }
             } else {
-                let fields_owning = fields.iter().map(|p| p.owning_assign());
-                let fields_brw = fields.iter().map(|p| p.brw_ty(true, ctx));
-                code!(w =>
-                    #[derive(Debug)]
-                    pub struct ${struct_name}Borrowed<'a> {
-                        $(pub $fields_name: $fields_brw,)
+                let fields_brw: Vec<_> = fields
+                    .iter()
+                    .map(|p| syn::parse_str::<syn::Type>(&p.brw_ty(true, ctx)).unwrap())
+                    .collect();
+
+                let field_assignments = fields.iter().map(|p| {
+                    let field_name = format_ident!("{}", p.ident.rs);
+                    let call = p.owning_call(None);
+                    if call == p.ident.rs {
+                        quote!(#field_name: #field_name)
+                    } else {
+                        let call_expr = syn::parse_str::<syn::Expr>(&call).unwrap();
+                        quote!(#field_name: #call_expr)
                     }
-                    impl<'a> From<${struct_name}Borrowed<'a>> for $struct_name {
+                });
+
+                let borrowed_struct = quote! {
+                    #[derive(Debug)]
+                    pub struct #struct_name_ident_borrowed<'a> {
+                        #(pub #fields_name: #fields_brw,)*
+                    }
+
+                    impl<'a> From<#struct_name_ident_borrowed<'a>> for #struct_name_ident {
                         fn from(
-                            ${struct_name}Borrowed {
-                            $($fields_name,)
-                            }: ${struct_name}Borrowed<'a>,
+                            #struct_name_ident_borrowed {
+                                #(#fields_name,)*
+                            }: #struct_name_ident_borrowed<'a>,
                         ) -> Self {
                             Self {
-                                $($fields_owning,)
+                                #(#field_assignments,)*
                             }
                         }
                     }
-                );
-                composite_fromsql(w, struct_name, fields, name, schema);
-                if !is_params {
-                    let fields_ty = fields.iter().map(|p| p.param_ty(ctx));
-                    let derive = if *is_copy { ",Copy,Clone" } else { "" };
-                    code!(w =>
-                        #[derive(Debug $derive)]
-                        pub struct ${struct_name}Params<'a> {
-                            $(pub $fields_name: $fields_ty,)
+                };
+
+                let fromsql_impl = composite_fromsql(struct_name, fields, name, schema);
+
+                let params_struct = if !is_params {
+                    let fields_ty: Vec<_> = fields
+                        .iter()
+                        .map(|p| syn::parse_str::<syn::Type>(&p.param_ty(ctx)).unwrap())
+                        .collect();
+
+                    let derive = if *is_copy {
+                        quote!(,Copy,Clone)
+                    } else {
+                        quote!()
+                    };
+
+                    quote! {
+                        #[derive(Debug #derive)]
+                        pub struct #struct_name_ident_params<'a> {
+                            #(pub #fields_name: #fields_ty,)*
                         }
-                    );
+                    }
+                } else {
+                    quote!()
+                };
+
+                let tosql_impl = struct_tosql(struct_name, fields, name, true, *is_params, ctx);
+
+                quote! {
+                    #struct_def
+                    #borrowed_struct
+                    #fromsql_impl
+                    #params_struct
+                    #tosql_impl
                 }
-                struct_tosql(w, struct_name, fields, name, true, *is_params, ctx);
             }
         }
     }
 }
 
-fn enum_sql(w: &mut String, name: &str, enum_name: &str, variants: &[Ident]) {
-    let enum_names = std::iter::repeat(enum_name);
-    let db_variants_ident = variants.iter().map(|v| &v.db);
-    let rs_variants_ident = variants.iter().map(|v| &v.rs);
+fn enum_sql(name: &str, enum_name: &str, variants: &[Ident]) -> proc_macro2::TokenStream {
+    let enum_name = format_ident!("{}", enum_name);
+    let name_lit = syn::LitStr::new(name, proc_macro2::Span::call_site());
+    let nb_variants = proc_macro2::Literal::usize_unsuffixed(variants.len());
 
-    let nb_variants = variants.len();
-    code!(w =>
-        impl<'a> postgres_types::ToSql for $enum_name {
+    let rs_variants: Vec<_> = variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
+
+    let db_variants: Vec<_> = variants
+        .iter()
+        .map(|v| syn::LitStr::new(&v.db, proc_macro2::Span::call_site()))
+        .collect();
+
+    quote! {
+        impl<'a> postgres_types::ToSql for #enum_name {
             fn to_sql(
                 &self,
                 ty: &postgres_types::Type,
                 buf: &mut postgres_types::private::BytesMut,
-            ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>,> {
+            ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
                 let s = match *self {
-                    $($enum_names::$rs_variants_ident => "$db_variants_ident",)
+                    #(#enum_name::#rs_variants => #db_variants,)*
                 };
                 buf.extend_from_slice(s.as_bytes());
                 std::result::Result::Ok(postgres_types::IsNull::No)
             }
+
             fn accepts(ty: &postgres_types::Type) -> bool {
-                if ty.name() != "$name" {
+                if ty.name() != #name_lit {
                     return false;
                 }
                 match *ty.kind() {
                     postgres_types::Kind::Enum(ref variants) => {
-                        if variants.len() != $nb_variants {
+                        if variants.len() != #nb_variants {
                             return false;
                         }
                         variants.iter().all(|v| match &**v {
-                            $("$db_variants_ident" => true,)
+                            #(#db_variants => true,)*
                             _ => false,
                         })
                     }
                     _ => false,
                 }
             }
+
             fn to_sql_checked(
                 &self,
                 ty: &postgres_types::Type,
@@ -190,30 +269,32 @@ fn enum_sql(w: &mut String, name: &str, enum_name: &str, variants: &[Ident]) {
                 postgres_types::__to_sql_checked(self, ty, out)
             }
         }
-        impl<'a> postgres_types::FromSql<'a> for $enum_name {
+
+        impl<'a> postgres_types::FromSql<'a> for #enum_name {
             fn from_sql(
                 ty: &postgres_types::Type,
                 buf: &'a [u8],
-            ) -> Result<$enum_name, Box<dyn std::error::Error + Sync + Send>,> {
+            ) -> Result<#enum_name, Box<dyn std::error::Error + Sync + Send>> {
                 match std::str::from_utf8(buf)? {
-                    $("$db_variants_ident" => Ok($enum_names::$rs_variants_ident),)
+                    #(#db_variants => Ok(#enum_name::#rs_variants),)*
                     s => Result::Err(Into::into(format!(
                         "invalid variant `{}`",
                         s
                     ))),
                 }
             }
+
             fn accepts(ty: &postgres_types::Type) -> bool {
-                if ty.name() !=  "$name" {
+                if ty.name() != #name_lit {
                     return false;
                 }
                 match *ty.kind() {
                     postgres_types::Kind::Enum(ref variants) => {
-                        if variants.len() != $nb_variants {
+                        if variants.len() != #nb_variants {
                             return false;
                         }
                         variants.iter().all(|v| match &**v {
-                            $("$db_variants_ident" => true,)
+                            #(#db_variants => true,)*
                             _ => false,
                         })
                     }
@@ -221,18 +302,17 @@ fn enum_sql(w: &mut String, name: &str, enum_name: &str, variants: &[Ident]) {
                 }
             }
         }
-    );
+    }
 }
 
 fn struct_tosql(
-    w: &mut impl Write,
     struct_name: &str,
     fields: &[PreparedField],
     name: &str,
     is_borrow: bool,
     is_params: bool,
     ctx: &GenCtx,
-) {
+) -> proc_macro2::TokenStream {
     let (post, lifetime) = if is_borrow {
         if is_params {
             ("Borrowed", "<'a>")
@@ -242,21 +322,63 @@ fn struct_tosql(
     } else {
         ("", "")
     };
-    let db_fields_ident = fields.iter().map(|p| &p.ident.db);
-    let rs_fields_ident = fields.iter().map(|p| &p.ident.rs);
-    let write_ty = fields.iter().map(|p| p.ty.sql_wrapped(&p.ident.rs));
-    let accept_ty = fields.iter().map(|p| p.ty.accept_to_sql(ctx));
-    let nb_fields = fields.len();
 
-    code!(w =>
-        impl<'a> postgres_types::ToSql for $struct_name$post $lifetime {
+    let struct_name_with_post = format_ident!("{}{}", struct_name, post);
+    let lifetime_tokens = if !lifetime.is_empty() {
+        quote!(<'a>)
+    } else {
+        quote!()
+    };
+
+    let db_fields: Vec<_> = fields
+        .iter()
+        .map(|p| {
+            let s = &p.ident.db;
+            quote!(#s)
+        })
+        .collect();
+
+    let rs_fields: Vec<_> = fields.iter().map(|p| &p.ident.rs).collect();
+    let rs_field_idents: Vec<_> = rs_fields
+        .iter()
+        .map(|&name| format_ident!("{}", name))
+        .collect();
+
+    let write_ty: Vec<proc_macro2::TokenStream> = fields
+        .iter()
+        .map(|p| {
+            let s = p.ty.sql_wrapped(&p.ident.rs);
+            if s.contains("::") || s.contains("(") {
+                syn::parse_str::<syn::Expr>(&s)
+                    .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", s, e))
+                    .into_token_stream()
+            } else {
+                format_ident!("{}", s).into_token_stream()
+            }
+        })
+        .collect();
+
+    let nb_fields = proc_macro2::Literal::usize_unsuffixed(fields.len()).into_token_stream();
+
+    let accept_ty: Vec<_> = fields
+        .iter()
+        .map(|p| p.ty.accept_to_sql(ctx))
+        .map(|ty_str| {
+            syn::parse_str::<syn::Type>(&ty_str)
+                .unwrap()
+                .into_token_stream()
+        })
+        .collect();
+
+    quote! {
+        impl<'a> postgres_types::ToSql for #struct_name_with_post #lifetime_tokens {
             fn to_sql(
                 &self,
                 ty: &postgres_types::Type,
                 out: &mut postgres_types::private::BytesMut,
-            ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>,> {
-                let $struct_name$post {
-                    $($rs_fields_ident,)
+            ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
+                let #struct_name_with_post {
+                    #(#rs_field_idents,)*
                 } = self;
                 let fields = match *ty.kind() {
                     postgres_types::Kind::Composite(ref fields) => fields,
@@ -268,7 +390,7 @@ fn struct_tosql(
                     let base = out.len();
                     out.extend_from_slice(&[0; 4]);
                     let r = match field.name() {
-                        $("$db_fields_ident" => postgres_types::ToSql::to_sql($write_ty,field.type_(), out),)
+                        #(#db_fields => postgres_types::ToSql::to_sql(#write_ty, field.type_(), out),)*
                         _ => unreachable!()
                     };
                     let count = match r? {
@@ -285,23 +407,25 @@ fn struct_tosql(
                 }
                 Ok(postgres_types::IsNull::No)
             }
+
             fn accepts(ty: &postgres_types::Type) -> bool {
-                if ty.name() != "$name" {
+                if ty.name() != #name {
                     return false;
                 }
                 match *ty.kind() {
                     postgres_types::Kind::Composite(ref fields) => {
-                        if fields.len() != $nb_fields {
+                        if fields.len() != #nb_fields {
                             return false;
                         }
                         fields.iter().all(|f| match f.name() {
-                            $("$db_fields_ident" => <$accept_ty as postgres_types::ToSql>::accepts(f.type_()),)
+                            #(#db_fields => <#accept_ty as postgres_types::ToSql>::accepts(f.type_()),)*
                             _ => false,
                         })
                     }
                     _ => false,
                 }
             }
+
             fn to_sql_checked(
                 &self,
                 ty: &postgres_types::Type,
@@ -310,22 +434,28 @@ fn struct_tosql(
                 postgres_types::__to_sql_checked(self, ty, out)
             }
         }
-    );
+    }
 }
 
 fn composite_fromsql(
-    w: &mut String,
     struct_name: &str,
     fields: &[PreparedField],
     name: &str,
     schema: &str,
-) {
-    let field_names = fields.iter().map(|p| &p.ident.rs);
-    let read_idx = 0..fields.len();
-    code!(w =>
-        impl<'a> postgres_types::FromSql<'a> for ${struct_name}Borrowed<'a> {
+) -> proc_macro2::TokenStream {
+    let read_idx: Vec<_> = (0..fields.len()).map(|p| syn::Index::from(p)).collect();
+
+    // Create the complete borrowed type name
+    let struct_name_borrowed = format_ident!("{}Borrowed", struct_name);
+    let field_names_idents: Vec<_> = fields
+        .iter()
+        .map(|p| format_ident!("{}", p.ident.rs))
+        .collect();
+
+    quote! {
+        impl<'a> postgres_types::FromSql<'a> for #struct_name_borrowed<'a> {
             fn from_sql(ty: &postgres_types::Type, out: &'a [u8]) ->
-                Result<${struct_name}Borrowed<'a>, Box<dyn std::error::Error + Sync + Send>>
+                Result<#struct_name_borrowed<'a>, Box<dyn std::error::Error + Sync + Send>>
             {
                 let fields = match *ty.kind() {
                     postgres_types::Kind::Composite(ref fields) => fields,
@@ -337,16 +467,16 @@ fn composite_fromsql(
                     return std::result::Result::Err(
                         std::convert::Into::into(format!("invalid field count: {} vs {}", num_fields, fields.len())));
                 }
-                $(
+                #(
                     let _oid = postgres_types::private::read_be_i32(&mut out)?;
-                    let $field_names = postgres_types::private::read_value(fields[$read_idx].type_(), &mut out)?;
-                )
-                Ok(${struct_name}Borrowed { $($field_names,) })
+                    let #field_names_idents = postgres_types::private::read_value(fields[#read_idx].type_(), &mut out)?;
+                )*
+                Ok(#struct_name_borrowed { #(#field_names_idents,)* })
             }
 
             fn accepts(ty: &postgres_types::Type) -> bool {
-                ty.name() == "$name" && ty.schema() == "$schema"
+                ty.name() == #name && ty.schema() == #schema
             }
         }
-    );
+    }
 }

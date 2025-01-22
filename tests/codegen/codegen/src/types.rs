@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[cfg(feature = "chrono")]
 pub mod time {
     pub type Timestamp = chrono::NaiveDateTime;
@@ -30,7 +28,7 @@ pub struct CloneCompositeBorrowed<'a> {
 impl<'a> From<CloneCompositeBorrowed<'a>> for CloneComposite {
     fn from(CloneCompositeBorrowed { first, second }: CloneCompositeBorrowed<'a>) -> Self {
         Self {
-            first,
+            first: first,
             second: second.into(),
         }
     }
@@ -217,7 +215,7 @@ impl<'a> From<DomainCompositeBorrowed<'a>> for DomainComposite {
         Self {
             txt: txt.into(),
             json: serde_json::from_str(json.0.get()).unwrap(),
-            nb,
+            nb: nb,
             arr: arr
                 .map(|v| serde_json::from_str(v.0.get()).unwrap())
                 .collect(),
@@ -313,13 +311,33 @@ impl<'a> postgres_types::ToSql for DomainCompositeParams<'a> {
                 if fields.len() != 4 {
                     return false;
                 }
-                fields.iter().all(|f| match f.name()
-                {
-                    "txt" => <crate::Domain::<&'a str> as
-                    postgres_types::ToSql>::accepts(f.type_()),"json" => <crate::Domain::<&'a serde_json::value::Value> as
-                    postgres_types::ToSql>::accepts(f.type_()),"nb" => <crate::Domain::<i32> as
-                    postgres_types::ToSql>::accepts(f.type_()),"arr" => <crate::Domain::<crate::DomainArray::<&'a serde_json::value::Value, &[&'a serde_json::value::Value]>> as
-                    postgres_types::ToSql>::accepts(f.type_()),_ => false,
+                fields.iter().all(|f| {
+                    match f.name() {
+                        "txt" => {
+                            <crate::Domain<
+                                &'a str,
+                            > as postgres_types::ToSql>::accepts(f.type_())
+                        }
+                        "json" => {
+                            <crate::Domain<
+                                &'a serde_json::value::Value,
+                            > as postgres_types::ToSql>::accepts(f.type_())
+                        }
+                        "nb" => {
+                            <crate::Domain<
+                                i32,
+                            > as postgres_types::ToSql>::accepts(f.type_())
+                        }
+                        "arr" => {
+                            <crate::Domain<
+                                crate::DomainArray<
+                                    &'a serde_json::value::Value,
+                                    &[&'a serde_json::value::Value],
+                                >,
+                            > as postgres_types::ToSql>::accepts(f.type_())
+                        }
+                        _ => false,
+                    }
                 })
             }
             _ => false,
@@ -350,7 +368,7 @@ impl<'a> From<NamedCompositeBorrowed<'a>> for NamedComposite {
     fn from(NamedCompositeBorrowed { wow, such_cool }: NamedCompositeBorrowed<'a>) -> Self {
         Self {
             wow: wow.map(|v| v.into()),
-            such_cool,
+            such_cool: such_cool,
         }
     }
 }
@@ -606,7 +624,7 @@ impl<'a> From<NullityCompositeBorrowed<'a>> for NullityComposite {
                 v.map(|v| v.map(|v| serde_json::from_str(v.0.get()).unwrap()))
                     .collect()
             }),
-            id,
+            id: id,
         }
     }
 }
@@ -814,8 +832,8 @@ impl<'a> From<CustomCompositeBorrowed<'a>> for CustomComposite {
     ) -> Self {
         Self {
             wow: wow.into(),
-            such_cool,
-            nice,
+            such_cool: such_cool,
+            nice: nice,
         }
     }
 }
@@ -1337,13 +1355,26 @@ pub mod schema {
                     if fields.len() != 3 {
                         return false;
                     }
-                    fields.iter().all(|f| match f.name()
-                {
-                    "custom" => <&'a [super::CustomCompositeBorrowed<'a>] as
-                    postgres_types::ToSql>::accepts(f.type_()),"spongebob" => <&'a [super::SpongebobCharacter] as
-                    postgres_types::ToSql>::accepts(f.type_()),"domain" => <crate::Domain::<&'a str> as
-                    postgres_types::ToSql>::accepts(f.type_()),_ => false,
-                })
+                    fields.iter().all(|f| {
+                        match f.name() {
+                            "custom" => {
+                                <&'a [super::CustomCompositeBorrowed<
+                                    'a,
+                                >] as postgres_types::ToSql>::accepts(f.type_())
+                            }
+                            "spongebob" => {
+                                <&'a [super::SpongebobCharacter] as postgres_types::ToSql>::accepts(
+                                    f.type_(),
+                                )
+                            }
+                            "domain" => {
+                                <crate::Domain<
+                                    &'a str,
+                                > as postgres_types::ToSql>::accepts(f.type_())
+                            }
+                            _ => false,
+                        }
+                    })
                 }
                 _ => false,
             }

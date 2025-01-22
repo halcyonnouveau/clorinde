@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[cfg(feature = "chrono")]
 pub mod time {
     pub type Timestamp = chrono::NaiveDateTime;
@@ -111,7 +109,7 @@ impl<'a> From<VoiceactorBorrowed<'a>> for Voiceactor {
     fn from(VoiceactorBorrowed { name, age }: VoiceactorBorrowed<'a>) -> Self {
         Self {
             name: name.into(),
-            age,
+            age: age,
         }
     }
 }
