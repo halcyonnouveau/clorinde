@@ -429,7 +429,7 @@ fn composite_fromsql(
     name: &str,
     schema: &str,
 ) -> proc_macro2::TokenStream {
-    let read_idx: Vec<_> = (0..fields.len()).map(|p| syn::Index::from(p)).collect();
+    let read_idx: Vec<_> = (0..fields.len()).map(syn::Index::from).collect();
 
     // Create the complete borrowed type name
     let struct_name_borrowed = format_ident!("{}Borrowed", struct_name);

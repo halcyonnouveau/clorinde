@@ -390,12 +390,10 @@ fn gen_query_fn(
         }
     };
 
-    let sql_escaped = sql.replace('"', "\"");
     let name = format_ident!("{}", ident.rs);
-
     let struct_tokens = quote! {
         pub fn #name() -> #stmt_ident {
-            #stmt_ident(#client::Stmt::new(#sql_escaped))
+            #stmt_ident(#client::Stmt::new(#sql))
         }
 
         pub struct #stmt_ident(#client::Stmt);
@@ -444,37 +442,35 @@ fn gen_query_fn(
                         }
                     }
                 }
-            } else {
-                if ctx.is_async {
-                    quote! {
-                        impl<'a, C: GenericClient + Send + Sync, #(#traits_idents: #traits_bounds,)*>
-                            #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
-                                std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>>, C>
-                            for #stmt_ident
-                        {
-                            fn params(
-                                &'a mut self,
-                                client: &'a C,
-                                params: &'a #param_path<#lifetime #(#traits_idents,)*>
-                            ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>> {
-                                Box::pin(self.bind(client, #(&params.#params_name,)*))
-                            }
+            } else if ctx.is_async {
+                quote! {
+                    impl<'a, C: GenericClient + Send + Sync, #(#traits_idents: #traits_bounds,)*>
+                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                            std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>>, C>
+                        for #stmt_ident
+                    {
+                        fn params(
+                            &'a mut self,
+                            client: &'a C,
+                            params: &'a #param_path<#lifetime #(#traits_idents,)*>
+                        ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>> {
+                            Box::pin(self.bind(client, #(&params.#params_name,)*))
                         }
                     }
-                } else {
-                    quote! {
-                        impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
-                            #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
-                                Result<u64, #backend::Error>, C>
-                            for #stmt_ident
-                        {
-                            fn params(
-                                &'a mut self,
-                                client: &'a mut C,
-                                params: &'a #param_path<#lifetime #(#traits_idents,)*>
-                            ) -> Result<u64, #backend::Error> {
-                                self.bind(client, #(&params.#params_name,)*)
-                            }
+                }
+            } else {
+                quote! {
+                    impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
+                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                            Result<u64, #backend::Error>, C>
+                        for #stmt_ident
+                    {
+                        fn params(
+                            &'a mut self,
+                            client: &'a mut C,
+                            params: &'a #param_path<#lifetime #(#traits_idents,)*>
+                        ) -> Result<u64, #backend::Error> {
+                            self.bind(client, #(&params.#params_name,)*)
                         }
                     }
                 }
@@ -561,7 +557,7 @@ fn gen_specific(
     }
 
     for query in module.queries.values() {
-        let query_tokens = gen_query_fn(&module, query, &ctx);
+        let query_tokens = gen_query_fn(module, query, &ctx);
         tokens.extend(quote!(#query_tokens));
     }
 
