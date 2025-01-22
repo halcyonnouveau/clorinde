@@ -39,16 +39,16 @@ pub trait GenericClient: Send + Sync {
     ) -> impl Future<Output = Result<Vec<tokio_postgres::Row>, Error>> + Send
     where
         T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
-    fn query_raw<T, P, I>(
+    fn query_raw<T, I>(
         &self,
         statement: &T,
         params: I,
     ) -> impl Future<Output = Result<RowStream, Error>> + Send
     where
         T: ?Sized + ToStatement + Sync + Send,
-        P: BorrowToSql,
-        I: IntoIterator<Item = P> + Sync + Send,
-        I::IntoIter: ExactSizeIterator;
+        I: IntoIterator + Sync + Send,
+        I::IntoIter: ExactSizeIterator,
+        I::Item: BorrowToSql;
 }
 impl GenericClient for Transaction<'_> {
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {
@@ -94,12 +94,12 @@ impl GenericClient for Transaction<'_> {
     {
         Transaction::query(self, query, params).await
     }
-    async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+    async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
     where
         T: ?Sized + ToStatement + Sync + Send,
-        P: BorrowToSql,
-        I: IntoIterator<Item = P> + Sync + Send,
+        I: IntoIterator + Sync + Send,
         I::IntoIter: ExactSizeIterator,
+        I::Item: BorrowToSql,
     {
         Transaction::query_raw(self, statement, params).await
     }
@@ -148,12 +148,12 @@ impl GenericClient for Client {
     {
         Client::query(self, query, params).await
     }
-    async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+    async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
     where
         T: ?Sized + ToStatement + Sync + Send,
-        P: BorrowToSql,
-        I: IntoIterator<Item = P> + Sync + Send,
+        I: IntoIterator + Sync + Send,
         I::IntoIter: ExactSizeIterator,
+        I::Item: BorrowToSql,
     {
         Client::query_raw(self, statement, params).await
     }

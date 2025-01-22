@@ -609,16 +609,16 @@ pub fn async_generic_client() -> String {
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
 
-            fn query_raw<T, P, I>(
+            fn query_raw<T, I>(
                 &self,
                 statement: &T,
                 params: I,
             ) -> impl Future<Output = Result<RowStream, Error>> + Send
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
-                I::IntoIter: ExactSizeIterator;
+                I: IntoIterator + Sync + Send,
+                I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql;
         }
 
         impl GenericClient for Transaction<'_> {
@@ -670,12 +670,12 @@ pub fn async_generic_client() -> String {
                 Transaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 Transaction::query_raw(self, statement, params).await
             }
@@ -730,12 +730,12 @@ pub fn async_generic_client() -> String {
                 Client::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 Client::query_raw(self, statement, params).await
             }
@@ -807,12 +807,12 @@ pub fn async_deadpool() -> String {
                 PgClient::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 PgClient::query_raw(self, statement, params).await
             }
@@ -867,12 +867,12 @@ pub fn async_deadpool() -> String {
                 PgTransaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 PgTransaction::query_raw(self, statement, params).await
             }
