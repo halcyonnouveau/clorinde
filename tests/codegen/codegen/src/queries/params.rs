@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[derive(Debug)]
 pub struct InsertBookParams<T1: crate::StringSql, T2: crate::StringSql> {
     pub author: Option<T1>,
@@ -198,7 +196,7 @@ pub mod sync {
                     name: row.get(0),
                     author: row.get(1),
                 },
-                mapper: |it| <super::SelectBook>::from(it),
+                mapper: |it| super::SelectBook::from(it),
             }
         }
     }
@@ -222,7 +220,7 @@ pub mod sync {
                     name: row.get(0),
                     author: row.get(1),
                 },
-                mapper: |it| <super::FindBooks>::from(it),
+                mapper: |it| super::FindBooks::from(it),
             }
         }
     }
@@ -439,7 +437,7 @@ pub mod async_ {
                     name: row.get(0),
                     author: row.get(1),
                 },
-                mapper: |it| <super::SelectBook>::from(it),
+                mapper: |it| super::SelectBook::from(it),
             }
         }
     }
@@ -463,7 +461,7 @@ pub mod async_ {
                     name: row.get(0),
                     author: row.get(1),
                 },
-                mapper: |it| <super::FindBooks>::from(it),
+                mapper: |it| super::FindBooks::from(it),
             }
         }
     }

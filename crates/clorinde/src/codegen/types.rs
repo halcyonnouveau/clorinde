@@ -77,8 +77,8 @@ fn gen_custom_type(
     } = prepared;
 
     let struct_name_ident = format_ident!("{}", struct_name);
-    let struct_name_ident_borrowed = format_ident!("{}Borrowed", struct_name);
-    let struct_name_ident_params = format_ident!("{}Params", struct_name);
+    let struct_name_borrowed_ident = format_ident!("{}Borrowed", struct_name);
+    let struct_name_params_ident = format_ident!("{}Params", struct_name);
     let name_lit = syn::LitStr::new(name, proc_macro2::Span::call_site());
 
     let copy_attr = if *is_copy { quote!(Copy,) } else { quote!() };
@@ -146,28 +146,19 @@ fn gen_custom_type(
                     .map(|p| syn::parse_str::<syn::Type>(&p.brw_ty(true, ctx)).unwrap())
                     .collect();
 
-                let field_assignments = fields.iter().map(|p| {
-                    let field_name = format_ident!("{}", p.ident.rs);
-                    let call = p.owning_call(None);
-                    if call == p.ident.rs {
-                        quote!(#field_name: #field_name)
-                    } else {
-                        let call_expr = syn::parse_str::<syn::Expr>(&call).unwrap();
-                        quote!(#field_name: #call_expr)
-                    }
-                });
+                let field_assignments = fields.iter().map(|p| p.owning_assign());
 
                 let borrowed_struct = quote! {
                     #[derive(Debug)]
-                    pub struct #struct_name_ident_borrowed<'a> {
+                    pub struct #struct_name_borrowed_ident<'a> {
                         #(pub #fields_name: #fields_brw,)*
                     }
 
-                    impl<'a> From<#struct_name_ident_borrowed<'a>> for #struct_name_ident {
+                    impl<'a> From<#struct_name_borrowed_ident<'a>> for #struct_name_ident {
                         fn from(
-                            #struct_name_ident_borrowed {
+                            #struct_name_borrowed_ident {
                                 #(#fields_name,)*
-                            }: #struct_name_ident_borrowed<'a>,
+                            }: #struct_name_borrowed_ident<'a>,
                         ) -> Self {
                             Self {
                                 #(#field_assignments,)*
@@ -192,7 +183,7 @@ fn gen_custom_type(
 
                     quote! {
                         #[derive(Debug #derive)]
-                        pub struct #struct_name_ident_params<'a> {
+                        pub struct #struct_name_params_ident<'a> {
                             #(pub #fields_name: #fields_ty,)*
                         }
                     }

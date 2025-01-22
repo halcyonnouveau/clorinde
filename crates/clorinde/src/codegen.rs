@@ -1,5 +1,6 @@
 use core::str;
 
+use self::{types::gen_type_modules, vfs::Vfs};
 use crate::{
     config::Config,
     prepare_queries::{Preparation, PreparedField},
@@ -12,8 +13,7 @@ mod types;
 mod vfs;
 
 pub use cargo::DependencyAnalysis;
-
-use self::{types::gen_type_modules, vfs::Vfs};
+use quote::{format_ident, quote};
 
 const WARNING: &str = "// This file was generated with `clorinde`. Do not modify.\n\n";
 
@@ -119,12 +119,14 @@ impl PreparedField {
         )
     }
 
-    pub fn owning_assign(&self) -> String {
+    pub fn owning_assign(&self) -> proc_macro2::TokenStream {
         let call = self.owning_call(None);
+        let field_name = format_ident!("{}", self.ident.rs);
         if call == self.ident.rs {
-            call
+            quote!(#field_name: #field_name)
         } else {
-            format!("{}: {call}", self.ident.rs)
+            let call_expr = syn::parse_str::<syn::Expr>(&call).unwrap();
+            quote!(#field_name: #call_expr)
         }
     }
 }

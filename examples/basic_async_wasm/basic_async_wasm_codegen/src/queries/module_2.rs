@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[derive(Debug)]
 pub struct AuthorNameStartingWithParams<T1: crate::StringSql> {
     pub start_str: T1,
@@ -18,7 +16,7 @@ pub struct AuthorsBorrowed<'a> {
 impl<'a> From<AuthorsBorrowed<'a>> for Authors {
     fn from(AuthorsBorrowed { id, name, country }: AuthorsBorrowed<'a>) -> Self {
         Self {
-            id,
+            id: id,
             name: name.into(),
             country: country.into(),
         }
@@ -47,9 +45,9 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }: AuthorNameStartingWithBorrowed<'a>,
     ) -> Self {
         Self {
-            authorid,
+            authorid: authorid,
             name: name.into(),
-            bookid,
+            bookid: bookid,
             title: title.into(),
         }
     }
@@ -349,10 +347,7 @@ where
 }
 pub fn authors() -> AuthorsStmt {
     AuthorsStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    *
-FROM
-    Author",
+        "SELECT\n    *\nFROM\n    Author",
     ))
 }
 pub struct AuthorsStmt(crate::client::async_::Stmt);
@@ -370,16 +365,13 @@ impl AuthorsStmt {
                 name: row.get(1),
                 country: row.get(2),
             },
-            mapper: |it| <Authors>::from(it),
+            mapper: |it| Authors::from(it),
         }
     }
 }
 pub fn books() -> BooksStmt {
     BooksStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    Title
-FROM
-    Book",
+        "SELECT\n    Title\nFROM\n    Book",
     ))
 }
 pub struct BooksStmt(crate::client::async_::Stmt);
@@ -399,12 +391,7 @@ impl BooksStmt {
 }
 pub fn author_name_by_id() -> AuthorNameByIdStmt {
     AuthorNameByIdStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    Author.Name
-FROM
-    Author
-WHERE
-    Author.Id = $1",
+        "SELECT\n    Author.Name\nFROM\n    Author\nWHERE\n    Author.Id = $1",
     ))
 }
 pub struct AuthorNameByIdStmt(crate::client::async_::Stmt);
@@ -424,19 +411,11 @@ impl AuthorNameByIdStmt {
     }
 }
 pub fn author_name_starting_with() -> AuthorNameStartingWithStmt {
-    AuthorNameStartingWithStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    BookAuthor.AuthorId,
-    Author.Name,
-    BookAuthor.BookId,
-    Book.Title
-FROM
-    BookAuthor
-    INNER JOIN Author ON Author.id = BookAuthor.AuthorId
-    INNER JOIN Book ON Book.Id = BookAuthor.BookId
-WHERE
-    Author.Name LIKE CONCAT($1::text, '%')",
-    ))
+    AuthorNameStartingWithStmt(
+        crate::client::async_::Stmt::new(
+            "SELECT\n    BookAuthor.AuthorId,\n    Author.Name,\n    BookAuthor.BookId,\n    Book.Title\nFROM\n    BookAuthor\n    INNER JOIN Author ON Author.id = BookAuthor.AuthorId\n    INNER JOIN Book ON Book.Id = BookAuthor.BookId\nWHERE\n    Author.Name LIKE CONCAT($1::text, '%')",
+        ),
+    )
 }
 pub struct AuthorNameStartingWithStmt(crate::client::async_::Stmt);
 impl AuthorNameStartingWithStmt {
@@ -455,7 +434,7 @@ impl AuthorNameStartingWithStmt {
                 bookid: row.get(2),
                 title: row.get(3),
             },
-            mapper: |it| <AuthorNameStartingWith>::from(it),
+            mapper: |it| AuthorNameStartingWith::from(it),
         }
     }
 }
@@ -477,12 +456,7 @@ impl<'a, C: GenericClient, T1: crate::StringSql>
 }
 pub fn select_voice_actor_with_character() -> SelectVoiceActorWithCharacterStmt {
     SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    voice_actor
-FROM
-    SpongeBobVoiceActor
-WHERE
-    character = $1",
+        "SELECT\n    voice_actor\nFROM\n    SpongeBobVoiceActor\nWHERE\n    character = $1",
     ))
 }
 pub struct SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt);
@@ -503,11 +477,7 @@ impl SelectVoiceActorWithCharacterStmt {
 }
 pub fn select_translations() -> SelectTranslationsStmt {
     SelectTranslationsStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    Title,
-    Translations
-FROM
-    Book",
+        "SELECT\n    Title,\n    Translations\nFROM\n    Book",
     ))
 }
 pub struct SelectTranslationsStmt(crate::client::async_::Stmt);
@@ -524,7 +494,7 @@ impl SelectTranslationsStmt {
                 title: row.get(0),
                 translations: row.get(1),
             },
-            mapper: |it| <SelectTranslations>::from(it),
+            mapper: |it| SelectTranslations::from(it),
         }
     }
 }

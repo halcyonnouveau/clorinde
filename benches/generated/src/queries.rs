@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 pub mod bench;
 pub mod sync {
     pub mod bench {

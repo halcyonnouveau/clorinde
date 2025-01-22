@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[derive(Debug)]
 pub struct InsertNightmareDomainParams<
     'a,
@@ -34,7 +32,7 @@ impl<'a> From<SelectNightmareDomainBorrowed<'a>> for SelectNightmareDomain {
         Self {
             txt: txt.into(),
             json: serde_json::from_str(json.0.get()).unwrap(),
-            nb,
+            nb: nb,
             arr: arr
                 .map(|v| serde_json::from_str(v.0.get()).unwrap())
                 .collect(),
@@ -71,7 +69,7 @@ impl<'a> From<SelectNightmareDomainNullBorrowed<'a>> for SelectNightmareDomainNu
         Self {
             txt: txt.map(|v| v.into()),
             json: json.map(|v| serde_json::from_str(v.0.get()).unwrap()),
-            nb,
+            nb: nb,
             arr: arr.map(|v| {
                 v.map(|v| v.map(|v| serde_json::from_str(v.0.get()).unwrap()))
                     .collect()
@@ -205,12 +203,16 @@ pub mod sync {
                     nb: row.get(2),
                     arr: row.get(3),
                 },
-                mapper: |it| <super::SelectNightmareDomain>::from(it),
+                mapper: |it| super::SelectNightmareDomain::from(it),
             }
         }
     }
     pub fn insert_nightmare_domain() -> InsertNightmareDomainStmt {
-        InsertNightmareDomainStmt(crate::client::sync::Stmt::new("INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)"))
+        InsertNightmareDomainStmt(
+            crate::client::sync::Stmt::new(
+                "INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)",
+            ),
+        )
     }
     pub struct InsertNightmareDomainStmt(crate::client::sync::Stmt);
     impl InsertNightmareDomainStmt {
@@ -295,7 +297,7 @@ pub mod sync {
                     arr: row.get(3),
                     composite: row.get(4),
                 },
-                mapper: |it| <super::SelectNightmareDomainNull>::from(it),
+                mapper: |it| super::SelectNightmareDomainNull::from(it),
             }
         }
     }
@@ -434,12 +436,16 @@ pub mod async_ {
                     nb: row.get(2),
                     arr: row.get(3),
                 },
-                mapper: |it| <super::SelectNightmareDomain>::from(it),
+                mapper: |it| super::SelectNightmareDomain::from(it),
             }
         }
     }
     pub fn insert_nightmare_domain() -> InsertNightmareDomainStmt {
-        InsertNightmareDomainStmt(crate::client::async_::Stmt::new("INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)"))
+        InsertNightmareDomainStmt(
+            crate::client::async_::Stmt::new(
+                "INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)",
+            ),
+        )
     }
     pub struct InsertNightmareDomainStmt(crate::client::async_::Stmt);
     impl InsertNightmareDomainStmt {
@@ -530,7 +536,7 @@ pub mod async_ {
                     arr: row.get(3),
                     composite: row.get(4),
                 },
-                mapper: |it| <super::SelectNightmareDomainNull>::from(it),
+                mapper: |it| super::SelectNightmareDomainNull::from(it),
             }
         }
     }

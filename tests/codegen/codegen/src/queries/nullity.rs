@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[derive(Debug)]
 pub struct NullityParams<
     'a,
@@ -151,7 +149,7 @@ pub mod sync {
                     name: row.get(1),
                     composite: row.get(2),
                 },
-                mapper: |it| <super::Nullity>::from(it),
+                mapper: |it| super::Nullity::from(it),
             }
         }
     }
@@ -279,7 +277,7 @@ pub mod async_ {
                     name: row.get(1),
                     composite: row.get(2),
                 },
-                mapper: |it| <super::Nullity>::from(it),
+                mapper: |it| super::Nullity::from(it),
             }
         }
     }

@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
 pub struct StringQuery<'a, C: GenericClient, T, const N: usize> {
@@ -56,10 +54,7 @@ where
 }
 pub fn example_query() -> ExampleQueryStmt {
     ExampleQueryStmt(crate::client::async_::Stmt::new(
-        "SELECT
-    *
-FROM
-    example_table",
+        "SELECT\n    *\nFROM\n    example_table",
     ))
 }
 pub struct ExampleQueryStmt(crate::client::async_::Stmt);

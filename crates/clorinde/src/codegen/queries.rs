@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use codegen_template::code;
+use quote::{format_ident, quote, ToTokens};
 
 use crate::{
     codegen::ModCtx,
@@ -10,81 +11,127 @@ use crate::{
 
 use super::{idx_char, vfs::Vfs, GenCtx, WARNING};
 
-fn gen_params_struct(w: &mut impl Write, params: &PreparedItem, ctx: &GenCtx) {
+fn gen_params_struct(params: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     let PreparedItem {
         name,
         fields,
         is_copy,
-        is_named,
         is_ref,
         ..
     } = params;
-    if *is_named {
-        let traits = &mut Vec::new();
 
-        let copy = if *is_copy { "Clone,Copy," } else { "" };
-        let lifetime = if *is_ref { "'a," } else { "" };
-        let fields_ty = fields
-            .iter()
-            .map(|p| p.param_ergo_ty(traits, ctx))
-            .collect::<Vec<_>>();
-        let fields_name = fields.iter().map(|p| &p.ident.rs);
-        let traits_idx = (1..=traits.len()).map(idx_char);
-        code!(w =>
-            #[derive($copy Debug)]
-            pub struct $name<$lifetime $($traits_idx: $traits,)> {
-                $(pub $fields_name: $fields_ty,)
-            }
-        );
+    let traits = &mut Vec::new();
+    let name_ident = format_ident!("{}", name.to_string());
+
+    let copy_attr = if *is_copy {
+        quote!(Clone, Copy,)
+    } else {
+        quote!()
+    };
+
+    let lifetime_param = if *is_ref { quote!('a,) } else { quote!() };
+
+    let fields_ty: Vec<_> = fields
+        .iter()
+        .map(|p| syn::parse_str::<syn::Type>(&p.param_ergo_ty(traits, ctx)).unwrap())
+        .collect();
+
+    let fields_name: Vec<_> = fields
+        .iter()
+        .map(|p| format_ident!("{}", p.ident.rs))
+        .collect();
+
+    let traits_idx: Vec<_> = (1..=traits.len())
+        .map(|i| format_ident!("{}", idx_char(i)))
+        .collect();
+
+    let trait_bounds: Vec<_> = traits
+        .iter()
+        .map(|t| syn::parse_str::<syn::Type>(t).unwrap())
+        .collect();
+
+    quote! {
+        #[derive(#copy_attr Debug)]
+        pub struct #name_ident<#lifetime_param #(#traits_idx: #trait_bounds,)*> {
+            #(pub #fields_name: #fields_ty,)*
+        }
     }
 }
 
-fn gen_row_structs(w: &mut impl Write, row: &PreparedItem, ctx: &GenCtx) {
+fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     let PreparedItem {
         name,
         fields,
         is_copy,
-        is_named,
         ..
     } = row;
-    if *is_named {
-        // Generate row struct
-        let fields_name = fields.iter().map(|p| &p.ident.rs);
-        let fields_ty = fields.iter().map(|p| p.own_struct(ctx));
-        let copy = if *is_copy { "Copy" } else { "" };
-        let ser_str = if ctx.gen_derive {
-            "serde::Serialize,"
-        } else {
-            ""
-        };
-        code!(w =>
-            #[derive($ser_str Debug, Clone, PartialEq, $copy)]
-            pub struct $name {
-                $(pub $fields_name : $fields_ty,)
-            }
-        );
 
-        if !is_copy {
-            let fields_name = fields.iter().map(|p| &p.ident.rs);
-            let fields_ty = fields.iter().map(|p| p.brw_ty(true, ctx));
-            let from_own_assign = fields.iter().map(|f| f.owning_assign());
-            code!(w =>
-                pub struct ${name}Borrowed<'a> {
-                    $(pub $fields_name : $fields_ty,)
-                }
-                impl<'a> From<${name}Borrowed<'a>> for $name {
-                    fn from(${name}Borrowed { $($fields_name,) }: ${name}Borrowed<'a>) -> Self {
-                        Self {
-                            $($from_own_assign,)
-                        }
+    let name_ident = format_ident!("{}", name.to_string());
+
+    // Generate fields
+    let fields_name: Vec<_> = fields
+        .iter()
+        .map(|p| format_ident!("{}", p.ident.rs))
+        .collect();
+
+    let fields_ty: Vec<_> = fields
+        .iter()
+        .map(|p| syn::parse_str::<syn::Type>(&p.own_struct(ctx)).unwrap())
+        .collect();
+
+    let copy_attr = if *is_copy { quote!(, Copy) } else { quote!() };
+
+    let ser_attr = if ctx.gen_derive {
+        quote!(serde::Serialize,)
+    } else {
+        quote!()
+    };
+
+    let main_struct = quote! {
+        #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr)]
+        pub struct #name_ident {
+            #(pub #fields_name: #fields_ty,)*
+        }
+    };
+
+    let borrowed_impl = if !is_copy {
+        let borrowed_name = format_ident!("{}Borrowed", name.to_string());
+
+        let borrowed_fields_ty: Vec<_> = fields
+            .iter()
+            .map(|p| syn::parse_str::<syn::Type>(&p.brw_ty(true, ctx)).unwrap())
+            .collect();
+
+        let field_assignments = fields.iter().map(|f| f.owning_assign());
+
+        quote! {
+            pub struct #borrowed_name<'a> {
+                #(pub #fields_name: #borrowed_fields_ty,)*
+            }
+
+            impl<'a> From<#borrowed_name<'a>> for #name_ident {
+                fn from(
+                    #borrowed_name {
+                        #(#fields_name,)*
+                    }: #borrowed_name<'a>
+                ) -> Self {
+                    Self {
+                        #(#field_assignments,)*
                     }
                 }
-            );
-        };
+            }
+        }
+    } else {
+        quote!()
+    };
+
+    quote! {
+        #main_struct
+        #borrowed_impl
     }
 }
 
-fn gen_row_query(w: &mut impl Write, row: &PreparedItem, ctx: &GenCtx) {
+fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     let PreparedItem {
         name,
         fields,
@@ -92,95 +139,108 @@ fn gen_row_query(w: &mut impl Write, row: &PreparedItem, ctx: &GenCtx) {
         is_named,
         ..
     } = row;
-    // Generate query struct
-    let borrowed_str = if *is_copy { "" } else { "Borrowed" };
+
+    let name_ident = format_ident!("{}Query", name.to_string());
+    let borrowed_suffix = if *is_copy { "" } else { "Borrowed" };
+
     let (client_mut, fn_async, fn_await, backend, collect, raw_type, raw_pre, raw_post) =
         if ctx.is_async {
             (
-                "",
-                "async",
-                ".await",
-                "tokio_postgres",
-                "try_collect().await",
-                "futures::Stream",
-                "",
-                ".into_stream()",
+                quote!(),
+                quote!(async),
+                quote!(.await),
+                quote!(tokio_postgres),
+                quote!(try_collect().await),
+                quote!(futures::Stream),
+                quote!(),
+                quote!(.into_stream()),
             )
         } else {
             (
-                "mut",
-                "",
-                "",
-                "postgres",
-                "collect()",
-                "Iterator",
-                ".iterator()",
-                "",
+                quote!(mut),
+                quote!(),
+                quote!(),
+                quote!(postgres),
+                quote!(collect()),
+                quote!(Iterator),
+                quote!(.iterator()),
+                quote!(),
             )
         };
-    let client = ctx.client_name();
+
+    let client = syn::parse_str::<syn::Path>(ctx.client_name()).unwrap();
 
     let row_struct = if *is_named {
-        format!("{}{borrowed_str}", row.path(ctx))
+        let path = format!("{}{}", row.path(ctx), borrowed_suffix);
+        syn::parse_str::<syn::Type>(&path).unwrap()
     } else {
-        fields[0].brw_ty(false, ctx)
+        syn::parse_str::<syn::Type>(&fields[0].brw_ty(false, ctx)).unwrap()
     };
 
-    code!(w =>
-    pub struct ${name}Query<'a, C: GenericClient, T, const N: usize> {
-        client: &'a $client_mut C,
-        params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut $client::Stmt,
-        extractor: fn(&$backend::Row) -> $row_struct,
-        mapper: fn($row_struct) -> T,
-    }
-    impl<'a, C, T:'a, const N: usize> ${name}Query<'a, C, T, N> where C: GenericClient {
-        pub fn map<R>(self, mapper: fn($row_struct) -> R) -> ${name}Query<'a,C,R,N> {
-            ${name}Query {
-                client: self.client,
-                params: self.params,
-                stmt: self.stmt,
-                extractor: self.extractor,
-                mapper,
+    quote! {
+        pub struct #name_ident<'a, C: GenericClient, T, const N: usize> {
+            client: &'a #client_mut C,
+            params: [&'a (dyn postgres_types::ToSql + Sync); N],
+            stmt: &'a mut #client::Stmt,
+            extractor: fn(&#backend::Row) -> #row_struct,
+            mapper: fn(#row_struct) -> T,
+        }
+
+        impl<'a, C, T: 'a, const N: usize> #name_ident<'a, C, T, N>
+        where
+            C: GenericClient,
+        {
+            pub fn map<R>(self, mapper: fn(#row_struct) -> R) -> #name_ident<'a, C, R, N> {
+                #name_ident {
+                    client: self.client,
+                    params: self.params,
+                    stmt: self.stmt,
+                    extractor: self.extractor,
+                    mapper,
+                }
+            }
+
+            pub #fn_async fn one(self) -> Result<T, #backend::Error> {
+                let stmt = self.stmt.prepare(self.client)#fn_await?;
+                let row = self.client.query_one(stmt, &self.params)#fn_await?;
+                Ok((self.mapper)((self.extractor)(&row)))
+            }
+
+            pub #fn_async fn all(self) -> Result<Vec<T>, #backend::Error> {
+                self.iter()#fn_await?. #collect
+            }
+
+            pub #fn_async fn opt(self) -> Result<Option<T>, #backend::Error> {
+                let stmt = self.stmt.prepare(self.client)#fn_await?;
+                Ok(self
+                    .client
+                    .query_opt(stmt, &self.params)
+                    #fn_await?
+                    .map(|row| (self.mapper)((self.extractor)(&row))))
+            }
+
+            pub #fn_async fn iter(
+                self,
+            ) -> Result<impl #raw_type<Item = Result<T, #backend::Error>> + 'a, #backend::Error> {
+                let stmt = self.stmt.prepare(self.client)#fn_await?;
+                let it = self
+                    .client
+                    .query_raw(stmt, crate::slice_iter(&self.params))
+                    #fn_await?
+                    #raw_pre
+                    .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+                    #raw_post;
+                Ok(it)
             }
         }
-
-        pub $fn_async fn one(self) -> Result<T, $backend::Error> {
-            let stmt = self.stmt.prepare(self.client)$fn_await?;
-            let row = self.client.query_one(stmt, &self.params)$fn_await?;
-            Ok((self.mapper)((self.extractor)(&row)))
-        }
-
-        pub $fn_async fn all(self) -> Result<Vec<T>, $backend::Error> {
-            self.iter()$fn_await?.$collect
-        }
-
-        pub $fn_async fn opt(self) -> Result<Option<T>, $backend::Error> {
-            let stmt = self.stmt.prepare(self.client)$fn_await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                $fn_await?
-                .map(|row| (self.mapper)((self.extractor)(&row))))
-        }
-
-        pub $fn_async fn iter(
-            self,
-        ) -> Result<impl $raw_type<Item = Result<T, $backend::Error>> + 'a, $backend::Error> {
-            let stmt = self.stmt.prepare(self.client)$fn_await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                $fn_await?
-                $raw_pre
-                .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
-                $raw_post;
-            Ok(it)
-        }
-    });
+    }
 }
 
-fn gen_query_fn<W: Write>(w: &mut W, module: &PreparedModule, query: &PreparedQuery, ctx: &GenCtx) {
+fn gen_query_fn(
+    module: &PreparedModule,
+    query: &PreparedQuery,
+    ctx: &GenCtx,
+) -> proc_macro2::TokenStream {
     let PreparedQuery {
         ident,
         row,
@@ -188,14 +248,22 @@ fn gen_query_fn<W: Write>(w: &mut W, module: &PreparedModule, query: &PreparedQu
         param,
     } = query;
 
-    let (client_mut, fn_async, fn_await, backend) = if ctx.is_async {
-        ("", "async", ".await", "tokio_postgres")
-    } else {
-        ("mut", "", "", "postgres")
-    };
-    let client = ctx.client_name();
+    let stmt_ident = format_ident!("{}Stmt", ident.type_ident());
 
-    let struct_name = ident.type_ident();
+    let (client_mut, fn_async, fn_await, backend) = if ctx.is_async {
+        (
+            quote!(),
+            quote!(async),
+            quote!(.await),
+            quote!(tokio_postgres),
+        )
+    } else {
+        (quote!(mut), quote!(), quote!(), quote!(postgres))
+    };
+
+    let client = syn::parse_str::<syn::Path>(ctx.client_name()).unwrap();
+
+    // Handle parameters
     let (param, param_field, order) = match param {
         Some((idx, order)) => {
             let it = module.params.get_index(*idx).unwrap().1;
@@ -203,261 +271,360 @@ fn gen_query_fn<W: Write>(w: &mut W, module: &PreparedModule, query: &PreparedQu
         }
         None => (None, [].as_slice(), [].as_slice()),
     };
+
     let traits = &mut Vec::new();
     let params_ty: Vec<_> = order
         .iter()
-        .map(|idx| param_field[*idx].param_ergo_ty(traits, ctx))
+        .map(|idx| {
+            syn::parse_str::<syn::Type>(&param_field[*idx].param_ergo_ty(traits, ctx)).unwrap()
+        })
         .collect();
-    let params_name = order.iter().map(|idx| &param_field[*idx].ident.rs);
-    let traits_idx = (1..=traits.len()).map(idx_char);
-    let lazy_impl = |w: &mut W| {
-        if let Some((idx, index)) = row {
-            let item = module.rows.get_index(*idx).unwrap().1;
-            let PreparedItem {
-                name: row_name,
-                fields,
-                is_copy,
-                is_named,
-                ..
-            } = &item;
-            // Query fn
-            let nb_params = param_field.len();
 
-            // TODO find a way to clean this mess
-            #[allow(clippy::type_complexity)]
-            let (row_struct_name, extractor, mapper): (_, Box<dyn Fn(&mut W)>, _) = if *is_named {
-                let path = item.path(ctx);
-                let mut mapper = String::new();
-                code!(mapper => <$path>::from(it));
-                (
-                    path.clone(),
-                    Box::new(|w: _| {
-                        let path = item.path(ctx);
-                        let post = if *is_copy { "" } else { "Borrowed" };
-                        let fields_name = fields.iter().map(|p| &p.ident.rs);
-                        let fields_idx = (0..fields.len()).map(|i| index[i]);
-                        code!(w => $path$post {
-                            $($fields_name: row.get($fields_idx),)
-                        })
-                    }),
-                    mapper,
-                )
-            } else {
-                let field = &fields[0];
-                (
-                    field.own_struct(ctx),
-                    Box::new(|w: _| code!(w => row.get(0))),
-                    field.owning_call(Some("it")),
-                )
+    let params_name: Vec<_> = order
+        .iter()
+        .map(|idx| format_ident!("{}", param_field[*idx].ident.rs))
+        .collect();
+
+    let traits_bounds: Vec<_> = traits
+        .iter()
+        .map(|t| syn::parse_str::<syn::Type>(t).unwrap())
+        .collect();
+
+    let traits_idents: Vec<_> = (1..=traits.len())
+        .map(|i| format_ident!("{}", idx_char(i)))
+        .collect();
+
+    let impl_tokens = if let Some((idx, index)) = row {
+        let item = module.rows.get_index(*idx).unwrap().1;
+        let PreparedItem {
+            name: row_name,
+            fields,
+            is_copy,
+            is_named,
+            ..
+        } = &item;
+
+        let nb_params = proc_macro2::Literal::usize_unsuffixed(param_field.len());
+        let row_name_query_ident = format_ident!("{}Query", row_name.to_string());
+
+        if *is_named {
+            let path_str = &item.path(ctx);
+            let path = syn::parse_str::<syn::Path>(path_str).unwrap();
+            let path_type = syn::parse_str::<syn::Path>(&format!(
+                "{}{}",
+                path_str,
+                if *is_copy { "" } else { "Borrowed" }
+            ))
+            .unwrap();
+
+            let fields_name: Vec<_> = fields
+                .iter()
+                .map(|p| format_ident!("{}", p.ident.rs))
+                .collect();
+
+            let fields_idx: Vec<_> = (0..fields.len())
+                .map(|i| proc_macro2::Literal::usize_unsuffixed(index[i]))
+                .collect();
+
+            let extractor = quote! {
+                |row| #path_type {
+                    #(#fields_name: row.get(#fields_idx),)*
+                }
             };
 
-            code!(w =>
-                pub fn bind<'a, C: GenericClient,$($traits_idx: $traits,)>(&'a mut self, client: &'a $client_mut C, $($params_name: &'a $params_ty,) ) -> ${row_name}Query<'a,C, $row_struct_name, $nb_params> {
-                    ${row_name}Query {
+            let mapper = quote! {
+                |it| #path::from(it)
+            };
+
+            quote! {
+                pub fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                    &'a mut self,
+                    client: &'a #client_mut C,
+                    #(#params_name: &'a #params_ty,)*
+                ) -> #row_name_query_ident<'a, C, #path, #nb_params> {
+                    #row_name_query_ident {
                         client,
-                        params: [$($params_name,)],
+                        params: [#(#params_name,)*],
                         stmt: &mut self.0,
-                        extractor: |row| { $!extractor },
-                        mapper: |it| { $mapper },
+                        extractor: #extractor,
+                        mapper: #mapper,
                     }
                 }
-            );
+            }
         } else {
-            // Execute fn
-            let params_wrap = order.iter().map(|idx| {
-                let p = &param_field[*idx];
-                p.ty.sql_wrapped(&p.ident.rs)
-            });
-            code!(w =>
-                pub $fn_async fn bind<'a, C: GenericClient,$($traits_idx: $traits,)>(&'a mut self, client: &'a $client_mut C, $($params_name: &'a $params_ty,)) -> Result<u64, $backend::Error> {
-                    let stmt = self.0.prepare(client)$fn_await?;
-                    client.execute(stmt, &[ $($params_wrap,) ])$fn_await
+            let field = &fields[0];
+            let field_type = syn::parse_str::<syn::Type>(&field.own_struct(ctx)).unwrap();
+            let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
+
+            quote! {
+                pub fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                    &'a mut self,
+                    client: &'a #client_mut C,
+                    #(#params_name: &'a #params_ty,)*
+                ) -> #row_name_query_ident<'a, C, #field_type, #nb_params> {
+                    #row_name_query_ident {
+                        client,
+                        params: [#(#params_name,)*],
+                        stmt: &mut self.0,
+                        extractor: |row| row.get(0),
+                        mapper: |it| #owning_call,
+                    }
                 }
-            );
+            }
+        }
+    } else {
+        let params_wrap: Vec<_> = order
+            .iter()
+            .map(|idx| {
+                let p = &param_field[*idx];
+                syn::parse_str::<syn::Expr>(&p.ty.sql_wrapped(&p.ident.rs)).unwrap()
+            })
+            .collect();
+
+        quote! {
+            pub #fn_async fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                &'a mut self,
+                client: &'a #client_mut C,
+                #(#params_name: &'a #params_ty,)*
+            ) -> Result<u64, #backend::Error> {
+                let stmt = self.0.prepare(client)#fn_await?;
+                client.execute(stmt, &[#(#params_wrap,)*])#fn_await
+            }
         }
     };
-    // Gen statement struct
-    {
-        let sql = sql.replace('"', "\\\""); // Rust string format escaping
-        let name = &ident.rs;
-        code!(w =>
-            pub fn $name() -> ${struct_name}Stmt {
-                ${struct_name}Stmt($client::Stmt::new("$sql"))
-            }
-            pub struct ${struct_name}Stmt($client::Stmt);
-            impl ${struct_name}Stmt {
-                $!lazy_impl
-            }
-        );
-    }
 
-    // Param impl
-    if let Some(param) = param {
+    let sql_escaped = sql.replace('"', "\"");
+    let name = format_ident!("{}", ident.rs);
+
+    let struct_tokens = quote! {
+        pub fn #name() -> #stmt_ident {
+            #stmt_ident(#client::Stmt::new(#sql_escaped))
+        }
+
+        pub struct #stmt_ident(#client::Stmt);
+
+        impl #stmt_ident {
+            #impl_tokens
+        }
+    };
+
+    let param_impl = if let Some(param) = param {
         if param.is_named {
-            let param_path = &param.path(ctx);
+            let param_path = syn::parse_str::<syn::Path>(&param.path(ctx)).unwrap();
+
             let lifetime = if param.is_copy || !param.is_ref {
-                ""
+                quote!()
             } else {
-                "'a,"
+                quote!('a,)
             };
+
             if let Some((idx, _)) = row {
                 let prepared_row = &module.rows.get_index(*idx).unwrap().1;
                 let query_row_struct = if prepared_row.is_named {
-                    prepared_row.path(ctx)
+                    syn::parse_str::<syn::Type>(&prepared_row.path(ctx)).unwrap()
                 } else {
-                    prepared_row.fields[0].own_struct(ctx)
+                    syn::parse_str::<syn::Type>(&prepared_row.fields[0].own_struct(ctx)).unwrap()
                 };
-                let name = &module.rows.get_index(*idx).unwrap().1.name;
-                let nb_params = param_field.len();
-                code!(w =>
-                    impl <'a, C: GenericClient,$($traits_idx: $traits,)> $client::Params<'a, $param_path<$lifetime $($traits_idx,)>, ${name}Query<'a, C, $query_row_struct, $nb_params>, C> for ${struct_name}Stmt {
-                        fn params(&'a mut self, client: &'a $client_mut C, params: &'a $param_path<$lifetime $($traits_idx,)>) -> ${name}Query<'a, C, $query_row_struct, $nb_params> {
-                            self.bind(client, $(&params.$params_name,))
+
+                let name = format_ident!(
+                    "{}Query",
+                    module.rows.get_index(*idx).unwrap().1.name.to_string()
+                );
+                let nb_params = proc_macro2::Literal::usize_unsuffixed(param_field.len());
+
+                quote! {
+                    impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
+                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                            #name<'a, C, #query_row_struct, #nb_params>, C>
+                        for #stmt_ident
+                    {
+                        fn params(
+                            &'a mut self,
+                            client: &'a #client_mut C,
+                            params: &'a #param_path<#lifetime #(#traits_idents,)*>
+                        ) -> #name<'a, C, #query_row_struct, #nb_params> {
+                            self.bind(client, #(&params.#params_name,)*)
                         }
                     }
-                );
+                }
             } else {
-                let (send_sync, pre_ty, post_ty_lf, pre, post) = if ctx.is_async {
-                    (
-                        "+ Send + Sync",
-                        "std::pin::Pin<Box<dyn futures::Future<Output = Result",
-                        "> + Send + 'a>>",
-                        "Box::pin(self",
-                        ")",
-                    )
-                } else {
-                    ("", "Result", "", "self", "")
-                };
-                code!(w =>
-                    impl <'a, C: GenericClient $send_sync, $($traits_idx: $traits,)> $client::Params<'a, $param_path<$lifetime $($traits_idx,)>, $pre_ty<u64, $backend::Error>$post_ty_lf, C> for ${struct_name}Stmt {
-                        fn params(&'a mut self, client: &'a $client_mut C, params: &'a $param_path<$lifetime $($traits_idx,)>) -> $pre_ty<u64, $backend::Error>$post_ty_lf {
-                            $pre.bind(client, $(&params.$params_name,))$post
+                if ctx.is_async {
+                    quote! {
+                        impl<'a, C: GenericClient + Send + Sync, #(#traits_idents: #traits_bounds,)*>
+                            #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                                std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>>, C>
+                            for #stmt_ident
+                        {
+                            fn params(
+                                &'a mut self,
+                                client: &'a C,
+                                params: &'a #param_path<#lifetime #(#traits_idents,)*>
+                            ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>> {
+                                Box::pin(self.bind(client, #(&params.#params_name,)*))
+                            }
                         }
                     }
-                );
+                } else {
+                    quote! {
+                        impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
+                            #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                                Result<u64, #backend::Error>, C>
+                            for #stmt_ident
+                        {
+                            fn params(
+                                &'a mut self,
+                                client: &'a mut C,
+                                params: &'a #param_path<#lifetime #(#traits_idents,)*>
+                            ) -> Result<u64, #backend::Error> {
+                                self.bind(client, #(&params.#params_name,)*)
+                            }
+                        }
+                    }
+                }
             }
+        } else {
+            quote!()
         }
+    } else {
+        quote!()
+    };
+
+    quote! {
+        #struct_tokens
+        #param_impl
     }
 }
 
 fn gen_query_module(module: &PreparedModule, config: &Config) -> String {
+    let mut tokens = quote!();
     let ctx = GenCtx::new(ModCtx::Queries, config.r#async, config.serialize);
-    let mut w = String::new();
-    code!(w => $WARNING);
 
     for params in module.params.values() {
-        gen_params_struct(&mut w, params, &ctx);
+        if params.is_named {
+            let param_tokens = gen_params_struct(params, &ctx);
+            tokens.extend(quote!(#param_tokens));
+        }
     }
 
     for row in module.rows.values() {
-        gen_row_structs(&mut w, row, &ctx);
+        if row.is_named {
+            let row_tokens = gen_row_structs(row, &ctx);
+            tokens.extend(quote!(#row_tokens));
+        }
     }
 
-    // TODO: remove all the .clone()
-    let sync_specific = |w: &mut String| {
-        let gen_sync = {
-            let gs = gen_specific(module.clone(), config.clone(), ModCtx::ClientQueries, false);
-            move |w: &mut String| gs(w)
-        };
+    let specific_tokens = if config.r#async && config.sync {
+        // Generate both sync and async modules
+        let sync_tokens = gen_specific(module, config, ModCtx::ClientQueries, false);
 
-        let gen_async = {
-            let ga = gen_specific(module.clone(), config.clone(), ModCtx::ClientQueries, true);
-            move |w: &mut String| ga(w)
-        };
+        let async_tokens = gen_specific(module, config, ModCtx::ClientQueries, true);
 
-        if config.r#async && config.sync {
-            code!(w =>
-                pub mod sync {
-                    $!gen_sync
-                }
-                pub mod async_ {
-                    $!gen_async
-                }
-            );
-        } else if config.sync {
-            gen_specific(module.clone(), config.clone(), ModCtx::Queries, false)(w);
-        } else {
-            gen_specific(module.clone(), config.clone(), ModCtx::Queries, true)(w);
+        quote! {
+            pub mod sync {
+                #sync_tokens
+            }
+            pub mod async_ {
+                #async_tokens
+            }
         }
+    } else if config.sync {
+        gen_specific(module, config, ModCtx::Queries, false)
+    } else {
+        gen_specific(module, config, ModCtx::Queries, true)
     };
 
-    sync_specific(&mut w);
+    tokens.extend(specific_tokens);
 
-    w
+    let syntax_tree = syn::parse2(tokens).unwrap();
+    prettyplease::unparse(&syntax_tree)
 }
 
 fn gen_specific(
-    module: PreparedModule,
-    config: Config,
+    module: &PreparedModule,
+    config: &Config,
     hierarchy: ModCtx,
     is_async: bool,
-) -> impl Fn(&mut String) {
-    move |w: &mut String| {
-        let ctx = GenCtx::new(hierarchy, is_async, config.serialize);
-        let import = if is_async {
-            "use futures::{self, StreamExt, TryStreamExt}; use crate::client::async_::GenericClient;"
-        } else {
-            "use postgres::{fallible_iterator::FallibleIterator,GenericClient};"
-        };
+) -> proc_macro2::TokenStream {
+    let ctx = GenCtx::new(hierarchy, is_async, config.serialize);
 
-        code!(w => $import);
-
-        for row in module.rows.values() {
-            gen_row_query(w, row, &ctx);
+    let imports = if is_async {
+        quote! {
+            use futures::{self, StreamExt, TryStreamExt};
+            use crate::client::async_::GenericClient;
         }
-
-        for query in module.queries.values() {
-            gen_query_fn(w, &module, query, &ctx);
+    } else {
+        quote! {
+            use postgres::{fallible_iterator::FallibleIterator, GenericClient};
         }
+    };
+
+    let mut tokens = quote!(#imports);
+
+    for row in module.rows.values() {
+        let row_tokens = gen_row_query(row, &ctx);
+        tokens.extend(quote!(#row_tokens));
     }
+
+    for query in module.queries.values() {
+        let query_tokens = gen_query_fn(&module, query, &ctx);
+        tokens.extend(quote!(#query_tokens));
+    }
+
+    tokens
 }
 
 pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Config) {
     for module in &preparation.modules {
         let gen = gen_query_module(module, config);
+        // TODO: add warning
         vfs.add(format!("src/queries/{}.rs", module.info.name), gen);
     }
 
-    let modules_name = preparation.modules.iter().map(|module| &module.info.name);
-    let mut content = String::new();
+    let modules_name: Vec<_> = preparation
+        .modules
+        .iter()
+        .map(|module| format_ident!("{}", module.info.name))
+        .collect();
 
-    code!(content => $WARNING
-        $(pub mod $modules_name;)
-    );
+    // TODO: add warning
+    let mut tokens = quote! {
+        #(pub mod #modules_name;)*
+    };
 
     if config.r#async && config.sync {
-        let mut sync_content = String::new();
-        let mut async_content = String::new();
-
-        for module in &preparation.modules {
-            let name = &module.info.name;
-            code!(sync_content =>
-                pub mod ${name} {
-                    pub use super::super::${name}::*;
-                    pub use super::super::${name}::sync::*;
+        let sync_modules = preparation.modules.iter().map(|module| {
+            let name = format_ident!("{}", module.info.name);
+            quote! {
+                pub mod #name {
+                    pub use super::super::#name::*;
+                    pub use super::super::#name::sync::*;
                 }
-            );
-        }
+            }
+        });
 
-        for module in &preparation.modules {
-            let name = &module.info.name;
-            code!(async_content =>
-                pub mod ${name} {
-                    pub use super::super::${name}::*;
-                    pub use super::super::${name}::async_::*;
+        let async_modules = preparation.modules.iter().map(|module| {
+            let name = format_ident!("{}", module.info.name);
+            quote! {
+                pub mod #name {
+                    pub use super::super::#name::*;
+                    pub use super::super::#name::async_::*;
                 }
-            );
-        }
+            }
+        });
 
-        code!(content =>
+        let sync_async_mods = quote! {
             pub mod sync {
-                $sync_content
+                #(#sync_modules)*
             }
             pub mod async_ {
-                $async_content
+                #(#async_modules)*
             }
-        );
+        };
+
+        tokens.extend(sync_async_mods);
     }
 
-    vfs.add("src/queries.rs", content);
+    let syntax_tree = syn::parse2(tokens).unwrap();
+    let formatted = prettyplease::unparse(&syntax_tree);
+    vfs.add("src/queries.rs", formatted);
 }

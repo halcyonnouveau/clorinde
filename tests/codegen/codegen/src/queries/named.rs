@@ -1,5 +1,3 @@
-// This file was generated with `clorinde`. Do not modify.
-
 #[derive(Debug)]
 pub struct NamedParams<T1: crate::StringSql> {
     pub name: T1,
@@ -37,10 +35,10 @@ impl<'a> From<NamedBorrowed<'a>> for Named {
         }: NamedBorrowed<'a>,
     ) -> Self {
         Self {
-            id,
+            id: id,
             name: name.into(),
-            price,
-            show,
+            price: price,
+            show: show,
         }
     }
 }
@@ -62,7 +60,7 @@ impl<'a> From<NamedComplexBorrowed<'a>> for NamedComplex {
     ) -> Self {
         Self {
             named: named.into(),
-            named_with_dot,
+            named_with_dot: named_with_dot,
         }
     }
 }
@@ -233,7 +231,7 @@ pub mod sync {
                 params: [name, price],
                 stmt: &mut self.0,
                 extractor: |row| super::Id { id: row.get(0) },
-                mapper: |it| <super::Id>::from(it),
+                mapper: |it| super::Id::from(it),
             }
         }
     }
@@ -267,7 +265,7 @@ pub mod sync {
                 params: [price, name],
                 stmt: &mut self.0,
                 extractor: |row| super::Id { id: row.get(0) },
-                mapper: |it| <super::Id>::from(it),
+                mapper: |it| super::Id::from(it),
             }
         }
     }
@@ -302,7 +300,7 @@ pub mod sync {
                     price: row.get(2),
                     show: row.get(3),
                 },
-                mapper: |it| <super::Named>::from(it),
+                mapper: |it| super::Named::from(it),
             }
         }
     }
@@ -328,7 +326,7 @@ pub mod sync {
                     price: row.get(2),
                     show: row.get(3),
                 },
-                mapper: |it| <super::Named>::from(it),
+                mapper: |it| super::Named::from(it),
             }
         }
     }
@@ -384,7 +382,7 @@ pub mod sync {
                     named: row.get(0),
                     named_with_dot: row.get(1),
                 },
-                mapper: |it| <super::NamedComplex>::from(it),
+                mapper: |it| super::NamedComplex::from(it),
             }
         }
     }
@@ -569,7 +567,7 @@ pub mod async_ {
                 params: [name, price],
                 stmt: &mut self.0,
                 extractor: |row| super::Id { id: row.get(0) },
-                mapper: |it| <super::Id>::from(it),
+                mapper: |it| super::Id::from(it),
             }
         }
     }
@@ -603,7 +601,7 @@ pub mod async_ {
                 params: [price, name],
                 stmt: &mut self.0,
                 extractor: |row| super::Id { id: row.get(0) },
-                mapper: |it| <super::Id>::from(it),
+                mapper: |it| super::Id::from(it),
             }
         }
     }
@@ -638,7 +636,7 @@ pub mod async_ {
                     price: row.get(2),
                     show: row.get(3),
                 },
-                mapper: |it| <super::Named>::from(it),
+                mapper: |it| super::Named::from(it),
             }
         }
     }
@@ -664,7 +662,7 @@ pub mod async_ {
                     price: row.get(2),
                     show: row.get(3),
                 },
-                mapper: |it| <super::Named>::from(it),
+                mapper: |it| super::Named::from(it),
             }
         }
     }
@@ -724,7 +722,7 @@ pub mod async_ {
                     named: row.get(0),
                     named_with_dot: row.get(1),
                 },
-                mapper: |it| <super::NamedComplex>::from(it),
+                mapper: |it| super::NamedComplex::from(it),
             }
         }
     }
