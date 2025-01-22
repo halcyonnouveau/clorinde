@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use quote::{format_ident, quote, ToTokens};
 
 use crate::{
-    codegen::{warning_tokens, ModCtx},
+    codegen::ModCtx,
     config::Config,
     prepare_queries::{Ident, PreparedContent, PreparedField, PreparedType},
 };
@@ -13,10 +13,7 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> String {
-    let warning = warning_tokens();
     let mut tokens = quote! {
-        #warning
-
         #[cfg(feature = "chrono")]
         pub mod time {
             pub type Timestamp = chrono::NaiveDateTime;
