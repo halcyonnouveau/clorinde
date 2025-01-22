@@ -68,18 +68,18 @@ impl<'a> From<NamedComplexBorrowed<'a>> for NamedComplex {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct IdQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct IdQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::Id,
         mapper: fn(super::Id) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> IdQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> IdQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::Id) -> R) -> IdQuery<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(super::Id) -> R) -> IdQuery<'c, 'a, 's, C, R, N> {
             IdQuery {
                 client: self.client,
                 params: self.params,
@@ -105,7 +105,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -116,18 +116,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct NamedQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct NamedQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::NamedBorrowed,
         mapper: fn(super::NamedBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NamedQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NamedQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::NamedBorrowed) -> R) -> NamedQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::NamedBorrowed) -> R,
+        ) -> NamedQuery<'c, 'a, 's, C, R, N> {
             NamedQuery {
                 client: self.client,
                 params: self.params,
@@ -153,7 +156,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -164,21 +167,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct NamedComplexQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct NamedComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::NamedComplexBorrowed,
         mapper: fn(super::NamedComplexBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NamedComplexQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NamedComplexQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::NamedComplexBorrowed) -> R,
-        ) -> NamedComplexQuery<'a, C, R, N> {
+        ) -> NamedComplexQuery<'c, 'a, 's, C, R, N> {
             NamedComplexQuery {
                 client: self.client,
                 params: self.params,
@@ -204,7 +207,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -222,12 +225,12 @@ pub mod sync {
     }
     pub struct NewNamedVisibleStmt(crate::client::sync::Stmt);
     impl NewNamedVisibleStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a T1,
             price: &'a Option<f64>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             IdQuery {
                 client,
                 params: [name, price],
@@ -237,15 +240,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::sync::Params<'a, super::NamedParams<T1>, IdQuery<'a, C, super::Id, 2>, C>
-        for NewNamedVisibleStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::NamedParams<T1>,
+            IdQuery<'c, 'a, 's, C, super::Id, 2>,
+            C,
+        > for NewNamedVisibleStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::NamedParams<T1>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -256,12 +265,12 @@ pub mod sync {
     }
     pub struct NewNamedHiddenStmt(crate::client::sync::Stmt);
     impl NewNamedHiddenStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             price: &'a Option<f64>,
             name: &'a T1,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             IdQuery {
                 client,
                 params: [price, name],
@@ -271,15 +280,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::sync::Params<'a, super::NamedParams<T1>, IdQuery<'a, C, super::Id, 2>, C>
-        for NewNamedHiddenStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::NamedParams<T1>,
+            IdQuery<'c, 'a, 's, C, super::Id, 2>,
+            C,
+        > for NewNamedHiddenStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::NamedParams<T1>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.price, &params.name)
         }
     }
@@ -288,10 +303,10 @@ pub mod sync {
     }
     pub struct NamedStmt(crate::client::sync::Stmt);
     impl NamedStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> NamedQuery<'a, C, super::Named, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> NamedQuery<'c, 'a, 's, C, super::Named, 0> {
             NamedQuery {
                 client,
                 params: [],
@@ -313,11 +328,11 @@ pub mod sync {
     }
     pub struct NamedByIdStmt(crate::client::sync::Stmt);
     impl NamedByIdStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             id: &'a i32,
-        ) -> NamedQuery<'a, C, super::Named, 1> {
+        ) -> NamedQuery<'c, 'a, 's, C, super::Named, 1> {
             NamedQuery {
                 client,
                 params: [id],
@@ -339,9 +354,9 @@ pub mod sync {
     }
     pub struct NewNamedComplexStmt(crate::client::sync::Stmt);
     impl NewNamedComplexStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             named: &'a crate::types::NamedCompositeBorrowed<'a>,
             named_with_dot: &'a Option<crate::types::NamedCompositeWithDot>,
         ) -> Result<u64, postgres::Error> {
@@ -351,6 +366,8 @@ pub mod sync {
     }
     impl<'a, C: GenericClient>
         crate::client::sync::Params<
+            'a,
+            'a,
             'a,
             super::NamedComplexParams<'a>,
             Result<u64, postgres::Error>,
@@ -372,10 +389,10 @@ pub mod sync {
     }
     pub struct NamedComplexStmt(crate::client::sync::Stmt);
     impl NamedComplexStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> NamedComplexQuery<'a, C, super::NamedComplex, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> NamedComplexQuery<'c, 'a, 's, C, super::NamedComplex, 0> {
             NamedComplexQuery {
                 client,
                 params: [],
@@ -392,18 +409,18 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct IdQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct IdQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::Id,
         mapper: fn(super::Id) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> IdQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> IdQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::Id) -> R) -> IdQuery<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(super::Id) -> R) -> IdQuery<'c, 'a, 's, C, R, N> {
             IdQuery {
                 client: self.client,
                 params: self.params,
@@ -431,7 +448,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -444,18 +461,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct NamedQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct NamedQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::NamedBorrowed,
         mapper: fn(super::NamedBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NamedQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NamedQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::NamedBorrowed) -> R) -> NamedQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::NamedBorrowed) -> R,
+        ) -> NamedQuery<'c, 'a, 's, C, R, N> {
             NamedQuery {
                 client: self.client,
                 params: self.params,
@@ -483,7 +503,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -496,21 +516,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct NamedComplexQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct NamedComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::NamedComplexBorrowed,
         mapper: fn(super::NamedComplexBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NamedComplexQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NamedComplexQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::NamedComplexBorrowed) -> R,
-        ) -> NamedComplexQuery<'a, C, R, N> {
+        ) -> NamedComplexQuery<'c, 'a, 's, C, R, N> {
             NamedComplexQuery {
                 client: self.client,
                 params: self.params,
@@ -538,7 +558,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -558,12 +578,12 @@ pub mod async_ {
     }
     pub struct NewNamedVisibleStmt(crate::client::async_::Stmt);
     impl NewNamedVisibleStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a T1,
             price: &'a Option<f64>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             IdQuery {
                 client,
                 params: [name, price],
@@ -573,15 +593,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::async_::Params<'a, super::NamedParams<T1>, IdQuery<'a, C, super::Id, 2>, C>
-        for NewNamedVisibleStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::async_::Params<
+            'c,
+            'a,
+            's,
+            super::NamedParams<T1>,
+            IdQuery<'c, 'a, 's, C, super::Id, 2>,
+            C,
+        > for NewNamedVisibleStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::NamedParams<T1>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -592,12 +618,12 @@ pub mod async_ {
     }
     pub struct NewNamedHiddenStmt(crate::client::async_::Stmt);
     impl NewNamedHiddenStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             price: &'a Option<f64>,
             name: &'a T1,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             IdQuery {
                 client,
                 params: [price, name],
@@ -607,15 +633,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::async_::Params<'a, super::NamedParams<T1>, IdQuery<'a, C, super::Id, 2>, C>
-        for NewNamedHiddenStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::async_::Params<
+            'c,
+            'a,
+            's,
+            super::NamedParams<T1>,
+            IdQuery<'c, 'a, 's, C, super::Id, 2>,
+            C,
+        > for NewNamedHiddenStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::NamedParams<T1>,
-        ) -> IdQuery<'a, C, super::Id, 2> {
+        ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.price, &params.name)
         }
     }
@@ -624,10 +656,10 @@ pub mod async_ {
     }
     pub struct NamedStmt(crate::client::async_::Stmt);
     impl NamedStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> NamedQuery<'a, C, super::Named, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> NamedQuery<'c, 'a, 's, C, super::Named, 0> {
             NamedQuery {
                 client,
                 params: [],
@@ -649,11 +681,11 @@ pub mod async_ {
     }
     pub struct NamedByIdStmt(crate::client::async_::Stmt);
     impl NamedByIdStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             id: &'a i32,
-        ) -> NamedQuery<'a, C, super::Named, 1> {
+        ) -> NamedQuery<'c, 'a, 's, C, super::Named, 1> {
             NamedQuery {
                 client,
                 params: [id],
@@ -675,9 +707,9 @@ pub mod async_ {
     }
     pub struct NewNamedComplexStmt(crate::client::async_::Stmt);
     impl NewNamedComplexStmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             named: &'a crate::types::NamedCompositeBorrowed<'a>,
             named_with_dot: &'a Option<crate::types::NamedCompositeWithDot>,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -687,6 +719,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::NamedComplexParams<'a>,
             std::pin::Pin<
@@ -712,10 +746,10 @@ pub mod async_ {
     }
     pub struct NamedComplexStmt(crate::client::async_::Stmt);
     impl NamedComplexStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> NamedComplexQuery<'a, C, super::NamedComplex, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> NamedComplexQuery<'c, 'a, 's, C, super::NamedComplex, 0> {
             NamedComplexQuery {
                 client,
                 params: [],

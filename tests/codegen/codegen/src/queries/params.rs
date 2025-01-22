@@ -46,21 +46,21 @@ impl<'a> From<FindBooksBorrowed<'a>> for FindBooks {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct SelectBookQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct SelectBookQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::SelectBookBorrowed,
         mapper: fn(super::SelectBookBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectBookQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectBookQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectBookBorrowed) -> R,
-        ) -> SelectBookQuery<'a, C, R, N> {
+        ) -> SelectBookQuery<'c, 'a, 's, C, R, N> {
             SelectBookQuery {
                 client: self.client,
                 params: self.params,
@@ -86,7 +86,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -97,21 +97,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct FindBooksQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct FindBooksQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::FindBooksBorrowed,
         mapper: fn(super::FindBooksBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> FindBooksQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> FindBooksQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::FindBooksBorrowed) -> R,
-        ) -> FindBooksQuery<'a, C, R, N> {
+        ) -> FindBooksQuery<'c, 'a, 's, C, R, N> {
             FindBooksQuery {
                 client: self.client,
                 params: self.params,
@@ -137,7 +137,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -155,9 +155,9 @@ pub mod sync {
     }
     pub struct InsertBookStmt(crate::client::sync::Stmt);
     impl InsertBookStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             author: &'a Option<T1>,
             name: &'a T2,
         ) -> Result<u64, postgres::Error> {
@@ -167,6 +167,8 @@ pub mod sync {
     }
     impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
         crate::client::sync::Params<
+            'a,
+            'a,
             'a,
             super::InsertBookParams<T1, T2>,
             Result<u64, postgres::Error>,
@@ -186,10 +188,10 @@ pub mod sync {
     }
     pub struct SelectBookStmt(crate::client::sync::Stmt);
     impl SelectBookStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> SelectBookQuery<'a, C, super::SelectBook, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectBookQuery<'c, 'a, 's, C, super::SelectBook, 0> {
             SelectBookQuery {
                 client,
                 params: [],
@@ -209,11 +211,18 @@ pub mod sync {
     }
     pub struct FindBooksStmt(crate::client::sync::Stmt);
     impl FindBooksStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::ArraySql<Item = T1>>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<
+            'c,
+            'a,
+            's,
+            C: GenericClient,
+            T1: crate::StringSql,
+            T2: crate::ArraySql<Item = T1>,
+        >(
+            &'s mut self,
+            client: &'c mut C,
             title: &'a T2,
-        ) -> FindBooksQuery<'a, C, super::FindBooks, 1> {
+        ) -> FindBooksQuery<'c, 'a, 's, C, super::FindBooks, 1> {
             FindBooksQuery {
                 client,
                 params: [title],
@@ -233,9 +242,9 @@ pub mod sync {
     }
     pub struct ParamsUseTwiceStmt(crate::client::sync::Stmt);
     impl ParamsUseTwiceStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a T1,
         ) -> Result<u64, postgres::Error> {
             let stmt = self.0.prepare(client)?;
@@ -249,9 +258,9 @@ pub mod sync {
     }
     pub struct ParamsOrderStmt(crate::client::sync::Stmt);
     impl ParamsOrderStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             c: &'a i32,
             a: &'a i32,
         ) -> Result<u64, postgres::Error> {
@@ -260,8 +269,14 @@ pub mod sync {
         }
     }
     impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::ParamsOrderParams, Result<u64, postgres::Error>, C>
-        for ParamsOrderStmt
+        crate::client::sync::Params<
+            'a,
+            'a,
+            'a,
+            super::ParamsOrderParams,
+            Result<u64, postgres::Error>,
+            C,
+        > for ParamsOrderStmt
     {
         fn params(
             &'a mut self,
@@ -275,21 +290,21 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct SelectBookQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct SelectBookQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::SelectBookBorrowed,
         mapper: fn(super::SelectBookBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectBookQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectBookQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectBookBorrowed) -> R,
-        ) -> SelectBookQuery<'a, C, R, N> {
+        ) -> SelectBookQuery<'c, 'a, 's, C, R, N> {
             SelectBookQuery {
                 client: self.client,
                 params: self.params,
@@ -317,7 +332,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -330,21 +345,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct FindBooksQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct FindBooksQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::FindBooksBorrowed,
         mapper: fn(super::FindBooksBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> FindBooksQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> FindBooksQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::FindBooksBorrowed) -> R,
-        ) -> FindBooksQuery<'a, C, R, N> {
+        ) -> FindBooksQuery<'c, 'a, 's, C, R, N> {
             FindBooksQuery {
                 client: self.client,
                 params: self.params,
@@ -372,7 +387,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -392,9 +407,16 @@ pub mod async_ {
     }
     pub struct InsertBookStmt(crate::client::async_::Stmt);
     impl InsertBookStmt {
-        pub async fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<
+            'c,
+            'a,
+            's,
+            C: GenericClient,
+            T1: crate::StringSql,
+            T2: crate::StringSql,
+        >(
+            &'s mut self,
+            client: &'c C,
             author: &'a Option<T1>,
             name: &'a T2,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -404,6 +426,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync, T1: crate::StringSql, T2: crate::StringSql>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::InsertBookParams<T1, T2>,
             std::pin::Pin<
@@ -427,10 +451,10 @@ pub mod async_ {
     }
     pub struct SelectBookStmt(crate::client::async_::Stmt);
     impl SelectBookStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> SelectBookQuery<'a, C, super::SelectBook, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectBookQuery<'c, 'a, 's, C, super::SelectBook, 0> {
             SelectBookQuery {
                 client,
                 params: [],
@@ -450,11 +474,18 @@ pub mod async_ {
     }
     pub struct FindBooksStmt(crate::client::async_::Stmt);
     impl FindBooksStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::ArraySql<Item = T1>>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<
+            'c,
+            'a,
+            's,
+            C: GenericClient,
+            T1: crate::StringSql,
+            T2: crate::ArraySql<Item = T1>,
+        >(
+            &'s mut self,
+            client: &'c C,
             title: &'a T2,
-        ) -> FindBooksQuery<'a, C, super::FindBooks, 1> {
+        ) -> FindBooksQuery<'c, 'a, 's, C, super::FindBooks, 1> {
             FindBooksQuery {
                 client,
                 params: [title],
@@ -474,9 +505,9 @@ pub mod async_ {
     }
     pub struct ParamsUseTwiceStmt(crate::client::async_::Stmt);
     impl ParamsUseTwiceStmt {
-        pub async fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a T1,
         ) -> Result<u64, tokio_postgres::Error> {
             let stmt = self.0.prepare(client).await?;
@@ -490,9 +521,9 @@ pub mod async_ {
     }
     pub struct ParamsOrderStmt(crate::client::async_::Stmt);
     impl ParamsOrderStmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             c: &'a i32,
             a: &'a i32,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -502,6 +533,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::ParamsOrderParams,
             std::pin::Pin<

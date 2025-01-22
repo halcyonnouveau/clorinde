@@ -677,21 +677,21 @@ impl<'a> From<EverythingArrayNullBorrowed<'a>> for EverythingArrayNull {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct EverythingQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct EverythingQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::EverythingBorrowed,
         mapper: fn(super::EverythingBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingBorrowed) -> R,
-        ) -> EverythingQuery<'a, C, R, N> {
+        ) -> EverythingQuery<'c, 'a, 's, C, R, N> {
             EverythingQuery {
                 client: self.client,
                 params: self.params,
@@ -717,7 +717,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -728,21 +728,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct EverythingNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct EverythingNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::EverythingNullBorrowed,
         mapper: fn(super::EverythingNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingNullBorrowed) -> R,
-        ) -> EverythingNullQuery<'a, C, R, N> {
+        ) -> EverythingNullQuery<'c, 'a, 's, C, R, N> {
             EverythingNullQuery {
                 client: self.client,
                 params: self.params,
@@ -768,7 +768,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -779,21 +779,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct EverythingArrayQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct EverythingArrayQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::EverythingArrayBorrowed,
         mapper: fn(super::EverythingArrayBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingArrayQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingArrayQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingArrayBorrowed) -> R,
-        ) -> EverythingArrayQuery<'a, C, R, N> {
+        ) -> EverythingArrayQuery<'c, 'a, 's, C, R, N> {
             EverythingArrayQuery {
                 client: self.client,
                 params: self.params,
@@ -819,7 +819,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -830,21 +830,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct EverythingArrayNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct EverythingArrayNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::EverythingArrayNullBorrowed,
         mapper: fn(super::EverythingArrayNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingArrayNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingArrayNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingArrayNullBorrowed) -> R,
-        ) -> EverythingArrayNullQuery<'a, C, R, N> {
+        ) -> EverythingArrayNullQuery<'c, 'a, 's, C, R, N> {
             EverythingArrayNullQuery {
                 client: self.client,
                 params: self.params,
@@ -870,7 +870,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -881,21 +881,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct NightmareCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct NightmareCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> crate::types::NightmareCompositeBorrowed,
         mapper: fn(crate::types::NightmareCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NightmareCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NightmareCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::NightmareCompositeBorrowed) -> R,
-        ) -> NightmareCompositeQuery<'a, C, R, N> {
+        ) -> NightmareCompositeQuery<'c, 'a, 's, C, R, N> {
             NightmareCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -921,7 +921,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -932,21 +932,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct SchemaNightmareCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct SchemaNightmareCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> crate::types::schema::NightmareCompositeBorrowed,
         mapper: fn(crate::types::schema::NightmareCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SchemaNightmareCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SchemaNightmareCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::schema::NightmareCompositeBorrowed) -> R,
-        ) -> SchemaNightmareCompositeQuery<'a, C, R, N> {
+        ) -> SchemaNightmareCompositeQuery<'c, 'a, 's, C, R, N> {
             SchemaNightmareCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -972,7 +972,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -993,10 +993,10 @@ FROM
     }
     pub struct SelectEverythingStmt(crate::client::sync::Stmt);
     impl SelectEverythingStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> EverythingQuery<'a, C, super::Everything, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> EverythingQuery<'c, 'a, 's, C, super::Everything, 0> {
             EverythingQuery {
                 client,
                 params: [],
@@ -1051,10 +1051,10 @@ FROM
     }
     pub struct SelectEverythingNullStmt(crate::client::sync::Stmt);
     impl SelectEverythingNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> EverythingNullQuery<'a, C, super::EverythingNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> EverythingNullQuery<'c, 'a, 's, C, super::EverythingNull, 0> {
             EverythingNullQuery {
                 client,
                 params: [],
@@ -1106,7 +1106,9 @@ FROM
     pub struct InsertEverythingStmt(crate::client::sync::Stmt);
     impl InsertEverythingStmt {
         pub fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::StringSql,
@@ -1114,8 +1116,8 @@ FROM
             T4: crate::JsonSql,
             T5: crate::JsonSql,
         >(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             bool_: &'a bool,
             boolean_: &'a bool,
             char_: &'a i8,
@@ -1204,6 +1206,8 @@ FROM
         >
         crate::client::sync::Params<
             'a,
+            'a,
+            'a,
             super::EverythingParams<T1, T2, T3, T4, T5>,
             Result<u64, postgres::Error>,
             C,
@@ -1263,10 +1267,10 @@ FROM
     }
     pub struct SelectEverythingArrayStmt(crate::client::sync::Stmt);
     impl SelectEverythingArrayStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> EverythingArrayQuery<'a, C, super::EverythingArray, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> EverythingArrayQuery<'c, 'a, 's, C, super::EverythingArray, 0> {
             EverythingArrayQuery {
                 client,
                 params: [],
@@ -1315,10 +1319,10 @@ FROM
     }
     pub struct SelectEverythingArrayNullStmt(crate::client::sync::Stmt);
     impl SelectEverythingArrayNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> EverythingArrayNullQuery<'a, C, super::EverythingArrayNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> EverythingArrayNullQuery<'c, 'a, 's, C, super::EverythingArrayNull, 0> {
             EverythingArrayNullQuery {
                 client,
                 params: [],
@@ -1364,7 +1368,9 @@ FROM
     pub struct InsertEverythingArrayStmt(crate::client::sync::Stmt);
     impl InsertEverythingArrayStmt {
         pub fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::ArraySql<Item = bool>,
             T2: crate::ArraySql<Item = bool>,
@@ -1400,8 +1406,8 @@ FROM
             T32: crate::ArraySql<Item = eui48::MacAddress>,
             T33: crate::ArraySql<Item = rust_decimal::Decimal>,
         >(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             bool_: &'a T1,
             boolean_: &'a T2,
             char_: &'a T3,
@@ -1505,6 +1511,8 @@ FROM
             T33: crate::ArraySql<Item = rust_decimal::Decimal>,
         >
         crate::client::sync::Params<
+            'a,
+            'a,
             'a,
             super::EverythingArrayParams<
                 T1,
@@ -1627,10 +1635,10 @@ FROM
     }
     pub struct SelectNightmareStmt(crate::client::sync::Stmt);
     impl SelectNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> NightmareCompositeQuery<'a, C, crate::types::NightmareComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> NightmareCompositeQuery<'c, 'a, 's, C, crate::types::NightmareComposite, 0> {
             NightmareCompositeQuery {
                 client,
                 params: [],
@@ -1648,9 +1656,9 @@ FROM
     }
     pub struct InsertNightmareStmt(crate::client::sync::Stmt);
     impl InsertNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             composite: &'a crate::types::NightmareCompositeParams<'a>,
         ) -> Result<u64, postgres::Error> {
             let stmt = self.0.prepare(client)?;
@@ -1667,10 +1675,10 @@ FROM
     }
     pub struct SelectSchemaNightmareStmt(crate::client::sync::Stmt);
     impl SelectSchemaNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> SchemaNightmareCompositeQuery<'a, C, crate::types::schema::NightmareComposite, 0>
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SchemaNightmareCompositeQuery<'c, 'a, 's, C, crate::types::schema::NightmareComposite, 0>
         {
             SchemaNightmareCompositeQuery {
                 client,
@@ -1689,9 +1697,9 @@ FROM
     }
     pub struct InsertSchemaNightmareStmt(crate::client::sync::Stmt);
     impl InsertSchemaNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             composite: &'a crate::types::schema::NightmareCompositeParams<'a>,
         ) -> Result<u64, postgres::Error> {
             let stmt = self.0.prepare(client)?;
@@ -1702,21 +1710,21 @@ FROM
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct EverythingQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct EverythingQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::EverythingBorrowed,
         mapper: fn(super::EverythingBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingBorrowed) -> R,
-        ) -> EverythingQuery<'a, C, R, N> {
+        ) -> EverythingQuery<'c, 'a, 's, C, R, N> {
             EverythingQuery {
                 client: self.client,
                 params: self.params,
@@ -1744,7 +1752,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1757,21 +1765,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct EverythingNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct EverythingNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::EverythingNullBorrowed,
         mapper: fn(super::EverythingNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingNullBorrowed) -> R,
-        ) -> EverythingNullQuery<'a, C, R, N> {
+        ) -> EverythingNullQuery<'c, 'a, 's, C, R, N> {
             EverythingNullQuery {
                 client: self.client,
                 params: self.params,
@@ -1799,7 +1807,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1812,21 +1820,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct EverythingArrayQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct EverythingArrayQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::EverythingArrayBorrowed,
         mapper: fn(super::EverythingArrayBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingArrayQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingArrayQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingArrayBorrowed) -> R,
-        ) -> EverythingArrayQuery<'a, C, R, N> {
+        ) -> EverythingArrayQuery<'c, 'a, 's, C, R, N> {
             EverythingArrayQuery {
                 client: self.client,
                 params: self.params,
@@ -1854,7 +1862,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1867,21 +1875,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct EverythingArrayNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct EverythingArrayNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::EverythingArrayNullBorrowed,
         mapper: fn(super::EverythingArrayNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> EverythingArrayNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> EverythingArrayNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::EverythingArrayNullBorrowed) -> R,
-        ) -> EverythingArrayNullQuery<'a, C, R, N> {
+        ) -> EverythingArrayNullQuery<'c, 'a, 's, C, R, N> {
             EverythingArrayNullQuery {
                 client: self.client,
                 params: self.params,
@@ -1909,7 +1917,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1922,21 +1930,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct NightmareCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct NightmareCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> crate::types::NightmareCompositeBorrowed,
         mapper: fn(crate::types::NightmareCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NightmareCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NightmareCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::NightmareCompositeBorrowed) -> R,
-        ) -> NightmareCompositeQuery<'a, C, R, N> {
+        ) -> NightmareCompositeQuery<'c, 'a, 's, C, R, N> {
             NightmareCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -1964,7 +1972,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1977,21 +1985,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct SchemaNightmareCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct SchemaNightmareCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> crate::types::schema::NightmareCompositeBorrowed,
         mapper: fn(crate::types::schema::NightmareCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SchemaNightmareCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SchemaNightmareCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::schema::NightmareCompositeBorrowed) -> R,
-        ) -> SchemaNightmareCompositeQuery<'a, C, R, N> {
+        ) -> SchemaNightmareCompositeQuery<'c, 'a, 's, C, R, N> {
             SchemaNightmareCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -2019,7 +2027,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -2042,10 +2050,10 @@ FROM
     }
     pub struct SelectEverythingStmt(crate::client::async_::Stmt);
     impl SelectEverythingStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> EverythingQuery<'a, C, super::Everything, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> EverythingQuery<'c, 'a, 's, C, super::Everything, 0> {
             EverythingQuery {
                 client,
                 params: [],
@@ -2100,10 +2108,10 @@ FROM
     }
     pub struct SelectEverythingNullStmt(crate::client::async_::Stmt);
     impl SelectEverythingNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> EverythingNullQuery<'a, C, super::EverythingNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> EverythingNullQuery<'c, 'a, 's, C, super::EverythingNull, 0> {
             EverythingNullQuery {
                 client,
                 params: [],
@@ -2155,7 +2163,9 @@ FROM
     pub struct InsertEverythingStmt(crate::client::async_::Stmt);
     impl InsertEverythingStmt {
         pub async fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::StringSql,
@@ -2163,8 +2173,8 @@ FROM
             T4: crate::JsonSql,
             T5: crate::JsonSql,
         >(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             bool_: &'a bool,
             boolean_: &'a bool,
             char_: &'a i8,
@@ -2255,6 +2265,8 @@ FROM
         >
         crate::client::async_::Params<
             'a,
+            'a,
+            'a,
             super::EverythingParams<T1, T2, T3, T4, T5>,
             std::pin::Pin<
                 Box<dyn futures::Future<Output = Result<u64, tokio_postgres::Error>> + Send + 'a>,
@@ -2318,10 +2330,10 @@ FROM
     }
     pub struct SelectEverythingArrayStmt(crate::client::async_::Stmt);
     impl SelectEverythingArrayStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> EverythingArrayQuery<'a, C, super::EverythingArray, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> EverythingArrayQuery<'c, 'a, 's, C, super::EverythingArray, 0> {
             EverythingArrayQuery {
                 client,
                 params: [],
@@ -2370,10 +2382,10 @@ FROM
     }
     pub struct SelectEverythingArrayNullStmt(crate::client::async_::Stmt);
     impl SelectEverythingArrayNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> EverythingArrayNullQuery<'a, C, super::EverythingArrayNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> EverythingArrayNullQuery<'c, 'a, 's, C, super::EverythingArrayNull, 0> {
             EverythingArrayNullQuery {
                 client,
                 params: [],
@@ -2419,7 +2431,9 @@ FROM
     pub struct InsertEverythingArrayStmt(crate::client::async_::Stmt);
     impl InsertEverythingArrayStmt {
         pub async fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::ArraySql<Item = bool>,
             T2: crate::ArraySql<Item = bool>,
@@ -2455,8 +2469,8 @@ FROM
             T32: crate::ArraySql<Item = eui48::MacAddress>,
             T33: crate::ArraySql<Item = rust_decimal::Decimal>,
         >(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             bool_: &'a T1,
             boolean_: &'a T2,
             char_: &'a T3,
@@ -2562,6 +2576,8 @@ FROM
             T33: crate::ArraySql<Item = rust_decimal::Decimal>,
         >
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::EverythingArrayParams<
                 T1,
@@ -2688,10 +2704,10 @@ FROM
     }
     pub struct SelectNightmareStmt(crate::client::async_::Stmt);
     impl SelectNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> NightmareCompositeQuery<'a, C, crate::types::NightmareComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> NightmareCompositeQuery<'c, 'a, 's, C, crate::types::NightmareComposite, 0> {
             NightmareCompositeQuery {
                 client,
                 params: [],
@@ -2709,9 +2725,9 @@ FROM
     }
     pub struct InsertNightmareStmt(crate::client::async_::Stmt);
     impl InsertNightmareStmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             composite: &'a crate::types::NightmareCompositeParams<'a>,
         ) -> Result<u64, tokio_postgres::Error> {
             let stmt = self.0.prepare(client).await?;
@@ -2728,10 +2744,10 @@ FROM
     }
     pub struct SelectSchemaNightmareStmt(crate::client::async_::Stmt);
     impl SelectSchemaNightmareStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> SchemaNightmareCompositeQuery<'a, C, crate::types::schema::NightmareComposite, 0>
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SchemaNightmareCompositeQuery<'c, 'a, 's, C, crate::types::schema::NightmareComposite, 0>
         {
             SchemaNightmareCompositeQuery {
                 client,
@@ -2750,9 +2766,9 @@ FROM
     }
     pub struct InsertSchemaNightmareStmt(crate::client::async_::Stmt);
     impl InsertSchemaNightmareStmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             composite: &'a crate::types::schema::NightmareCompositeParams<'a>,
         ) -> Result<u64, tokio_postgres::Error> {
             let stmt = self.0.prepare(client).await?;

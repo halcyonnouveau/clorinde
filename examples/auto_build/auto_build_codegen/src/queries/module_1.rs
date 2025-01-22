@@ -2,18 +2,18 @@
 
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct StringQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a C,
+pub struct StringQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::async_::Stmt,
+    stmt: &'s mut crate::client::async_::Stmt,
     extractor: fn(&tokio_postgres::Row) -> &str,
     mapper: fn(&str) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> StringQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> StringQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(&str) -> R) -> StringQuery<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(&str) -> R) -> StringQuery<'c, 'a, 's, C, R, N> {
         StringQuery {
             client: self.client,
             params: self.params,
@@ -41,7 +41,7 @@ where
     pub async fn iter(
         self,
     ) -> Result<
-        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
         tokio_postgres::Error,
     > {
         let stmt = self.stmt.prepare(self.client).await?;
@@ -64,10 +64,10 @@ FROM
 }
 pub struct ExampleQueryStmt(crate::client::async_::Stmt);
 impl ExampleQueryStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a C,
-    ) -> StringQuery<'a, C, String, 0> {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
+    ) -> StringQuery<'c, 'a, 's, C, String, 0> {
         StringQuery {
             client,
             params: [],

@@ -82,21 +82,21 @@ impl<'a> From<SelectNightmareDomainNullBorrowed<'a>> for SelectNightmareDomainNu
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct SelectNightmareDomainQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct SelectNightmareDomainQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::SelectNightmareDomainBorrowed,
         mapper: fn(super::SelectNightmareDomainBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectNightmareDomainQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectNightmareDomainQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectNightmareDomainBorrowed) -> R,
-        ) -> SelectNightmareDomainQuery<'a, C, R, N> {
+        ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, R, N> {
             SelectNightmareDomainQuery {
                 client: self.client,
                 params: self.params,
@@ -122,7 +122,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -133,21 +133,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct SelectNightmareDomainNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct SelectNightmareDomainNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::SelectNightmareDomainNullBorrowed,
         mapper: fn(super::SelectNightmareDomainNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectNightmareDomainNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectNightmareDomainNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectNightmareDomainNullBorrowed) -> R,
-        ) -> SelectNightmareDomainNullQuery<'a, C, R, N> {
+        ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, R, N> {
             SelectNightmareDomainNullQuery {
                 client: self.client,
                 params: self.params,
@@ -173,7 +173,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -191,10 +191,10 @@ pub mod sync {
     }
     pub struct SelectNightmareDomainStmt(crate::client::sync::Stmt);
     impl SelectNightmareDomainStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> SelectNightmareDomainQuery<'a, C, super::SelectNightmareDomain, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, super::SelectNightmareDomain, 0> {
             SelectNightmareDomainQuery {
                 client,
                 params: [],
@@ -215,15 +215,17 @@ pub mod sync {
     pub struct InsertNightmareDomainStmt(crate::client::sync::Stmt);
     impl InsertNightmareDomainStmt {
         pub fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::JsonSql,
             T3: crate::JsonSql,
             T4: crate::ArraySql<Item = T3>,
         >(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             txt: &'a T1,
             json: &'a T2,
             nb: &'a i32,
@@ -253,6 +255,8 @@ pub mod sync {
         >
         crate::client::sync::Params<
             'a,
+            'a,
+            'a,
             super::InsertNightmareDomainParams<'a, T1, T2, T3, T4>,
             Result<u64, postgres::Error>,
             C,
@@ -280,10 +284,11 @@ pub mod sync {
     }
     pub struct SelectNightmareDomainNullStmt(crate::client::sync::Stmt);
     impl SelectNightmareDomainNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> SelectNightmareDomainNullQuery<'a, C, super::SelectNightmareDomainNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, super::SelectNightmareDomainNull, 0>
+        {
             SelectNightmareDomainNullQuery {
                 client,
                 params: [],
@@ -303,21 +308,21 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct SelectNightmareDomainQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct SelectNightmareDomainQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::SelectNightmareDomainBorrowed,
         mapper: fn(super::SelectNightmareDomainBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectNightmareDomainQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectNightmareDomainQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectNightmareDomainBorrowed) -> R,
-        ) -> SelectNightmareDomainQuery<'a, C, R, N> {
+        ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, R, N> {
             SelectNightmareDomainQuery {
                 client: self.client,
                 params: self.params,
@@ -345,7 +350,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -358,21 +363,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct SelectNightmareDomainNullQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct SelectNightmareDomainNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::SelectNightmareDomainNullBorrowed,
         mapper: fn(super::SelectNightmareDomainNullBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectNightmareDomainNullQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectNightmareDomainNullQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectNightmareDomainNullBorrowed) -> R,
-        ) -> SelectNightmareDomainNullQuery<'a, C, R, N> {
+        ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, R, N> {
             SelectNightmareDomainNullQuery {
                 client: self.client,
                 params: self.params,
@@ -400,7 +405,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -420,10 +425,10 @@ pub mod async_ {
     }
     pub struct SelectNightmareDomainStmt(crate::client::async_::Stmt);
     impl SelectNightmareDomainStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> SelectNightmareDomainQuery<'a, C, super::SelectNightmareDomain, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, super::SelectNightmareDomain, 0> {
             SelectNightmareDomainQuery {
                 client,
                 params: [],
@@ -444,15 +449,17 @@ pub mod async_ {
     pub struct InsertNightmareDomainStmt(crate::client::async_::Stmt);
     impl InsertNightmareDomainStmt {
         pub async fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::JsonSql,
             T3: crate::JsonSql,
             T4: crate::ArraySql<Item = T3>,
         >(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             txt: &'a T1,
             json: &'a T2,
             nb: &'a i32,
@@ -483,6 +490,8 @@ pub mod async_ {
             T4: crate::ArraySql<Item = T3>,
         >
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::InsertNightmareDomainParams<'a, T1, T2, T3, T4>,
             std::pin::Pin<
@@ -515,10 +524,11 @@ pub mod async_ {
     }
     pub struct SelectNightmareDomainNullStmt(crate::client::async_::Stmt);
     impl SelectNightmareDomainNullStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> SelectNightmareDomainNullQuery<'a, C, super::SelectNightmareDomainNull, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, super::SelectNightmareDomainNull, 0>
+        {
             SelectNightmareDomainNullQuery {
                 client,
                 params: [],

@@ -77,18 +77,18 @@ impl<'a> From<SelectTranslationsBorrowed<'a>> for SelectTranslations {
     }
 }
 use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-pub struct AuthorsQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a mut C,
+pub struct AuthorsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::sync::Stmt,
+    stmt: &'s mut crate::client::sync::Stmt,
     extractor: fn(&postgres::Row) -> AuthorsBorrowed,
     mapper: fn(AuthorsBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> AuthorsQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorsQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(AuthorsBorrowed) -> R) -> AuthorsQuery<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(AuthorsBorrowed) -> R) -> AuthorsQuery<'c, 'a, 's, C, R, N> {
         AuthorsQuery {
             client: self.client,
             params: self.params,
@@ -114,7 +114,7 @@ where
     }
     pub fn iter(
         self,
-    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error> {
+    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error> {
         let stmt = self.stmt.prepare(self.client)?;
         let it = self
             .client
@@ -124,18 +124,18 @@ where
         Ok(it)
     }
 }
-pub struct StringQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a mut C,
+pub struct StringQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::sync::Stmt,
+    stmt: &'s mut crate::client::sync::Stmt,
     extractor: fn(&postgres::Row) -> &str,
     mapper: fn(&str) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> StringQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> StringQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(&str) -> R) -> StringQuery<'a, C, R, N> {
+    pub fn map<R>(self, mapper: fn(&str) -> R) -> StringQuery<'c, 'a, 's, C, R, N> {
         StringQuery {
             client: self.client,
             params: self.params,
@@ -161,7 +161,7 @@ where
     }
     pub fn iter(
         self,
-    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error> {
+    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error> {
         let stmt = self.stmt.prepare(self.client)?;
         let it = self
             .client
@@ -171,21 +171,21 @@ where
         Ok(it)
     }
 }
-pub struct AuthorNameStartingWithQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a mut C,
+pub struct AuthorNameStartingWithQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::sync::Stmt,
+    stmt: &'s mut crate::client::sync::Stmt,
     extractor: fn(&postgres::Row) -> AuthorNameStartingWithBorrowed,
     mapper: fn(AuthorNameStartingWithBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> AuthorNameStartingWithQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorNameStartingWithQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
         mapper: fn(AuthorNameStartingWithBorrowed) -> R,
-    ) -> AuthorNameStartingWithQuery<'a, C, R, N> {
+    ) -> AuthorNameStartingWithQuery<'c, 'a, 's, C, R, N> {
         AuthorNameStartingWithQuery {
             client: self.client,
             params: self.params,
@@ -211,7 +211,7 @@ where
     }
     pub fn iter(
         self,
-    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error> {
+    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error> {
         let stmt = self.stmt.prepare(self.client)?;
         let it = self
             .client
@@ -221,21 +221,21 @@ where
         Ok(it)
     }
 }
-pub struct VoiceactorQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a mut C,
+pub struct VoiceactorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::sync::Stmt,
+    stmt: &'s mut crate::client::sync::Stmt,
     extractor: fn(&postgres::Row) -> crate::types::VoiceactorBorrowed,
     mapper: fn(crate::types::VoiceactorBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> VoiceactorQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> VoiceactorQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
         mapper: fn(crate::types::VoiceactorBorrowed) -> R,
-    ) -> VoiceactorQuery<'a, C, R, N> {
+    ) -> VoiceactorQuery<'c, 'a, 's, C, R, N> {
         VoiceactorQuery {
             client: self.client,
             params: self.params,
@@ -261,7 +261,7 @@ where
     }
     pub fn iter(
         self,
-    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error> {
+    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error> {
         let stmt = self.stmt.prepare(self.client)?;
         let it = self
             .client
@@ -271,21 +271,21 @@ where
         Ok(it)
     }
 }
-pub struct SelectTranslationsQuery<'a, C: GenericClient, T, const N: usize> {
-    client: &'a mut C,
+pub struct SelectTranslationsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
-    stmt: &'a mut crate::client::sync::Stmt,
+    stmt: &'s mut crate::client::sync::Stmt,
     extractor: fn(&postgres::Row) -> SelectTranslationsBorrowed,
     mapper: fn(SelectTranslationsBorrowed) -> T,
 }
-impl<'a, C, T: 'a, const N: usize> SelectTranslationsQuery<'a, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectTranslationsQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
         mapper: fn(SelectTranslationsBorrowed) -> R,
-    ) -> SelectTranslationsQuery<'a, C, R, N> {
+    ) -> SelectTranslationsQuery<'c, 'a, 's, C, R, N> {
         SelectTranslationsQuery {
             client: self.client,
             params: self.params,
@@ -311,7 +311,7 @@ where
     }
     pub fn iter(
         self,
-    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error> {
+    ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error> {
         let stmt = self.stmt.prepare(self.client)?;
         let it = self
             .client
@@ -331,10 +331,10 @@ FROM
 }
 pub struct AuthorsStmt(crate::client::sync::Stmt);
 impl AuthorsStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a mut C,
-    ) -> AuthorsQuery<'a, C, Authors, 0> {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c mut C,
+    ) -> AuthorsQuery<'c, 'a, 's, C, Authors, 0> {
         AuthorsQuery {
             client,
             params: [],
@@ -358,10 +358,10 @@ FROM
 }
 pub struct BooksStmt(crate::client::sync::Stmt);
 impl BooksStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a mut C,
-    ) -> StringQuery<'a, C, String, 0> {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c mut C,
+    ) -> StringQuery<'c, 'a, 's, C, String, 0> {
         StringQuery {
             client,
             params: [],
@@ -383,11 +383,11 @@ WHERE
 }
 pub struct AuthorNameByIdStmt(crate::client::sync::Stmt);
 impl AuthorNameByIdStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a mut C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c mut C,
         id: &'a i32,
-    ) -> StringQuery<'a, C, String, 1> {
+    ) -> StringQuery<'c, 'a, 's, C, String, 1> {
         StringQuery {
             client,
             params: [id],
@@ -414,11 +414,11 @@ WHERE
 }
 pub struct AuthorNameStartingWithStmt(crate::client::sync::Stmt);
 impl AuthorNameStartingWithStmt {
-    pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-        &'a mut self,
-        client: &'a mut C,
+    pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+        &'s mut self,
+        client: &'c mut C,
         start_str: &'a T1,
-    ) -> AuthorNameStartingWithQuery<'a, C, AuthorNameStartingWith, 1> {
+    ) -> AuthorNameStartingWithQuery<'c, 'a, 's, C, AuthorNameStartingWith, 1> {
         AuthorNameStartingWithQuery {
             client,
             params: [start_str],
@@ -433,19 +433,21 @@ impl AuthorNameStartingWithStmt {
         }
     }
 }
-impl<'a, C: GenericClient, T1: crate::StringSql>
+impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
     crate::client::sync::Params<
+        'c,
         'a,
+        's,
         AuthorNameStartingWithParams<T1>,
-        AuthorNameStartingWithQuery<'a, C, AuthorNameStartingWith, 1>,
+        AuthorNameStartingWithQuery<'c, 'a, 's, C, AuthorNameStartingWith, 1>,
         C,
     > for AuthorNameStartingWithStmt
 {
     fn params(
-        &'a mut self,
-        client: &'a mut C,
+        &'s mut self,
+        client: &'c mut C,
         params: &'a AuthorNameStartingWithParams<T1>,
-    ) -> AuthorNameStartingWithQuery<'a, C, AuthorNameStartingWith, 1> {
+    ) -> AuthorNameStartingWithQuery<'c, 'a, 's, C, AuthorNameStartingWith, 1> {
         self.bind(client, &params.start_str)
     }
 }
@@ -461,11 +463,11 @@ WHERE
 }
 pub struct SelectVoiceActorWithCharacterStmt(crate::client::sync::Stmt);
 impl SelectVoiceActorWithCharacterStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a mut C,
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c mut C,
         spongebob_character: &'a crate::types::SpongeBobCharacter,
-    ) -> VoiceactorQuery<'a, C, crate::types::Voiceactor, 1> {
+    ) -> VoiceactorQuery<'c, 'a, 's, C, crate::types::Voiceactor, 1> {
         VoiceactorQuery {
             client,
             params: [spongebob_character],
@@ -486,10 +488,10 @@ FROM
 }
 pub struct SelectTranslationsStmt(crate::client::sync::Stmt);
 impl SelectTranslationsStmt {
-    pub fn bind<'a, C: GenericClient>(
-        &'a mut self,
-        client: &'a mut C,
-    ) -> SelectTranslationsQuery<'a, C, SelectTranslations, 0> {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c mut C,
+    ) -> SelectTranslationsQuery<'c, 'a, 's, C, SelectTranslations, 0> {
         SelectTranslationsQuery {
             client,
             params: [],

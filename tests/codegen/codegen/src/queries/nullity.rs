@@ -39,18 +39,21 @@ impl<'a> From<NullityBorrowed<'a>> for Nullity {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct NullityQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct NullityQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::NullityBorrowed,
         mapper: fn(super::NullityBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NullityQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NullityQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::NullityBorrowed) -> R) -> NullityQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::NullityBorrowed) -> R,
+        ) -> NullityQuery<'c, 'a, 's, C, R, N> {
             NullityQuery {
                 client: self.client,
                 params: self.params,
@@ -76,7 +79,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -95,14 +98,16 @@ pub mod sync {
     pub struct NewNullityStmt(crate::client::sync::Stmt);
     impl NewNullityStmt {
         pub fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::ArraySql<Item = Option<T1>>,
             T3: crate::StringSql,
         >(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             texts: &'a T2,
             name: &'a T3,
             composite: &'a Option<crate::types::NullityCompositeParams<'a>>,
@@ -119,6 +124,8 @@ pub mod sync {
             T3: crate::StringSql,
         >
         crate::client::sync::Params<
+            'a,
+            'a,
             'a,
             super::NullityParams<'a, T1, T2, T3>,
             Result<u64, postgres::Error>,
@@ -138,10 +145,10 @@ pub mod sync {
     }
     pub struct NullityStmt(crate::client::sync::Stmt);
     impl NullityStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> NullityQuery<'a, C, super::Nullity, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> NullityQuery<'c, 'a, 's, C, super::Nullity, 0> {
             NullityQuery {
                 client,
                 params: [],
@@ -159,18 +166,21 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct NullityQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct NullityQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::NullityBorrowed,
         mapper: fn(super::NullityBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> NullityQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> NullityQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::NullityBorrowed) -> R) -> NullityQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::NullityBorrowed) -> R,
+        ) -> NullityQuery<'c, 'a, 's, C, R, N> {
             NullityQuery {
                 client: self.client,
                 params: self.params,
@@ -198,7 +208,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -219,14 +229,16 @@ pub mod async_ {
     pub struct NewNullityStmt(crate::client::async_::Stmt);
     impl NewNullityStmt {
         pub async fn bind<
+            'c,
             'a,
+            's,
             C: GenericClient,
             T1: crate::StringSql,
             T2: crate::ArraySql<Item = Option<T1>>,
             T3: crate::StringSql,
         >(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             texts: &'a T2,
             name: &'a T3,
             composite: &'a Option<crate::types::NullityCompositeParams<'a>>,
@@ -243,6 +255,8 @@ pub mod async_ {
             T3: crate::StringSql,
         >
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::NullityParams<'a, T1, T2, T3>,
             std::pin::Pin<
@@ -266,10 +280,10 @@ pub mod async_ {
     }
     pub struct NullityStmt(crate::client::async_::Stmt);
     impl NullityStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> NullityQuery<'a, C, super::Nullity, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> NullityQuery<'c, 'a, 's, C, super::Nullity, 0> {
             NullityQuery {
                 client,
                 params: [],
