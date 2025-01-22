@@ -56,7 +56,7 @@ where
 }
 pub fn example_query() -> ExampleQueryStmt {
     ExampleQueryStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    *\nFROM\n    example_table",
+        "SELECT * FROM example_table",
     ))
 }
 pub struct ExampleQueryStmt(crate::client::async_::Stmt);

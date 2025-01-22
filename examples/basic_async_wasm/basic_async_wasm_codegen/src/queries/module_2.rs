@@ -348,9 +348,7 @@ where
     }
 }
 pub fn authors() -> AuthorsStmt {
-    AuthorsStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    *\nFROM\n    Author",
-    ))
+    AuthorsStmt(crate::client::async_::Stmt::new("SELECT * FROM Author"))
 }
 pub struct AuthorsStmt(crate::client::async_::Stmt);
 impl AuthorsStmt {
@@ -372,9 +370,7 @@ impl AuthorsStmt {
     }
 }
 pub fn books() -> BooksStmt {
-    BooksStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    Title\nFROM\n    Book",
-    ))
+    BooksStmt(crate::client::async_::Stmt::new("SELECT Title FROM Book"))
 }
 pub struct BooksStmt(crate::client::async_::Stmt);
 impl BooksStmt {
@@ -393,7 +389,7 @@ impl BooksStmt {
 }
 pub fn author_name_by_id() -> AuthorNameByIdStmt {
     AuthorNameByIdStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    Author.Name\nFROM\n    Author\nWHERE\n    Author.Id = $1",
+        "SELECT Author.Name FROM Author WHERE Author.Id = $1",
     ))
 }
 pub struct AuthorNameByIdStmt(crate::client::async_::Stmt);
@@ -415,7 +411,7 @@ impl AuthorNameByIdStmt {
 pub fn author_name_starting_with() -> AuthorNameStartingWithStmt {
     AuthorNameStartingWithStmt(
         crate::client::async_::Stmt::new(
-            "SELECT\n    BookAuthor.AuthorId,\n    Author.Name,\n    BookAuthor.BookId,\n    Book.Title\nFROM\n    BookAuthor\n    INNER JOIN Author ON Author.id = BookAuthor.AuthorId\n    INNER JOIN Book ON Book.Id = BookAuthor.BookId\nWHERE\n    Author.Name LIKE CONCAT($1::text, '%')",
+            "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
         ),
     )
 }
@@ -458,7 +454,7 @@ impl<'a, C: GenericClient, T1: crate::StringSql>
 }
 pub fn select_voice_actor_with_character() -> SelectVoiceActorWithCharacterStmt {
     SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    voice_actor\nFROM\n    SpongeBobVoiceActor\nWHERE\n    character = $1",
+        "SELECT voice_actor FROM SpongeBobVoiceActor WHERE character = $1",
     ))
 }
 pub struct SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt);
@@ -479,7 +475,7 @@ impl SelectVoiceActorWithCharacterStmt {
 }
 pub fn select_translations() -> SelectTranslationsStmt {
     SelectTranslationsStmt(crate::client::async_::Stmt::new(
-        "SELECT\n    Title,\n    Translations\nFROM\n    Book",
+        "SELECT Title, Translations FROM Book",
     ))
 }
 pub struct SelectTranslationsStmt(crate::client::async_::Stmt);

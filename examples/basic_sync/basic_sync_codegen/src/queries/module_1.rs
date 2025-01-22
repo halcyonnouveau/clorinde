@@ -3,7 +3,7 @@
 use postgres::{fallible_iterator::FallibleIterator, GenericClient};
 pub fn insert_book() -> InsertBookStmt {
     InsertBookStmt(crate::client::sync::Stmt::new(
-        "INSERT INTO Book (title)\n  VALUES ($1)",
+        "INSERT INTO Book (title) VALUES ($1)",
     ))
 }
 pub struct InsertBookStmt(crate::client::sync::Stmt);

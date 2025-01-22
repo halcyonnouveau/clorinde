@@ -984,9 +984,7 @@ pub mod sync {
         }
     }
     pub fn select_everything() -> SelectEverythingStmt {
-        SelectEverythingStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    Everything",
-        ))
+        SelectEverythingStmt(crate::client::sync::Stmt::new("SELECT * FROM Everything"))
     }
     pub struct SelectEverythingStmt(crate::client::sync::Stmt);
     impl SelectEverythingStmt {
@@ -1039,9 +1037,7 @@ pub mod sync {
         }
     }
     pub fn select_everything_null() -> SelectEverythingNullStmt {
-        SelectEverythingNullStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    Everything",
-        ))
+        SelectEverythingNullStmt(crate::client::sync::Stmt::new("SELECT * FROM Everything"))
     }
     pub struct SelectEverythingNullStmt(crate::client::sync::Stmt);
     impl SelectEverythingNullStmt {
@@ -1096,7 +1092,7 @@ pub mod sync {
     pub fn insert_everything() -> InsertEverythingStmt {
         InsertEverythingStmt(
             crate::client::sync::Stmt::new(
-                "INSERT INTO Everything (bool_, boolean_, char_, smallint_, int2_, smallserial_, serial2_, int_, int4_, serial_, serial4_, bingint_, int8_, bigserial_, serial8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_)\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)",
+                "INSERT INTO Everything (bool_, boolean_, char_, smallint_, int2_, smallserial_, serial2_, int_, int4_, serial_, serial4_, bingint_, int8_, bigserial_, serial8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)",
             ),
         )
     }
@@ -1252,7 +1248,7 @@ pub mod sync {
     }
     pub fn select_everything_array() -> SelectEverythingArrayStmt {
         SelectEverythingArrayStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    EverythingArray",
+            "SELECT * FROM EverythingArray",
         ))
     }
     pub struct SelectEverythingArrayStmt(crate::client::sync::Stmt);
@@ -1301,7 +1297,7 @@ pub mod sync {
     }
     pub fn select_everything_array_null() -> SelectEverythingArrayNullStmt {
         SelectEverythingArrayNullStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    EverythingArray",
+            "SELECT * FROM EverythingArray",
         ))
     }
     pub struct SelectEverythingArrayNullStmt(crate::client::sync::Stmt);
@@ -1351,7 +1347,7 @@ pub mod sync {
     pub fn insert_everything_array() -> InsertEverythingArrayStmt {
         InsertEverythingArrayStmt(
             crate::client::sync::Stmt::new(
-                "INSERT INTO EverythingArray (bool_, boolean_, char_, smallint_, int2_, int_, int4_, bingint_, int8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_)\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)",
+                "INSERT INTO EverythingArray (bool_, boolean_, char_, smallint_, int2_, int_, int4_, bingint_, int8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)",
             ),
         )
     }
@@ -1612,9 +1608,7 @@ pub mod sync {
         }
     }
     pub fn select_nightmare() -> SelectNightmareStmt {
-        SelectNightmareStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    nightmare",
-        ))
+        SelectNightmareStmt(crate::client::sync::Stmt::new("SELECT * FROM nightmare"))
     }
     pub struct SelectNightmareStmt(crate::client::sync::Stmt);
     impl SelectNightmareStmt {
@@ -1633,7 +1627,7 @@ pub mod sync {
     }
     pub fn insert_nightmare() -> InsertNightmareStmt {
         InsertNightmareStmt(crate::client::sync::Stmt::new(
-            "INSERT INTO nightmare (composite)\n    VALUES ($1)",
+            "INSERT INTO nightmare (composite) VALUES ($1)",
         ))
     }
     pub struct InsertNightmareStmt(crate::client::sync::Stmt);
@@ -1649,7 +1643,7 @@ pub mod sync {
     }
     pub fn select_schema_nightmare() -> SelectSchemaNightmareStmt {
         SelectSchemaNightmareStmt(crate::client::sync::Stmt::new(
-            "SELECT\n    *\nFROM\n    schema.nightmare",
+            "SELECT * FROM schema.nightmare",
         ))
     }
     pub struct SelectSchemaNightmareStmt(crate::client::sync::Stmt);
@@ -1670,7 +1664,7 @@ pub mod sync {
     }
     pub fn insert_schema_nightmare() -> InsertSchemaNightmareStmt {
         InsertSchemaNightmareStmt(crate::client::sync::Stmt::new(
-            "INSERT INTO schema.nightmare (composite)\n    VALUES ($1)",
+            "INSERT INTO schema.nightmare (composite) VALUES ($1)",
         ))
     }
     pub struct InsertSchemaNightmareStmt(crate::client::sync::Stmt);
@@ -2019,9 +2013,7 @@ pub mod async_ {
         }
     }
     pub fn select_everything() -> SelectEverythingStmt {
-        SelectEverythingStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    Everything",
-        ))
+        SelectEverythingStmt(crate::client::async_::Stmt::new("SELECT * FROM Everything"))
     }
     pub struct SelectEverythingStmt(crate::client::async_::Stmt);
     impl SelectEverythingStmt {
@@ -2074,9 +2066,7 @@ pub mod async_ {
         }
     }
     pub fn select_everything_null() -> SelectEverythingNullStmt {
-        SelectEverythingNullStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    Everything",
-        ))
+        SelectEverythingNullStmt(crate::client::async_::Stmt::new("SELECT * FROM Everything"))
     }
     pub struct SelectEverythingNullStmt(crate::client::async_::Stmt);
     impl SelectEverythingNullStmt {
@@ -2131,7 +2121,7 @@ pub mod async_ {
     pub fn insert_everything() -> InsertEverythingStmt {
         InsertEverythingStmt(
             crate::client::async_::Stmt::new(
-                "INSERT INTO Everything (bool_, boolean_, char_, smallint_, int2_, smallserial_, serial2_, int_, int4_, serial_, serial4_, bingint_, int8_, bigserial_, serial8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_)\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)",
+                "INSERT INTO Everything (bool_, boolean_, char_, smallint_, int2_, smallserial_, serial2_, int_, int4_, serial_, serial4_, bingint_, int8_, bigserial_, serial8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)",
             ),
         )
     }
@@ -2293,7 +2283,7 @@ pub mod async_ {
     }
     pub fn select_everything_array() -> SelectEverythingArrayStmt {
         SelectEverythingArrayStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    EverythingArray",
+            "SELECT * FROM EverythingArray",
         ))
     }
     pub struct SelectEverythingArrayStmt(crate::client::async_::Stmt);
@@ -2342,7 +2332,7 @@ pub mod async_ {
     }
     pub fn select_everything_array_null() -> SelectEverythingArrayNullStmt {
         SelectEverythingArrayNullStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    EverythingArray",
+            "SELECT * FROM EverythingArray",
         ))
     }
     pub struct SelectEverythingArrayNullStmt(crate::client::async_::Stmt);
@@ -2392,7 +2382,7 @@ pub mod async_ {
     pub fn insert_everything_array() -> InsertEverythingArrayStmt {
         InsertEverythingArrayStmt(
             crate::client::async_::Stmt::new(
-                "INSERT INTO EverythingArray (bool_, boolean_, char_, smallint_, int2_, int_, int4_, bingint_, int8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_)\n    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)",
+                "INSERT INTO EverythingArray (bool_, boolean_, char_, smallint_, int2_, int_, int4_, bingint_, int8_, float4_, real_, float8_, double_precision_, text_, varchar_, bytea_, timestamp_, timestamp_without_time_zone_, timestamptz_, timestamp_with_time_zone_, date_, time_, json_, jsonb_, uuid_, inet_, macaddr_, numeric_) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)",
             ),
         )
     }
@@ -2659,9 +2649,7 @@ pub mod async_ {
         }
     }
     pub fn select_nightmare() -> SelectNightmareStmt {
-        SelectNightmareStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    nightmare",
-        ))
+        SelectNightmareStmt(crate::client::async_::Stmt::new("SELECT * FROM nightmare"))
     }
     pub struct SelectNightmareStmt(crate::client::async_::Stmt);
     impl SelectNightmareStmt {
@@ -2680,7 +2668,7 @@ pub mod async_ {
     }
     pub fn insert_nightmare() -> InsertNightmareStmt {
         InsertNightmareStmt(crate::client::async_::Stmt::new(
-            "INSERT INTO nightmare (composite)\n    VALUES ($1)",
+            "INSERT INTO nightmare (composite) VALUES ($1)",
         ))
     }
     pub struct InsertNightmareStmt(crate::client::async_::Stmt);
@@ -2696,7 +2684,7 @@ pub mod async_ {
     }
     pub fn select_schema_nightmare() -> SelectSchemaNightmareStmt {
         SelectSchemaNightmareStmt(crate::client::async_::Stmt::new(
-            "SELECT\n    *\nFROM\n    schema.nightmare",
+            "SELECT * FROM schema.nightmare",
         ))
     }
     pub struct SelectSchemaNightmareStmt(crate::client::async_::Stmt);
@@ -2717,7 +2705,7 @@ pub mod async_ {
     }
     pub fn insert_schema_nightmare() -> InsertSchemaNightmareStmt {
         InsertSchemaNightmareStmt(crate::client::async_::Stmt::new(
-            "INSERT INTO schema.nightmare (composite)\n    VALUES ($1)",
+            "INSERT INTO schema.nightmare (composite) VALUES ($1)",
         ))
     }
     pub struct InsertSchemaNightmareStmt(crate::client::async_::Stmt);

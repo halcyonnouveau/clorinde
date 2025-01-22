@@ -217,7 +217,7 @@ pub mod sync {
     }
     pub fn new_named_visible() -> NewNamedVisibleStmt {
         NewNamedVisibleStmt(crate::client::sync::Stmt::new(
-            "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id ",
+            "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id",
         ))
     }
     pub struct NewNamedVisibleStmt(crate::client::sync::Stmt);
@@ -553,7 +553,7 @@ pub mod async_ {
     }
     pub fn new_named_visible() -> NewNamedVisibleStmt {
         NewNamedVisibleStmt(crate::client::async_::Stmt::new(
-            "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id ",
+            "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id",
         ))
     }
     pub struct NewNamedVisibleStmt(crate::client::async_::Stmt);

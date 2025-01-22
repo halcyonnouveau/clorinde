@@ -368,7 +368,7 @@ pub mod sync {
         }
     }
     pub fn select_spaced() -> SelectSpacedStmt {
-        SelectSpacedStmt(crate::client::sync::Stmt::new("      SELECT * FROM clone "))
+        SelectSpacedStmt(crate::client::sync::Stmt::new("SELECT * FROM clone"))
     }
     pub struct SelectSpacedStmt(crate::client::sync::Stmt);
     impl SelectSpacedStmt {
@@ -1151,9 +1151,7 @@ pub mod async_ {
         }
     }
     pub fn select_spaced() -> SelectSpacedStmt {
-        SelectSpacedStmt(crate::client::async_::Stmt::new(
-            "      SELECT * FROM clone ",
-        ))
+        SelectSpacedStmt(crate::client::async_::Stmt::new("SELECT * FROM clone"))
     }
     pub struct SelectSpacedStmt(crate::client::async_::Stmt);
     impl SelectSpacedStmt {

@@ -391,6 +391,13 @@ fn gen_query_fn(
     };
 
     let name = format_ident!("{}", ident.rs);
+
+    let sql = sql
+        .split('\n')
+        .map(|l| l.trim())
+        .collect::<Vec<&str>>()
+        .join(" ");
+
     let struct_tokens = quote! {
         pub fn #name() -> #stmt_ident {
             #stmt_ident(#client::Stmt::new(#sql))
