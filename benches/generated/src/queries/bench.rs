@@ -1,3 +1,5 @@
+// This file was generated with `clorinde`. Do not modify.
+
 #[derive(Debug)]
 pub struct InsertUserParams<T1: crate::StringSql, T2: crate::StringSql> {
     pub name: T1,

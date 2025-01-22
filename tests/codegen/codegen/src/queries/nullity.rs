@@ -1,3 +1,5 @@
+// This file was generated with `clorinde`. Do not modify.
+
 #[derive(Debug)]
 pub struct NullityParams<
     'a,

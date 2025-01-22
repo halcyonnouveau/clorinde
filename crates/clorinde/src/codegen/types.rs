@@ -12,7 +12,7 @@ use super::GenCtx;
 pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
-) -> String {
+) -> proc_macro2::TokenStream {
     let mut tokens = quote! {
         #[cfg(feature = "chrono")]
         pub mod time {
@@ -56,9 +56,7 @@ pub(crate) fn gen_type_modules(
         }
     }
 
-    let contents =
-        syn::parse2(tokens.to_token_stream()).expect("Unable to parse the tokens as a syn::File");
-    prettyplease::unparse(&contents)
+    tokens
 }
 
 /// Generates type definitions for custom user types. This includes domains, composites and enums.

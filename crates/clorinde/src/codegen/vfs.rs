@@ -19,7 +19,18 @@ impl Vfs {
     }
 
     /// Add a new file
-    pub fn add(&mut self, path: impl Into<PathBuf>, content: impl Into<String>) {
+    pub fn add(&mut self, path: impl Into<PathBuf>, content: proc_macro2::TokenStream) {
+        let warning = "// This file was generated with `clorinde`. Do not modify.\n\n";
+
+        let syntax_tree = syn::parse2(content).unwrap();
+        let formatted = prettyplease::unparse(&syntax_tree);
+
+        let file_content = format!("{}{}", warning, formatted);
+        assert!(self.fs.insert(path.into(), file_content).is_none())
+    }
+
+    /// Add a new file from a string
+    pub fn add_string(&mut self, path: impl Into<PathBuf>, content: impl Into<String>) {
         assert!(self.fs.insert(path.into(), content.into()).is_none())
     }
 

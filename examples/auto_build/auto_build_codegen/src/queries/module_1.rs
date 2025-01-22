@@ -1,3 +1,5 @@
+// This file was generated with `clorinde`. Do not modify.
+
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
 pub struct StringQuery<'a, C: GenericClient, T, const N: usize> {

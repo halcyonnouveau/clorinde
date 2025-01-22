@@ -1,23 +1,25 @@
-use std::fmt::Write;
+use quote::quote;
 
-use codegen_template::code;
-
-use super::{vfs::Vfs, DependencyAnalysis, WARNING};
+use super::{vfs::Vfs, DependencyAnalysis};
 use crate::config::Config;
 
-pub(crate) fn gen_lib(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub(crate) fn gen_lib(
+    dependency_analysis: &DependencyAnalysis,
+    config: &Config,
+) -> proc_macro2::TokenStream {
+    let base_tokens = quote! {
         #[allow(clippy::all, clippy::pedantic)]
         #[allow(unused_variables)]
         #[allow(unused_imports)]
         #[allow(dead_code)]
         pub mod types;
+
         #[allow(clippy::all, clippy::pedantic)]
         #[allow(unused_variables)]
         #[allow(unused_imports)]
         #[allow(dead_code)]
         pub mod queries;
+
         pub mod client;
 
         mod array_iterator;
@@ -25,33 +27,43 @@ pub(crate) fn gen_lib(dependency_analysis: &DependencyAnalysis, config: &Config)
         mod type_traits;
         mod utils;
 
-        pub (crate) use utils::slice_iter;
+        pub(crate) use utils::slice_iter;
 
         pub use array_iterator::ArrayIterator;
         pub use domain::{Domain, DomainArray};
         pub use type_traits::{ArraySql, BytesSql, IterSql, StringSql};
-    );
+    };
 
-    if config.r#async {
-        code!(w =>
+    let db_imports = if config.r#async {
+        quote! {
             #[cfg(feature = "deadpool")]
             pub use deadpool_postgres;
+
             #[cfg(any(feature = "deadpool", feature = "wasm-async"))]
             pub use tokio_postgres;
+
             #[cfg(not(any(feature = "deadpool", feature = "wasm-async")))]
             pub use postgres;
-        );
+        }
     } else {
-        code!(w =>
+        quote! {
             pub use postgres;
-        );
-    }
+        }
+    };
 
-    if dependency_analysis.json {
-        code!(w => pub use type_traits::JsonSql; )
-    }
+    let json_imports = if dependency_analysis.json {
+        quote! {
+            pub use type_traits::JsonSql;
+        }
+    } else {
+        quote!()
+    };
 
-    w
+    quote! {
+        #base_tokens
+        #db_imports
+        #json_imports
+    }
 }
 
 pub(crate) fn gen_clients(
@@ -78,29 +90,25 @@ pub(crate) fn gen_clients(
     vfs.add("src/client.rs", client(config))
 }
 
-pub fn client(config: &Config) -> String {
-    let mut w = String::new();
+pub fn client(config: &Config) -> proc_macro2::TokenStream {
     match (config.r#async, config.sync) {
-        (true, false) => code!(w =>
+        (true, false) => quote! {
             pub(crate) mod async_;
             pub use async_::*;
-        ),
-        (false, true) => code!(w =>
+        },
+        (false, true) => quote! {
             pub(crate) mod sync;
             pub use sync::*;
-        ),
-        _ => code!(w =>
+        },
+        _ => quote! {
             pub mod sync;
             pub mod async_;
-        ),
-    };
-
-    w
+        },
+    }
 }
 
-pub fn core_utils() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn core_utils() -> proc_macro2::TokenStream {
+    quote! {
         use postgres_types::{Kind, ToSql, Type};
 
         pub fn escape_domain(ty: &Type) -> &Type {
@@ -115,14 +123,11 @@ pub fn core_utils() -> String {
         ) -> impl ExactSizeIterator<Item = &'a dyn ToSql> + 'a {
             s.iter().map(|s| *s as _)
         }
-    );
-
-    w
+    }
 }
 
-pub fn core_domain() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn core_domain() -> proc_macro2::TokenStream {
+    quote! {
         use postgres_protocol::types::{array_to_sql, ArrayDimension};
         use postgres_types::{private::BytesMut, IsNull, Kind, ToSql, Type};
         use std::{
@@ -236,14 +241,11 @@ pub fn core_domain() -> String {
                 Ok(len as i32)
             }
         }
-    );
-
-    w
+    }
 }
 
-pub fn core_array() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn core_array() -> proc_macro2::TokenStream {
+    quote! {
         use fallible_iterator::FallibleIterator;
         use postgres_protocol::types::{array_from_sql, ArrayValues};
         use postgres_types::{FromSql, Kind, Type};
@@ -311,14 +313,11 @@ pub fn core_array() -> String {
                 }
             }
         }
-    );
-
-    w
+    }
 }
 
-pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> proc_macro2::TokenStream {
+    let base_traits = quote! {
         use std::borrow::Cow;
 
         use super::domain::escape_domain_to_sql;
@@ -336,16 +335,20 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
         impl<T: BytesSql> BytesSql for &T {}
         impl BytesSql for Vec<u8> {}
         impl BytesSql for &[u8] {}
-    );
-    if dependency_analysis.json {
-        code!(w =>
+    };
+
+    let json_traits = if dependency_analysis.json {
+        quote! {
             pub trait JsonSql: std::fmt::Debug + ToSql + Sync + Send {}
             impl<T: JsonSql> JsonSql for &T {}
             impl JsonSql for serde_json::value::Value {}
             impl<T: serde::ser::Serialize + std::fmt::Debug + Sync + Send> JsonSql for postgres_types::Json<T> {}
-        );
-    }
-    code!(w =>
+        }
+    } else {
+        quote!()
+    };
+
+    let array_traits = quote! {
         pub trait ArraySql: std::fmt::Debug + ToSql + Send + Sync {
             type Item;
             fn escape_domain_to_sql(
@@ -354,6 +357,7 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
                 w: &mut BytesMut,
             ) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>>;
         }
+
         impl<T: std::fmt::Debug + ToSql + Sync, A: ArraySql<Item = T>> ArraySql for &A {
             type Item = T;
 
@@ -365,6 +369,7 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
                 A::escape_domain_to_sql(self, ty, w)
             }
         }
+
         impl<T: std::fmt::Debug + ToSql + Send + Sync> ArraySql for Vec<T> {
             type Item = T;
 
@@ -390,11 +395,10 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
         }
 
         impl<
-                T: std::fmt::Debug + ToSql + Send + Sync,
-                I: Iterator<Item = T> + ExactSizeIterator,
-                F: Fn() -> I + Send + Sync,
-            > ArraySql for IterSql<T, I, F>
-        {
+            T: std::fmt::Debug + ToSql + Send + Sync,
+            I: Iterator<Item = T> + ExactSizeIterator,
+            F: Fn() -> I + Send + Sync,
+        > ArraySql for IterSql<T, I, F> {
             type Item = T;
 
             fn escape_domain_to_sql(
@@ -416,7 +420,6 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
             }
         }
 
-        // Taken from `postgres`
         impl<T: ToSql, I: Iterator<Item = T> + ExactSizeIterator, F: Fn() -> I + Sync> ToSql
             for IterSql<T, I, F>
         {
@@ -460,7 +463,6 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
             to_sql_checked!();
         }
 
-        // https://github.com/sfackler/rust-postgres/blob/765395f288861209a644c621bf72172acd482515/postgres-types/src/lib.rs
         fn downcast(len: usize) -> Result<i32, Box<dyn std::error::Error + Sync + Send>> {
             if len > i32::MAX as usize {
                 Err("value too large to transmit".into())
@@ -468,13 +470,17 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> String {
                 Ok(len as i32)
             }
         }
-    );
-    w
+    };
+
+    quote! {
+        #base_traits
+        #json_traits
+        #array_traits
+    }
 }
 
-pub fn sync() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn sync() -> proc_macro2::TokenStream {
+    quote! {
         use postgres::Statement;
 
         /// This trait allows you to bind parameters to a query using a single
@@ -511,14 +517,11 @@ pub fn sync() -> String {
                 Ok(unsafe { self.cached.as_ref().unwrap_unchecked() })
             }
         }
-    );
-
-    w
+    }
 }
 
-pub fn async_() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn async_() -> proc_macro2::TokenStream {
+    quote! {
         pub use generic_client::GenericClient;
         use tokio_postgres::{Error, Statement};
 
@@ -560,14 +563,11 @@ pub fn async_() -> String {
                 Ok(unsafe { self.cached.as_ref().unwrap_unchecked() })
             }
         }
-    );
-
-    w
+    }
 }
 
-pub fn async_generic_client() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn async_generic_client() -> proc_macro2::TokenStream {
+    quote! {
         use std::future::Future;
         use tokio_postgres::{
             types::BorrowToSql, Client, Error, RowStream, Statement, ToStatement, Transaction,
@@ -670,7 +670,11 @@ pub fn async_generic_client() -> String {
                 Transaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, P, I>(
+                &self,
+                statement: &T,
+                params: I,
+            ) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
                 P: BorrowToSql,
@@ -730,7 +734,11 @@ pub fn async_generic_client() -> String {
                 Client::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, P, I>(
+                &self,
+                statement: &T,
+                params: I,
+            ) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
                 P: BorrowToSql,
@@ -740,14 +748,11 @@ pub fn async_generic_client() -> String {
                 Client::query_raw(self, statement, params).await
             }
         }
-    );
-
-    w
+    }
 }
 
-pub fn async_deadpool() -> String {
-    let mut w = String::new();
-    code!(w => $WARNING
+pub fn async_deadpool() -> proc_macro2::TokenStream {
+    quote! {
         use deadpool_postgres::{
             Client as DeadpoolClient, ClientWrapper, Transaction as DeadpoolTransaction,
         };
@@ -807,7 +812,11 @@ pub fn async_deadpool() -> String {
                 PgClient::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, P, I>(
+                &self,
+                statement: &T,
+                params: I,
+            ) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
                 P: BorrowToSql,
@@ -867,7 +876,11 @@ pub fn async_deadpool() -> String {
                 PgTransaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+            async fn query_raw<T, P, I>(
+                &self,
+                statement: &T,
+                params: I,
+            ) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
                 P: BorrowToSql,
@@ -877,7 +890,5 @@ pub fn async_deadpool() -> String {
                 PgTransaction::query_raw(self, statement, params).await
             }
         }
-    );
-
-    w
+    }
 }

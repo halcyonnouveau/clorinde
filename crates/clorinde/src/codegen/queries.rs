@@ -1,7 +1,4 @@
-use std::fmt::Write;
-
-use codegen_template::code;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 
 use crate::{
     codegen::ModCtx,
@@ -9,7 +6,7 @@ use crate::{
     prepare_queries::{Preparation, PreparedItem, PreparedModule, PreparedQuery},
 };
 
-use super::{idx_char, vfs::Vfs, GenCtx, WARNING};
+use super::{idx_char, vfs::Vfs, GenCtx};
 
 fn gen_params_struct(params: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     let PreparedItem {
@@ -495,7 +492,7 @@ fn gen_query_fn(
     }
 }
 
-fn gen_query_module(module: &PreparedModule, config: &Config) -> String {
+fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::TokenStream {
     let mut tokens = quote!();
     let ctx = GenCtx::new(ModCtx::Queries, config.r#async, config.serialize);
 
@@ -534,9 +531,7 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> String {
     };
 
     tokens.extend(specific_tokens);
-
-    let syntax_tree = syn::parse2(tokens).unwrap();
-    prettyplease::unparse(&syntax_tree)
+    tokens
 }
 
 fn gen_specific(
@@ -576,7 +571,6 @@ fn gen_specific(
 pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Config) {
     for module in &preparation.modules {
         let gen = gen_query_module(module, config);
-        // TODO: add warning
         vfs.add(format!("src/queries/{}.rs", module.info.name), gen);
     }
 
@@ -586,7 +580,6 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
         .map(|module| format_ident!("{}", module.info.name))
         .collect();
 
-    // TODO: add warning
     let mut tokens = quote! {
         #(pub mod #modules_name;)*
     };
@@ -624,7 +617,5 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
         tokens.extend(sync_async_mods);
     }
 
-    let syntax_tree = syn::parse2(tokens).unwrap();
-    let formatted = prettyplease::unparse(&syntax_tree);
-    vfs.add("src/queries.rs", formatted);
+    vfs.add("src/queries.rs", tokens);
 }

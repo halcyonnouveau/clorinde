@@ -1,3 +1,5 @@
+// This file was generated with `clorinde`. Do not modify.
+
 #[cfg(feature = "chrono")]
 pub mod time {
     pub type Timestamp = chrono::NaiveDateTime;

@@ -15,8 +15,6 @@ mod vfs;
 pub use cargo::DependencyAnalysis;
 use quote::{format_ident, quote};
 
-const WARNING: &str = "// This file was generated with `clorinde`. Do not modify.\n\n";
-
 /// Module when codegen is happening
 #[derive(Clone, Copy)]
 pub enum ModCtx {
@@ -138,8 +136,7 @@ pub fn idx_char(idx: usize) -> String {
 pub(crate) fn gen(preparation: Preparation, config: &Config) -> Vfs {
     let mut vfs = Vfs::empty();
     let cargo = cargo::gen_cargo_file(&preparation.dependency_analysis, config);
-    vfs.add("Cargo.toml", cargo);
-    // TODO: add warning
+    vfs.add_string("Cargo.toml", cargo);
     vfs.add(
         "src/lib.rs",
         client::gen_lib(&preparation.dependency_analysis, config),
