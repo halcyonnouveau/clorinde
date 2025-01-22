@@ -420,6 +420,7 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> proc_macro2
             }
         }
 
+        // Taken from `postgres`
         impl<T: ToSql, I: Iterator<Item = T> + ExactSizeIterator, F: Fn() -> I + Sync> ToSql
             for IterSql<T, I, F>
         {
@@ -463,6 +464,7 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> proc_macro2
             to_sql_checked!();
         }
 
+        // https://github.com/sfackler/rust-postgres/blob/765395f288861209a644c621bf72172acd482515/postgres-types/src/lib.rs
         fn downcast(len: usize) -> Result<i32, Box<dyn std::error::Error + Sync + Send>> {
             if len > i32::MAX as usize {
                 Err("value too large to transmit".into())
