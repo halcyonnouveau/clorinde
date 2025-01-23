@@ -52,12 +52,12 @@ impl GenericClient for DeadpoolClient {
     {
         PgClient::query(self, query, params).await
     }
-    async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+    async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
     where
         T: ?Sized + ToStatement + Sync + Send,
-        P: BorrowToSql,
-        I: IntoIterator<Item = P> + Sync + Send,
+        I: IntoIterator + Sync + Send,
         I::IntoIter: ExactSizeIterator,
+        I::Item: BorrowToSql,
     {
         PgClient::query_raw(self, statement, params).await
     }
@@ -106,12 +106,12 @@ impl GenericClient for DeadpoolTransaction<'_> {
     {
         PgTransaction::query(self, query, params).await
     }
-    async fn query_raw<T, P, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
+    async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
     where
         T: ?Sized + ToStatement + Sync + Send,
-        P: BorrowToSql,
-        I: IntoIterator<Item = P> + Sync + Send,
+        I: IntoIterator + Sync + Send,
         I::IntoIter: ExactSizeIterator,
+        I::Item: BorrowToSql,
     {
         PgTransaction::query_raw(self, statement, params).await
     }

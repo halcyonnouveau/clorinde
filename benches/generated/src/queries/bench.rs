@@ -125,18 +125,21 @@ impl<'a> From<SelectComplexBorrowed<'a>> for SelectComplex {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct UserQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct UserQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::UserBorrowed,
         mapper: fn(super::UserBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> UserQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> UserQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::UserBorrowed) -> R) -> UserQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::UserBorrowed) -> R,
+        ) -> UserQuery<'c, 'a, 's, C, R, N> {
             UserQuery {
                 client: self.client,
                 params: self.params,
@@ -162,7 +165,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -173,18 +176,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct PostQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct PostQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::PostBorrowed,
         mapper: fn(super::PostBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> PostQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> PostQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::PostBorrowed) -> R) -> PostQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::PostBorrowed) -> R,
+        ) -> PostQuery<'c, 'a, 's, C, R, N> {
             PostQuery {
                 client: self.client,
                 params: self.params,
@@ -210,7 +216,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -221,18 +227,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct CommentQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct CommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::CommentBorrowed,
         mapper: fn(super::CommentBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> CommentQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> CommentQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::CommentBorrowed) -> R) -> CommentQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::CommentBorrowed) -> R,
+        ) -> CommentQuery<'c, 'a, 's, C, R, N> {
             CommentQuery {
                 client: self.client,
                 params: self.params,
@@ -258,7 +267,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -269,21 +278,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct SelectComplexQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct SelectComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::SelectComplexBorrowed,
         mapper: fn(super::SelectComplexBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectComplexQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectComplexQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectComplexBorrowed) -> R,
-        ) -> SelectComplexQuery<'a, C, R, N> {
+        ) -> SelectComplexQuery<'c, 'a, 's, C, R, N> {
             SelectComplexQuery {
                 client: self.client,
                 params: self.params,
@@ -309,7 +318,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -325,10 +334,10 @@ pub mod sync {
     }
     pub struct UsersStmt(crate::client::sync::Stmt);
     impl UsersStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> UserQuery<'a, C, super::User, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> UserQuery<'c, 'a, 's, C, super::User, 0> {
             UserQuery {
                 client,
                 params: [],
@@ -349,9 +358,9 @@ pub mod sync {
     }
     pub struct InsertUserStmt(crate::client::sync::Stmt);
     impl InsertUserStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a T1,
             hair_color: &'a Option<T2>,
         ) -> Result<u64, postgres::Error> {
@@ -359,17 +368,19 @@ pub mod sync {
             client.execute(stmt, &[name, hair_color])
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>
         crate::client::sync::Params<
+            'c,
             'a,
+            's,
             super::InsertUserParams<T1, T2>,
             Result<u64, postgres::Error>,
             C,
         > for InsertUserStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::InsertUserParams<T1, T2>,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.name, &params.hair_color)
@@ -380,10 +391,10 @@ pub mod sync {
     }
     pub struct PostsStmt(crate::client::sync::Stmt);
     impl PostsStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> PostQuery<'a, C, super::Post, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> PostQuery<'c, 'a, 's, C, super::Post, 0> {
             PostQuery {
                 client,
                 params: [],
@@ -405,11 +416,11 @@ pub mod sync {
     }
     pub struct PostByUserIdsStmt(crate::client::sync::Stmt);
     impl PostByUserIdsStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+            &'s mut self,
+            client: &'c mut C,
             ids: &'a T1,
-        ) -> PostQuery<'a, C, super::Post, 1> {
+        ) -> PostQuery<'c, 'a, 's, C, super::Post, 1> {
             PostQuery {
                 client,
                 params: [ids],
@@ -429,10 +440,10 @@ pub mod sync {
     }
     pub struct CommentsStmt(crate::client::sync::Stmt);
     impl CommentsStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> CommentQuery<'a, C, super::Comment, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> CommentQuery<'c, 'a, 's, C, super::Comment, 0> {
             CommentQuery {
                 client,
                 params: [],
@@ -453,11 +464,11 @@ pub mod sync {
     }
     pub struct CommentsByPostIdStmt(crate::client::sync::Stmt);
     impl CommentsByPostIdStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+            &'s mut self,
+            client: &'c mut C,
             ids: &'a T1,
-        ) -> CommentQuery<'a, C, super::Comment, 1> {
+        ) -> CommentQuery<'c, 'a, 's, C, super::Comment, 1> {
             CommentQuery {
                 client,
                 params: [ids],
@@ -480,10 +491,10 @@ pub mod sync {
     }
     pub struct SelectComplexStmt(crate::client::sync::Stmt);
     impl SelectComplexStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> SelectComplexQuery<'a, C, super::SelectComplex, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectComplexQuery<'c, 'a, 's, C, super::SelectComplex, 0> {
             SelectComplexQuery {
                 client,
                 params: [],
@@ -505,18 +516,21 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct UserQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct UserQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::UserBorrowed,
         mapper: fn(super::UserBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> UserQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> UserQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::UserBorrowed) -> R) -> UserQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::UserBorrowed) -> R,
+        ) -> UserQuery<'c, 'a, 's, C, R, N> {
             UserQuery {
                 client: self.client,
                 params: self.params,
@@ -544,7 +558,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -557,18 +571,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct PostQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct PostQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::PostBorrowed,
         mapper: fn(super::PostBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> PostQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> PostQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::PostBorrowed) -> R) -> PostQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::PostBorrowed) -> R,
+        ) -> PostQuery<'c, 'a, 's, C, R, N> {
             PostQuery {
                 client: self.client,
                 params: self.params,
@@ -596,7 +613,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -609,18 +626,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct CommentQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct CommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::CommentBorrowed,
         mapper: fn(super::CommentBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> CommentQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> CommentQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::CommentBorrowed) -> R) -> CommentQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::CommentBorrowed) -> R,
+        ) -> CommentQuery<'c, 'a, 's, C, R, N> {
             CommentQuery {
                 client: self.client,
                 params: self.params,
@@ -648,7 +668,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -661,21 +681,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct SelectComplexQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct SelectComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::SelectComplexBorrowed,
         mapper: fn(super::SelectComplexBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> SelectComplexQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectComplexQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(super::SelectComplexBorrowed) -> R,
-        ) -> SelectComplexQuery<'a, C, R, N> {
+        ) -> SelectComplexQuery<'c, 'a, 's, C, R, N> {
             SelectComplexQuery {
                 client: self.client,
                 params: self.params,
@@ -703,7 +723,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -721,10 +741,10 @@ pub mod async_ {
     }
     pub struct UsersStmt(crate::client::async_::Stmt);
     impl UsersStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> UserQuery<'a, C, super::User, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> UserQuery<'c, 'a, 's, C, super::User, 0> {
             UserQuery {
                 client,
                 params: [],
@@ -745,9 +765,16 @@ pub mod async_ {
     }
     pub struct InsertUserStmt(crate::client::async_::Stmt);
     impl InsertUserStmt {
-        pub async fn bind<'a, C: GenericClient, T1: crate::StringSql, T2: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<
+            'c,
+            'a,
+            's,
+            C: GenericClient,
+            T1: crate::StringSql,
+            T2: crate::StringSql,
+        >(
+            &'s mut self,
+            client: &'c C,
             name: &'a T1,
             hair_color: &'a Option<T2>,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -757,6 +784,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync, T1: crate::StringSql, T2: crate::StringSql>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::InsertUserParams<T1, T2>,
             std::pin::Pin<
@@ -780,10 +809,10 @@ pub mod async_ {
     }
     pub struct PostsStmt(crate::client::async_::Stmt);
     impl PostsStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> PostQuery<'a, C, super::Post, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> PostQuery<'c, 'a, 's, C, super::Post, 0> {
             PostQuery {
                 client,
                 params: [],
@@ -805,11 +834,11 @@ pub mod async_ {
     }
     pub struct PostByUserIdsStmt(crate::client::async_::Stmt);
     impl PostByUserIdsStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+            &'s mut self,
+            client: &'c C,
             ids: &'a T1,
-        ) -> PostQuery<'a, C, super::Post, 1> {
+        ) -> PostQuery<'c, 'a, 's, C, super::Post, 1> {
             PostQuery {
                 client,
                 params: [ids],
@@ -829,10 +858,10 @@ pub mod async_ {
     }
     pub struct CommentsStmt(crate::client::async_::Stmt);
     impl CommentsStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> CommentQuery<'a, C, super::Comment, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> CommentQuery<'c, 'a, 's, C, super::Comment, 0> {
             CommentQuery {
                 client,
                 params: [],
@@ -853,11 +882,11 @@ pub mod async_ {
     }
     pub struct CommentsByPostIdStmt(crate::client::async_::Stmt);
     impl CommentsByPostIdStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::ArraySql<Item = i32>>(
+            &'s mut self,
+            client: &'c C,
             ids: &'a T1,
-        ) -> CommentQuery<'a, C, super::Comment, 1> {
+        ) -> CommentQuery<'c, 'a, 's, C, super::Comment, 1> {
             CommentQuery {
                 client,
                 params: [ids],
@@ -880,10 +909,10 @@ pub mod async_ {
     }
     pub struct SelectComplexStmt(crate::client::async_::Stmt);
     impl SelectComplexStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> SelectComplexQuery<'a, C, super::SelectComplex, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectComplexQuery<'c, 'a, 's, C, super::SelectComplex, 0> {
             SelectComplexQuery {
                 client,
                 params: [],

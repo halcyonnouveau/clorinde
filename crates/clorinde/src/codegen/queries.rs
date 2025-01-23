@@ -1,12 +1,11 @@
 use quote::{format_ident, quote};
 
+use super::{idx_char, vfs::Vfs, GenCtx};
 use crate::{
     codegen::ModCtx,
     config::Config,
     prepare_queries::{Preparation, PreparedItem, PreparedModule, PreparedQuery},
 };
-
-use super::{idx_char, vfs::Vfs, GenCtx};
 
 fn gen_params_struct(params: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     let PreparedItem {
@@ -175,19 +174,19 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
     };
 
     quote! {
-        pub struct #name_ident<'a, C: GenericClient, T, const N: usize> {
-            client: &'a #client_mut C,
+        pub struct #name_ident<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+            client: &'c #client_mut C,
             params: [&'a (dyn postgres_types::ToSql + Sync); N],
-            stmt: &'a mut #client::Stmt,
+            stmt: &'s mut #client::Stmt,
             extractor: fn(&#backend::Row) -> #row_struct,
             mapper: fn(#row_struct) -> T,
         }
 
-        impl<'a, C, T: 'a, const N: usize> #name_ident<'a, C, T, N>
+        impl<'c, 'a, 's, C, T: 'c, const N: usize> #name_ident<'c, 'a, 's, C, T, N>
         where
             C: GenericClient,
         {
-            pub fn map<R>(self, mapper: fn(#row_struct) -> R) -> #name_ident<'a, C, R, N> {
+            pub fn map<R>(self, mapper: fn(#row_struct) -> R) -> #name_ident<'c, 'a, 's, C, R, N> {
                 #name_ident {
                     client: self.client,
                     params: self.params,
@@ -218,7 +217,7 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
 
             pub #fn_async fn iter(
                 self,
-            ) -> Result<impl #raw_type<Item = Result<T, #backend::Error>> + 'a, #backend::Error> {
+            ) -> Result<impl #raw_type<Item = Result<T, #backend::Error>> + 'c, #backend::Error> {
                 let stmt = self.stmt.prepare(self.client)#fn_await?;
                 let it = self
                     .client
@@ -334,11 +333,11 @@ fn gen_query_fn(
             };
 
             quote! {
-                pub fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                    &'a mut self,
-                    client: &'a #client_mut C,
+                pub fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                    &'s mut self,
+                    client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
-                ) -> #row_name_query_ident<'a, C, #path, #nb_params> {
+                ) -> #row_name_query_ident<'c, 'a, 's, C, #path, #nb_params> {
                     #row_name_query_ident {
                         client,
                         params: [#(#params_name,)*],
@@ -354,11 +353,11 @@ fn gen_query_fn(
             let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
 
             quote! {
-                pub fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                    &'a mut self,
-                    client: &'a #client_mut C,
+                pub fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                    &'s mut self,
+                    client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
-                ) -> #row_name_query_ident<'a, C, #field_type, #nb_params> {
+                ) -> #row_name_query_ident<'c, 'a, 's, C, #field_type, #nb_params> {
                     #row_name_query_ident {
                         client,
                         params: [#(#params_name,)*],
@@ -379,9 +378,9 @@ fn gen_query_fn(
             .collect();
 
         quote! {
-            pub #fn_async fn bind<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                &'a mut self,
-                client: &'a #client_mut C,
+            pub #fn_async fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                &'s mut self,
+                client: &'c #client_mut C,
                 #(#params_name: &'a #params_ty,)*
             ) -> Result<u64, #backend::Error> {
                 let stmt = self.0.prepare(client)#fn_await?;
@@ -422,6 +421,8 @@ fn gen_query_fn(
 
             if let Some((idx, _)) = row {
                 let prepared_row = &module.rows.get_index(*idx).unwrap().1;
+                let nb_params = proc_macro2::Literal::usize_unsuffixed(param_field.len());
+
                 let query_row_struct = if prepared_row.is_named {
                     syn::parse_str::<syn::Type>(&prepared_row.path(ctx)).unwrap()
                 } else {
@@ -432,19 +433,18 @@ fn gen_query_fn(
                     "{}Query",
                     module.rows.get_index(*idx).unwrap().1.name.to_string()
                 );
-                let nb_params = proc_macro2::Literal::usize_unsuffixed(param_field.len());
 
                 quote! {
-                    impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
-                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
-                            #name<'a, C, #query_row_struct, #nb_params>, C>
+                    impl<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
+                        #client::Params<'c, 'a, 's, #param_path<#lifetime #(#traits_idents,)*>,
+                            #name<'c, 'a, 's, C, #query_row_struct, #nb_params>, C>
                         for #stmt_ident
                     {
                         fn params(
-                            &'a mut self,
-                            client: &'a #client_mut C,
+                            &'s mut self,
+                            client: &'c #client_mut C,
                             params: &'a #param_path<#lifetime #(#traits_idents,)*>
-                        ) -> #name<'a, C, #query_row_struct, #nb_params> {
+                        ) -> #name<'c, 'a, 's, C, #query_row_struct, #nb_params> {
                             self.bind(client, #(&params.#params_name,)*)
                         }
                     }
@@ -452,7 +452,7 @@ fn gen_query_fn(
             } else if ctx.is_async {
                 quote! {
                     impl<'a, C: GenericClient + Send + Sync, #(#traits_idents: #traits_bounds,)*>
-                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                        #client::Params<'a, 'a, 'a, #param_path<#lifetime #(#traits_idents,)*>,
                             std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>>, C>
                         for #stmt_ident
                     {
@@ -467,14 +467,14 @@ fn gen_query_fn(
                 }
             } else {
                 quote! {
-                    impl<'a, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
-                        #client::Params<'a, #param_path<#lifetime #(#traits_idents,)*>,
+                    impl<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>
+                        #client::Params<'c, 'a, 's, #param_path<#lifetime #(#traits_idents,)*>,
                             Result<u64, #backend::Error>, C>
                         for #stmt_ident
                     {
                         fn params(
-                            &'a mut self,
-                            client: &'a mut C,
+                            &'s mut self,
+                            client: &'c mut C,
                             params: &'a #param_path<#lifetime #(#traits_idents,)*>
                         ) -> Result<u64, #backend::Error> {
                             self.bind(client, #(&params.#params_name,)*)

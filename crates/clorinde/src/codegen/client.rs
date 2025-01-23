@@ -487,8 +487,8 @@ pub fn sync() -> proc_macro2::TokenStream {
 
         /// This trait allows you to bind parameters to a query using a single
         /// struct, rather than passing each bind parameter as a function parameter.
-        pub trait Params<'a, P, O, C> {
-            fn params(&'a mut self, client: &'a mut C, params: &'a P) -> O;
+        pub trait Params<'c, 'a, 's, P, O, C> {
+            fn params(&'s mut self, client: &'c mut C, params: &'a P) -> O;
         }
 
         /// Cached statement
@@ -533,8 +533,8 @@ pub fn async_() -> proc_macro2::TokenStream {
 
         /// This trait allows you to bind parameters to a query using a single
         /// struct, rather than passing each bind parameter as a function parameter.
-        pub trait Params<'a, P, O, C> {
-            fn params(&'a mut self, client: &'a C, params: &'a P) -> O;
+        pub trait Params<'c, 'a, 's, P, O, C> {
+            fn params(&'s mut self, client: &'c C, params: &'a P) -> O;
         }
 
         /// Cached statement
@@ -611,16 +611,16 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             where
                 T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
 
-            fn query_raw<T, P, I>(
+            fn query_raw<T, I>(
                 &self,
                 statement: &T,
                 params: I,
             ) -> impl Future<Output = Result<RowStream, Error>> + Send
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
-                I::IntoIter: ExactSizeIterator;
+                I: IntoIterator + Sync + Send,
+                I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql;
         }
 
         impl GenericClient for Transaction<'_> {
@@ -672,16 +672,12 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
                 Transaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(
-                &self,
-                statement: &T,
-                params: I,
-            ) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 Transaction::query_raw(self, statement, params).await
             }
@@ -736,16 +732,12 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
                 Client::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(
-                &self,
-                statement: &T,
-                params: I,
-            ) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 Client::query_raw(self, statement, params).await
             }
@@ -814,16 +806,12 @@ pub fn async_deadpool() -> proc_macro2::TokenStream {
                 PgClient::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(
-                &self,
-                statement: &T,
-                params: I,
-            ) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 PgClient::query_raw(self, statement, params).await
             }
@@ -878,16 +866,12 @@ pub fn async_deadpool() -> proc_macro2::TokenStream {
                 PgTransaction::query(self, query, params).await
             }
 
-            async fn query_raw<T, P, I>(
-                &self,
-                statement: &T,
-                params: I,
-            ) -> Result<RowStream, Error>
+            async fn query_raw<T, I>(&self, statement: &T, params: I) -> Result<RowStream, Error>
             where
                 T: ?Sized + ToStatement + Sync + Send,
-                P: BorrowToSql,
-                I: IntoIterator<Item = P> + Sync + Send,
+                I: IntoIterator + Sync + Send,
                 I::IntoIter: ExactSizeIterator,
+                I::Item: BorrowToSql,
             {
                 PgTransaction::query_raw(self, statement, params).await
             }

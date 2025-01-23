@@ -106,21 +106,21 @@ impl<'a> From<TypeofBorrowed<'a>> for Typeof {
 }
 pub mod sync {
     use postgres::{fallible_iterator::FallibleIterator, GenericClient};
-    pub struct CloneCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct CloneCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> crate::types::CloneCompositeBorrowed,
         mapper: fn(crate::types::CloneCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> CloneCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> CloneCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::CloneCompositeBorrowed) -> R,
-        ) -> CloneCompositeQuery<'a, C, R, N> {
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, R, N> {
             CloneCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -146,7 +146,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -157,18 +157,18 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct Optioni32Query<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct Optioni32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> Option<i32>,
         mapper: fn(Option<i32>) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> Optioni32Query<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> Optioni32Query<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(Option<i32>) -> R) -> Optioni32Query<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(Option<i32>) -> R) -> Optioni32Query<'c, 'a, 's, C, R, N> {
             Optioni32Query {
                 client: self.client,
                 params: self.params,
@@ -194,7 +194,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -205,18 +205,18 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct RowQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct RowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::Row,
         mapper: fn(super::Row) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> RowQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> RowQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::Row) -> R) -> RowQuery<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(super::Row) -> R) -> RowQuery<'c, 'a, 's, C, R, N> {
             RowQuery {
                 client: self.client,
                 params: self.params,
@@ -242,7 +242,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -253,18 +253,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct RowSpaceQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct RowSpaceQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::RowSpace,
         mapper: fn(super::RowSpace) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> RowSpaceQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> RowSpaceQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::RowSpace) -> R) -> RowSpaceQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::RowSpace) -> R,
+        ) -> RowSpaceQuery<'c, 'a, 's, C, R, N> {
             RowSpaceQuery {
                 client: self.client,
                 params: self.params,
@@ -290,7 +293,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -301,18 +304,21 @@ pub mod sync {
             Ok(it)
         }
     }
-    pub struct TypeofQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a mut C,
+    pub struct TypeofQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::sync::Stmt,
+        stmt: &'s mut crate::client::sync::Stmt,
         extractor: fn(&postgres::Row) -> super::TypeofBorrowed,
         mapper: fn(super::TypeofBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> TypeofQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> TypeofQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::TypeofBorrowed) -> R) -> TypeofQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::TypeofBorrowed) -> R,
+        ) -> TypeofQuery<'c, 'a, 's, C, R, N> {
             TypeofQuery {
                 client: self.client,
                 params: self.params,
@@ -338,7 +344,7 @@ pub mod sync {
         }
         pub fn iter(
             self,
-        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'a, postgres::Error>
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
             let stmt = self.stmt.prepare(self.client)?;
             let it = self
@@ -354,10 +360,10 @@ pub mod sync {
     }
     pub struct SelectCompactStmt(crate::client::sync::Stmt);
     impl SelectCompactStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> CloneCompositeQuery<'a, C, crate::types::CloneComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, crate::types::CloneComposite, 0> {
             CloneCompositeQuery {
                 client,
                 params: [],
@@ -372,10 +378,10 @@ pub mod sync {
     }
     pub struct SelectSpacedStmt(crate::client::sync::Stmt);
     impl SelectSpacedStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> CloneCompositeQuery<'a, C, crate::types::CloneComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, crate::types::CloneComposite, 0> {
             CloneCompositeQuery {
                 client,
                 params: [],
@@ -392,12 +398,12 @@ pub mod sync {
     }
     pub struct ImplicitCompactStmt(crate::client::sync::Stmt);
     impl ImplicitCompactStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a Option<T1>,
             price: &'a Option<f64>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             Optioni32Query {
                 client,
                 params: [name, price],
@@ -407,19 +413,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::sync::Params<
+            'c,
             'a,
+            's,
             super::ImplicitCompactParams<T1>,
-            Optioni32Query<'a, C, Option<i32>, 2>,
+            Optioni32Query<'c, 'a, 's, C, Option<i32>, 2>,
             C,
         > for ImplicitCompactStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::ImplicitCompactParams<T1>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -430,12 +438,12 @@ pub mod sync {
     }
     pub struct ImplicitSpacedStmt(crate::client::sync::Stmt);
     impl ImplicitSpacedStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a Option<T1>,
             price: &'a Option<f64>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             Optioni32Query {
                 client,
                 params: [name, price],
@@ -445,19 +453,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::sync::Params<
+            'c,
             'a,
+            's,
             super::ImplicitSpacedParams<T1>,
-            Optioni32Query<'a, C, Option<i32>, 2>,
+            Optioni32Query<'c, 'a, 's, C, Option<i32>, 2>,
             C,
         > for ImplicitSpacedStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::ImplicitSpacedParams<T1>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -468,12 +478,12 @@ pub mod sync {
     }
     pub struct NamedCompactStmt(crate::client::sync::Stmt);
     impl NamedCompactStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a T1,
             price: &'a f64,
-        ) -> RowQuery<'a, C, super::Row, 2> {
+        ) -> RowQuery<'c, 'a, 's, C, super::Row, 2> {
             RowQuery {
                 client,
                 params: [name, price],
@@ -483,15 +493,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::sync::Params<'a, super::Params<T1>, RowQuery<'a, C, super::Row, 2>, C>
-        for NamedCompactStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::Params<T1>,
+            RowQuery<'c, 'a, 's, C, super::Row, 2>,
+            C,
+        > for NamedCompactStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::Params<T1>,
-        ) -> RowQuery<'a, C, super::Row, 2> {
+        ) -> RowQuery<'c, 'a, 's, C, super::Row, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -502,12 +518,12 @@ pub mod sync {
     }
     pub struct NamedSpacedStmt(crate::client::sync::Stmt);
     impl NamedSpacedStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c mut C,
             name: &'a T1,
             price: &'a f64,
-        ) -> RowSpaceQuery<'a, C, super::RowSpace, 2> {
+        ) -> RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2> {
             RowSpaceQuery {
                 client,
                 params: [name, price],
@@ -517,19 +533,21 @@ pub mod sync {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::sync::Params<
+            'c,
             'a,
+            's,
             super::ParamsSpace<T1>,
-            RowSpaceQuery<'a, C, super::RowSpace, 2>,
+            RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2>,
             C,
         > for NamedSpacedStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::ParamsSpace<T1>,
-        ) -> RowSpaceQuery<'a, C, super::RowSpace, 2> {
+        ) -> RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -542,9 +560,9 @@ pub mod sync {
     }
     pub struct TrickySqlStmt(crate::client::sync::Stmt);
     impl TrickySqlStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -552,13 +570,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySqlParams, Result<u64, postgres::Error>, C>
-        for TrickySqlStmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySqlParams,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySqlStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySqlParams,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -573,9 +597,9 @@ pub mod sync {
     }
     pub struct TrickySql1Stmt(crate::client::sync::Stmt);
     impl TrickySql1Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -583,13 +607,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql1Params, Result<u64, postgres::Error>, C>
-        for TrickySql1Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql1Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql1Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql1Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -604,9 +634,9 @@ pub mod sync {
     }
     pub struct TrickySql2Stmt(crate::client::sync::Stmt);
     impl TrickySql2Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -614,13 +644,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql2Params, Result<u64, postgres::Error>, C>
-        for TrickySql2Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql2Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql2Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql2Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -635,9 +671,9 @@ pub mod sync {
     }
     pub struct TrickySql3Stmt(crate::client::sync::Stmt);
     impl TrickySql3Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -645,13 +681,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql3Params, Result<u64, postgres::Error>, C>
-        for TrickySql3Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql3Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql3Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql3Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -666,9 +708,9 @@ pub mod sync {
     }
     pub struct TrickySql4Stmt(crate::client::sync::Stmt);
     impl TrickySql4Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -676,13 +718,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql4Params, Result<u64, postgres::Error>, C>
-        for TrickySql4Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql4Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql4Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql4Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -697,9 +745,9 @@ pub mod sync {
     }
     pub struct TrickySql6Stmt(crate::client::sync::Stmt);
     impl TrickySql6Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -707,13 +755,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql6Params, Result<u64, postgres::Error>, C>
-        for TrickySql6Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql6Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql6Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql6Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -728,9 +782,9 @@ pub mod sync {
     }
     pub struct TrickySql7Stmt(crate::client::sync::Stmt);
     impl TrickySql7Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -738,13 +792,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql7Params, Result<u64, postgres::Error>, C>
-        for TrickySql7Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql7Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql7Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql7Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -759,9 +819,9 @@ pub mod sync {
     }
     pub struct TrickySql8Stmt(crate::client::sync::Stmt);
     impl TrickySql8Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -769,13 +829,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql8Params, Result<u64, postgres::Error>, C>
-        for TrickySql8Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql8Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql8Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql8Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -790,9 +856,9 @@ pub mod sync {
     }
     pub struct TrickySql9Stmt(crate::client::sync::Stmt);
     impl TrickySql9Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -800,13 +866,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql9Params, Result<u64, postgres::Error>, C>
-        for TrickySql9Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql9Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql9Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql9Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -821,9 +893,9 @@ pub mod sync {
     }
     pub struct TrickySql10Stmt(crate::client::sync::Stmt);
     impl TrickySql10Stmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, postgres::Error> {
@@ -831,13 +903,19 @@ pub mod sync {
             client.execute(stmt, &[r#async, r#enum])
         }
     }
-    impl<'a, C: GenericClient>
-        crate::client::sync::Params<'a, super::TrickySql10Params, Result<u64, postgres::Error>, C>
-        for TrickySql10Stmt
+    impl<'c, 'a, 's, C: GenericClient>
+        crate::client::sync::Params<
+            'c,
+            'a,
+            's,
+            super::TrickySql10Params,
+            Result<u64, postgres::Error>,
+            C,
+        > for TrickySql10Stmt
     {
         fn params(
-            &'a mut self,
-            client: &'a mut C,
+            &'s mut self,
+            client: &'c mut C,
             params: &'a super::TrickySql10Params,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.r#async, &params.r#enum)
@@ -848,10 +926,10 @@ pub mod sync {
     }
     pub struct RTypeofStmt(crate::client::sync::Stmt);
     impl RTypeofStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a mut C,
-        ) -> TypeofQuery<'a, C, super::Typeof, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> TypeofQuery<'c, 'a, 's, C, super::Typeof, 0> {
             TypeofQuery {
                 client,
                 params: [],
@@ -869,21 +947,21 @@ pub mod sync {
 pub mod async_ {
     use crate::client::async_::GenericClient;
     use futures::{self, StreamExt, TryStreamExt};
-    pub struct CloneCompositeQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct CloneCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> crate::types::CloneCompositeBorrowed,
         mapper: fn(crate::types::CloneCompositeBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> CloneCompositeQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> CloneCompositeQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
         pub fn map<R>(
             self,
             mapper: fn(crate::types::CloneCompositeBorrowed) -> R,
-        ) -> CloneCompositeQuery<'a, C, R, N> {
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, R, N> {
             CloneCompositeQuery {
                 client: self.client,
                 params: self.params,
@@ -911,7 +989,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -924,18 +1002,18 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct Optioni32Query<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct Optioni32Query<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> Option<i32>,
         mapper: fn(Option<i32>) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> Optioni32Query<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> Optioni32Query<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(Option<i32>) -> R) -> Optioni32Query<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(Option<i32>) -> R) -> Optioni32Query<'c, 'a, 's, C, R, N> {
             Optioni32Query {
                 client: self.client,
                 params: self.params,
@@ -963,7 +1041,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -976,18 +1054,18 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct RowQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct RowQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::Row,
         mapper: fn(super::Row) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> RowQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> RowQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::Row) -> R) -> RowQuery<'a, C, R, N> {
+        pub fn map<R>(self, mapper: fn(super::Row) -> R) -> RowQuery<'c, 'a, 's, C, R, N> {
             RowQuery {
                 client: self.client,
                 params: self.params,
@@ -1015,7 +1093,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1028,18 +1106,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct RowSpaceQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct RowSpaceQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::RowSpace,
         mapper: fn(super::RowSpace) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> RowSpaceQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> RowSpaceQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::RowSpace) -> R) -> RowSpaceQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::RowSpace) -> R,
+        ) -> RowSpaceQuery<'c, 'a, 's, C, R, N> {
             RowSpaceQuery {
                 client: self.client,
                 params: self.params,
@@ -1067,7 +1148,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1080,18 +1161,21 @@ pub mod async_ {
             Ok(it)
         }
     }
-    pub struct TypeofQuery<'a, C: GenericClient, T, const N: usize> {
-        client: &'a C,
+    pub struct TypeofQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'a mut crate::client::async_::Stmt,
+        stmt: &'s mut crate::client::async_::Stmt,
         extractor: fn(&tokio_postgres::Row) -> super::TypeofBorrowed,
         mapper: fn(super::TypeofBorrowed) -> T,
     }
-    impl<'a, C, T: 'a, const N: usize> TypeofQuery<'a, C, T, N>
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> TypeofQuery<'c, 'a, 's, C, T, N>
     where
         C: GenericClient,
     {
-        pub fn map<R>(self, mapper: fn(super::TypeofBorrowed) -> R) -> TypeofQuery<'a, C, R, N> {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::TypeofBorrowed) -> R,
+        ) -> TypeofQuery<'c, 'a, 's, C, R, N> {
             TypeofQuery {
                 client: self.client,
                 params: self.params,
@@ -1119,7 +1203,7 @@ pub mod async_ {
         pub async fn iter(
             self,
         ) -> Result<
-            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'a,
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
             let stmt = self.stmt.prepare(self.client).await?;
@@ -1137,10 +1221,10 @@ pub mod async_ {
     }
     pub struct SelectCompactStmt(crate::client::async_::Stmt);
     impl SelectCompactStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> CloneCompositeQuery<'a, C, crate::types::CloneComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, crate::types::CloneComposite, 0> {
             CloneCompositeQuery {
                 client,
                 params: [],
@@ -1155,10 +1239,10 @@ pub mod async_ {
     }
     pub struct SelectSpacedStmt(crate::client::async_::Stmt);
     impl SelectSpacedStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> CloneCompositeQuery<'a, C, crate::types::CloneComposite, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> CloneCompositeQuery<'c, 'a, 's, C, crate::types::CloneComposite, 0> {
             CloneCompositeQuery {
                 client,
                 params: [],
@@ -1175,12 +1259,12 @@ pub mod async_ {
     }
     pub struct ImplicitCompactStmt(crate::client::async_::Stmt);
     impl ImplicitCompactStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a Option<T1>,
             price: &'a Option<f64>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             Optioni32Query {
                 client,
                 params: [name, price],
@@ -1190,19 +1274,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::async_::Params<
+            'c,
             'a,
+            's,
             super::ImplicitCompactParams<T1>,
-            Optioni32Query<'a, C, Option<i32>, 2>,
+            Optioni32Query<'c, 'a, 's, C, Option<i32>, 2>,
             C,
         > for ImplicitCompactStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::ImplicitCompactParams<T1>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -1213,12 +1299,12 @@ pub mod async_ {
     }
     pub struct ImplicitSpacedStmt(crate::client::async_::Stmt);
     impl ImplicitSpacedStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a Option<T1>,
             price: &'a Option<f64>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             Optioni32Query {
                 client,
                 params: [name, price],
@@ -1228,19 +1314,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::async_::Params<
+            'c,
             'a,
+            's,
             super::ImplicitSpacedParams<T1>,
-            Optioni32Query<'a, C, Option<i32>, 2>,
+            Optioni32Query<'c, 'a, 's, C, Option<i32>, 2>,
             C,
         > for ImplicitSpacedStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::ImplicitSpacedParams<T1>,
-        ) -> Optioni32Query<'a, C, Option<i32>, 2> {
+        ) -> Optioni32Query<'c, 'a, 's, C, Option<i32>, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -1251,12 +1339,12 @@ pub mod async_ {
     }
     pub struct NamedCompactStmt(crate::client::async_::Stmt);
     impl NamedCompactStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a T1,
             price: &'a f64,
-        ) -> RowQuery<'a, C, super::Row, 2> {
+        ) -> RowQuery<'c, 'a, 's, C, super::Row, 2> {
             RowQuery {
                 client,
                 params: [name, price],
@@ -1266,15 +1354,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
-        crate::client::async_::Params<'a, super::Params<T1>, RowQuery<'a, C, super::Row, 2>, C>
-        for NamedCompactStmt
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
+        crate::client::async_::Params<
+            'c,
+            'a,
+            's,
+            super::Params<T1>,
+            RowQuery<'c, 'a, 's, C, super::Row, 2>,
+            C,
+        > for NamedCompactStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::Params<T1>,
-        ) -> RowQuery<'a, C, super::Row, 2> {
+        ) -> RowQuery<'c, 'a, 's, C, super::Row, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -1285,12 +1379,12 @@ pub mod async_ {
     }
     pub struct NamedSpacedStmt(crate::client::async_::Stmt);
     impl NamedSpacedStmt {
-        pub fn bind<'a, C: GenericClient, T1: crate::StringSql>(
-            &'a mut self,
-            client: &'a C,
+        pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
+            &'s mut self,
+            client: &'c C,
             name: &'a T1,
             price: &'a f64,
-        ) -> RowSpaceQuery<'a, C, super::RowSpace, 2> {
+        ) -> RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2> {
             RowSpaceQuery {
                 client,
                 params: [name, price],
@@ -1300,19 +1394,21 @@ pub mod async_ {
             }
         }
     }
-    impl<'a, C: GenericClient, T1: crate::StringSql>
+    impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         crate::client::async_::Params<
+            'c,
             'a,
+            's,
             super::ParamsSpace<T1>,
-            RowSpaceQuery<'a, C, super::RowSpace, 2>,
+            RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2>,
             C,
         > for NamedSpacedStmt
     {
         fn params(
-            &'a mut self,
-            client: &'a C,
+            &'s mut self,
+            client: &'c C,
             params: &'a super::ParamsSpace<T1>,
-        ) -> RowSpaceQuery<'a, C, super::RowSpace, 2> {
+        ) -> RowSpaceQuery<'c, 'a, 's, C, super::RowSpace, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
@@ -1325,9 +1421,9 @@ pub mod async_ {
     }
     pub struct TrickySqlStmt(crate::client::async_::Stmt);
     impl TrickySqlStmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1337,6 +1433,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySqlParams,
             std::pin::Pin<
@@ -1364,9 +1462,9 @@ pub mod async_ {
     }
     pub struct TrickySql1Stmt(crate::client::async_::Stmt);
     impl TrickySql1Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1376,6 +1474,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql1Params,
             std::pin::Pin<
@@ -1403,9 +1503,9 @@ pub mod async_ {
     }
     pub struct TrickySql2Stmt(crate::client::async_::Stmt);
     impl TrickySql2Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1415,6 +1515,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql2Params,
             std::pin::Pin<
@@ -1442,9 +1544,9 @@ pub mod async_ {
     }
     pub struct TrickySql3Stmt(crate::client::async_::Stmt);
     impl TrickySql3Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1454,6 +1556,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql3Params,
             std::pin::Pin<
@@ -1481,9 +1585,9 @@ pub mod async_ {
     }
     pub struct TrickySql4Stmt(crate::client::async_::Stmt);
     impl TrickySql4Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1493,6 +1597,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql4Params,
             std::pin::Pin<
@@ -1520,9 +1626,9 @@ pub mod async_ {
     }
     pub struct TrickySql6Stmt(crate::client::async_::Stmt);
     impl TrickySql6Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1532,6 +1638,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql6Params,
             std::pin::Pin<
@@ -1559,9 +1667,9 @@ pub mod async_ {
     }
     pub struct TrickySql7Stmt(crate::client::async_::Stmt);
     impl TrickySql7Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1571,6 +1679,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql7Params,
             std::pin::Pin<
@@ -1598,9 +1708,9 @@ pub mod async_ {
     }
     pub struct TrickySql8Stmt(crate::client::async_::Stmt);
     impl TrickySql8Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1610,6 +1720,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql8Params,
             std::pin::Pin<
@@ -1637,9 +1749,9 @@ pub mod async_ {
     }
     pub struct TrickySql9Stmt(crate::client::async_::Stmt);
     impl TrickySql9Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1649,6 +1761,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql9Params,
             std::pin::Pin<
@@ -1676,9 +1790,9 @@ pub mod async_ {
     }
     pub struct TrickySql10Stmt(crate::client::async_::Stmt);
     impl TrickySql10Stmt {
-        pub async fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
+        pub async fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
             r#async: &'a crate::types::SyntaxComposite,
             r#enum: &'a crate::types::SyntaxEnum,
         ) -> Result<u64, tokio_postgres::Error> {
@@ -1688,6 +1802,8 @@ pub mod async_ {
     }
     impl<'a, C: GenericClient + Send + Sync>
         crate::client::async_::Params<
+            'a,
+            'a,
             'a,
             super::TrickySql10Params,
             std::pin::Pin<
@@ -1711,10 +1827,10 @@ pub mod async_ {
     }
     pub struct RTypeofStmt(crate::client::async_::Stmt);
     impl RTypeofStmt {
-        pub fn bind<'a, C: GenericClient>(
-            &'a mut self,
-            client: &'a C,
-        ) -> TypeofQuery<'a, C, super::Typeof, 0> {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> TypeofQuery<'c, 'a, 's, C, super::Typeof, 0> {
             TypeofQuery {
                 client,
                 params: [],
