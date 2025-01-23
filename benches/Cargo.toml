@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 # Path dependencies
-clorinde = { path = "../crates/clorinde" }
+clorinde = { path = "../clorinde" }
 
 # benchmarking
 criterion = { version = "0.5.1", features = ["html_reports"] }

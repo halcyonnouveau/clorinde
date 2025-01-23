@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: cargo
-    directory: "/crates/clorinde"
+    directory: "/clorinde"
     schedule:
       interval: daily
   - package-ecosystem: "github-actions"
