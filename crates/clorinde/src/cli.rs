@@ -32,6 +32,9 @@ struct Args {
     /// Derive serde's `Serialize` trait for generated types.
     #[clap(long)]
     serialize: bool,
+    // Use dependency from Workspace.
+    #[clap(long)]
+    workspace: bool,
 }
 
 #[derive(Debug, Subcommand)]
