@@ -13,5 +13,4 @@ commit_parsers = [
 
 [[package]]
 name = "clorinde"
-changelog_include = ["codegen_template"]
 changelog_path = "CHANGELOG.md"
