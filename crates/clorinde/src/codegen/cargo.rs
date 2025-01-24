@@ -1,8 +1,6 @@
+use crate::config::Config;
 use postgres_types::{Kind, Type};
 use regex::Regex;
-
-// use crate::config::{Config, CrateDependency, Package};
-use crate::config::Config;
 
 /// Register use of typed requiring specific dependencies
 #[derive(Debug, Clone, Default)]
@@ -60,8 +58,8 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                         "\n\
                     [features]\n\
                     default = [\"deadpool\",\"chrono\"]\n\
-                    deadpool = [\"dep:deadpool-postgres\",\"tokio-postgres\"]\n\
-                    wasm_async = [\"tokio-postgres/js\",\"chrono?/wasmbind\", \"time?/wasm-bindgen\"]    
+                    deadpool = [\"dep:deadpool-postgres\",\"tokio-postgres/default\"]\n\
+                    wasm-async = [\"tokio-postgres/js\",\"chrono?/wasmbind\", \"time?/wasm-bindgen\"]    
                     ",
                     );
                 }
@@ -69,13 +67,18 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                     "\n\
                     [features]\n\
                     default = [\"deadpool\"]\n\
-                    deadpool = [\"dep:deadpool-postgres\",\"tokio-postgres\"]\n\
-                    wasm_async = [\"tokio-postgres/js\"]
+                    deadpool = [\"dep:deadpool-postgres\",\"tokio-postgres/default\"]\n\
+                    wasm-async = [\"tokio-postgres/js\"]
                     ",
                 ),
             }
         }
         _ => {
+            deps_toml.push_str(
+                "\n\
+                    [features]\n\
+                    default = []",
+            );
             match (
                 dependency_analysis.has_dependency(),
                 dependency_analysis.chrono,
@@ -83,18 +86,14 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 (true, true) => {
                     deps_toml.push_str(
                         "\n\
-                    [features]\n\
-                    default = []\n\
-                    wasm_sync = [\"chrono?/wasmbind\"]    
+                    wasm-sync = [\"chrono?/wasmbind\"]    
                     ",
                     );
                 }
                 _ => {
                     deps_toml.push_str(
                         "\n\
-                    [features]\n\
-                    default = []\n\
-                    wasm_sync = []    
+                    wasm-sync = []    
                     ",
                     );
                 }
@@ -188,17 +187,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         ),
         _ => {}
     };
-    match config.sync {
-        true => deps_toml.push_str(
-            "\n\
-            # UUID\n\
-            uuid = {\"1.11.0\"} ## Sync client dependencies\n\
-            # Postgres sync client\n\
-            postgres = {\"0.19.9\", features = [{client_features}] }
-        ",
-        ),
-        _ => {}
-    };
     match config.r#async {
         true => deps_toml.push_str(
             "\n\
@@ -211,7 +199,13 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             deadpool-postgres = {\"0.14.1\", optional = true }
         ",
         ),
-        _ => {}
+        _ => deps_toml.push_str(
+            "\n\
+            ## Sync client dependencies\n\
+            # Postgres sync client\n\
+            postgres = {\"0.19.9\", features = [] }
+        ",
+        ),
     };
     match (config.r#async, dependency_analysis.chrono) {
         (true, true) => deps_toml.push_str(
@@ -231,6 +225,13 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     match config.workspace {
         true => {
             let re = Regex::new(r#"\{"(\d+(\.\d+)*)""#).unwrap();
+            let deps_toml = deps_toml
+                .lines()
+                .skip(1)
+                .filter(|line| !line.trim_start().starts_with('#'))
+                .collect::<Vec<&str>>()
+                .join("\n");
+
             let deps_toml = re.replace_all(&deps_toml, "{ workspace = true ");
             deps_toml.to_string()
         }
