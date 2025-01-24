@@ -27,6 +27,9 @@ pub struct Config {
     /// Derive serde's `Serialize` trait for generated types.
     #[serde(default = "default_false")]
     pub serialize: bool,
+    /// Use dependency from Workspace
+    #[serde(default = "default_false")]
+    pub workspace: bool,
 
     #[serde(default)]
     pub types: Types,
