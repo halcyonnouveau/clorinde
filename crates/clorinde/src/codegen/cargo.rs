@@ -45,7 +45,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         .package
         .to_string()
         .expect("unable to serialize package");
-    deps_toml.push_str("This file was generated with `clorinde`.Do not modify\n");
+    deps_toml.push_str("# This file was generated with `clorinde`.Do not modify\n");
     deps_toml.push_str(&package);
     match config.r#async {
         true => {
