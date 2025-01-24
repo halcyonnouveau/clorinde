@@ -71,6 +71,19 @@ pub enum TypeMapping {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum Publish {
+    Bool(bool),
+    Repositories(Vec<String>),
+}
+
+impl Default for Publish {
+    fn default() -> Self {
+        Self::Bool(false)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Package {
     #[serde(default = "default_name")]
     pub name: String,
@@ -78,8 +91,8 @@ pub struct Package {
     pub version: String,
     #[serde(default = "default_edition")]
     pub edition: String,
-    #[serde(default = "default_false")]
-    pub publish: bool,
+    #[serde(default = "default_publish")]
+    pub publish: Publish,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Vec<String>>,
@@ -154,7 +167,7 @@ impl Default for Package {
             name: default_name(),
             version: default_version(),
             edition: default_edition(),
-            publish: default_false(),
+            publish: default_publish(),
             authors: None,
             description: None,
             documentation: None,
@@ -219,4 +232,8 @@ fn default_version() -> String {
 
 fn default_edition() -> String {
     "2021".to_string()
+}
+
+fn default_publish() -> Publish {
+    Publish::default()
 }
