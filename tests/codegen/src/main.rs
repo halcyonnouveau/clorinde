@@ -20,22 +20,25 @@ use codegen::{
             },
             InsertNightmareDomainParams, SelectNightmareDomain, SelectNightmareDomainNull,
         },
-        named::sync::{
-            named, named_by_id, named_complex, new_named_complex, new_named_hidden,
-            new_named_visible,
+        named::{
+            sync::{
+                named, named_by_id, named_complex, new_named_complex, new_named_hidden,
+                new_named_visible,
+            },
+            Named, NamedComplex, NamedComplexParams, NamedParams,
         },
-        named::{Named, NamedComplex, NamedComplexParams, NamedParams},
-        nullity::sync::{new_nullity, nullity},
-        nullity::{Nullity, NullityParams},
-        params::sync::insert_book,
+        nullity::{
+            sync::{new_nullity, nullity},
+            Nullity, NullityParams,
+        },
         params::{
-            sync::{find_books, params_use_twice, select_book},
+            sync::{find_books, insert_book, params_use_twice, select_book},
             SelectBook,
         },
         stress::{
             sync::{
                 insert_everything, insert_everything_array, insert_nightmare,
-                insert_schema_nightmare, select_everything, select_everything_array,
+                insert_schema_nightmare, select_everything, select_everything_array, select_ltree,
                 select_nightmare, select_schema_nightmare,
             },
             Everything, EverythingArray, EverythingArrayParams, EverythingParams,
@@ -64,6 +67,7 @@ pub fn main() {
         .dbname("postgres")
         .connect(NoTls)
         .unwrap();
+
     test_copy(client);
     test_params(client);
     test_named(client);
@@ -396,6 +400,8 @@ pub fn test_stress(client: &mut Client) {
         double_precision_: 1.1231231231f64,
         text_: String::from("hello"),
         varchar_: String::from("hello"),
+        citext_: String::from("hello"),
+        ltree_: String::from("Teyvat.Fontaine.Court"),
         bytea_: vec![222u8, 173u8, 190u8, 239u8],
         timestamp_: naive_datetime,
         timestamp_without_time_zone_: naive_datetime,
@@ -410,6 +416,7 @@ pub fn test_stress(client: &mut Client) {
         macaddr_: MacAddress::new([8, 0, 43, 1, 2, 3]),
         numeric_: Decimal::new(202, 2),
     };
+
     let params = EverythingParams {
         bigserial_: expected.bigserial_,
         bingint_: expected.bingint_,
@@ -444,11 +451,18 @@ pub fn test_stress(client: &mut Client) {
         timestamptz_: offset_datetime,
         uuid_: expected.uuid_,
         varchar_: &expected.varchar_,
+        citext_: &expected.citext_,
+        ltree_: &expected.ltree_,
         numeric_: Decimal::new(202, 2),
     };
+
     assert_eq!(1, insert_everything().params(client, &params).unwrap());
     let actual = select_everything().bind(client).one().unwrap();
     assert_eq!(expected, actual);
+
+    // ltree query
+    let ltree_select = select_ltree().bind(client, &"Teyvat").one().unwrap();
+    assert_eq!("Teyvat.Fontaine.Court", ltree_select);
 
     // Every supported array type
     let expected = EverythingArray {
@@ -467,6 +481,8 @@ pub fn test_stress(client: &mut Client) {
         double_precision_: vec![1.1231231231f64],
         text_: vec![String::from("hello")],
         varchar_: vec![String::from("hello")],
+        citext_: vec![String::from("hello")],
+        ltree_: vec![String::from("Teyvat.Fontaine.Court")],
         bytea_: vec![vec![222u8, 173u8, 190u8, 239u8]],
         timestamp_: vec![naive_datetime],
         timestamp_without_time_zone_: vec![naive_datetime],
@@ -487,11 +503,19 @@ pub fn test_stress(client: &mut Client) {
         .iter()
         .map(Vec::as_slice)
         .collect::<Vec<_>>();
+
     let txt = &expected
         .text_
         .iter()
         .map(String::as_str)
         .collect::<Vec<_>>();
+
+    let ltree = &expected
+        .ltree_
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+
     let jsons = [&json];
     let params = EverythingArrayParams {
         bingint_: &expected.bingint_,
@@ -521,12 +545,16 @@ pub fn test_stress(client: &mut Client) {
         timestamptz_: &expected.timestamptz_,
         uuid_: &expected.uuid_,
         varchar_: txt,
+        citext_: &txt,
+        ltree_: &ltree,
         numeric_: &expected.numeric_,
     };
+
     assert_eq!(
         1,
         insert_everything_array().params(client, &params).unwrap()
     );
+
     let actual = select_everything_array().bind(client).one().unwrap();
     assert_eq!(expected, actual);
 
@@ -540,6 +568,7 @@ pub fn test_stress(client: &mut Client) {
         spongebob: vec![SpongebobCharacter::Bob, SpongebobCharacter::Patrick],
         domain: "Hello".to_string(),
     };
+
     let params = NightmareCompositeParams {
         custom: &[CustomCompositeBorrowed {
             wow: "Bob",
@@ -564,6 +593,7 @@ pub fn test_stress(client: &mut Client) {
         spongebob: vec![SpongebobCharacter::Bob, SpongebobCharacter::Patrick],
         domain: "Hello".to_string(),
     };
+
     let params = schema::NightmareCompositeParams {
         custom: &[CustomCompositeBorrowed {
             wow: "Bob",

@@ -1,3 +1,7 @@
+-- Extensions
+CREATE EXTENSION citext;
+CREATE EXTENSION ltree;
+
 -- Copy
 
 CREATE DOMAIN clone_domain AS TEXT CHECK (value ~ '^\w{5}$');
@@ -117,6 +121,8 @@ CREATE TABLE Everything (
     double_precision_ double precision,
     text_ text,
     varchar_ varchar,
+    citext_ citext,
+    ltree_ ltree,
     bytea_ bytea,
     timestamp_ timestamp,
     timestamp_without_time_zone_ timestamp without time zone,
@@ -131,6 +137,8 @@ CREATE TABLE Everything (
     macaddr_ macaddr,
     numeric_ numeric
 );
+
+CREATE INDEX ltree_idx on Everything USING GIST (ltree_);
 
 CREATE TABLE EverythingArray (
     bool_ bool[],
@@ -148,6 +156,8 @@ CREATE TABLE EverythingArray (
     double_precision_ double precision[],
     text_ text[],
     varchar_ varchar[],
+    citext_ citext[],
+    ltree_ ltree[],
     bytea_ bytea[],
     timestamp_ timestamp[],
     timestamp_without_time_zone_ timestamp without time zone[],
