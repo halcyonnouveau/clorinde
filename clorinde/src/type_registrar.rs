@@ -46,6 +46,14 @@ impl ClorindeType {
                     Type::BYTEA | Type::TEXT | Type::VARCHAR | Type::BPCHAR | Type::JSON | Type::JSONB,
                 ..
             } => false,
+            ClorindeType::Simple { pg_ty: ty, .. }
+                if (ty.name() == "citext"
+                    || ty.name() == "ltree"
+                    || ty.name() == "lquery"
+                    || ty.name() == "ltxtquery") =>
+            {
+                false
+            }
             ClorindeType::Simple { .. } => !self.is_copy(),
             ClorindeType::Domain { inner, .. } | ClorindeType::Array { inner } => inner.is_ref(),
             _ => !self.is_copy(),
@@ -185,6 +193,15 @@ impl ClorindeType {
                     traits.push("crate::JsonSql".to_string());
                     idx_char(traits.len())
                 }
+                ref ty
+                    if (ty.name() == "citext"
+                        || ty.name() == "ltree"
+                        || ty.name() == "lquery"
+                        || ty.name() == "ltxtquery") =>
+                {
+                    traits.push("crate::StringSql".to_string());
+                    idx_char(traits.len())
+                }
                 _ => self.param_ty(is_inner_nullable, ctx),
             },
             ClorindeType::Array { inner, .. } => {
@@ -256,6 +273,14 @@ impl ClorindeType {
                 Type::TEXT | Type::VARCHAR | Type::BPCHAR => format!("&{lifetime} str"),
                 Type::JSON | Type::JSONB => {
                     format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
+                }
+                ref ty
+                    if (ty.name() == "citext"
+                        || ty.name() == "ltree"
+                        || ty.name() == "lquery"
+                        || ty.name() == "ltxtquery") =>
+                {
+                    format!("&{lifetime} str")
                 }
                 _ => match rust_name.as_str() {
                     "String" => format!("&{lifetime} str"),
@@ -408,6 +433,14 @@ impl TypeRegistrar {
                     Type::INET => ("std::net::IpAddr", true),
                     Type::MACADDR => ("eui48::MacAddress", true),
                     Type::NUMERIC => ("rust_decimal::Decimal", true),
+                    ref ty
+                        if (ty.name() == "citext"
+                            || ty.name() == "ltree"
+                            || ty.name() == "lquery"
+                            || ty.name() == "ltxtquery") =>
+                    {
+                        ("String", false)
+                    }
                     _ => {
                         return Err(Error::UnsupportedPostgresType {
                             src: module_info.clone().into(),
