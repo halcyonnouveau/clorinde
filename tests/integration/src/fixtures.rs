@@ -4,7 +4,7 @@ use std::{
 };
 
 use clorinde::config::Config;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 #[derive(Serialize, Deserialize)]
 struct TestSuiteSerde<T> {

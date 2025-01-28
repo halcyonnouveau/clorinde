@@ -45,7 +45,7 @@ impl<'a> From<FindBooksBorrowed<'a>> for FindBooks {
     }
 }
 pub mod sync {
-    use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct SelectBookQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],

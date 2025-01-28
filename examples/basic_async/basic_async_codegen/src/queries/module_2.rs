@@ -27,10 +27,10 @@ impl<'a> From<AuthorsBorrowed<'a>> for Authors {
         }: AuthorsBorrowed<'a>,
     ) -> Self {
         Self {
-            id: id,
+            id,
             name: name.into(),
             country: country.into(),
-            dob: dob,
+            dob,
         }
     }
 }
@@ -57,9 +57,9 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }: AuthorNameStartingWithBorrowed<'a>,
     ) -> Self {
         Self {
-            authorid: authorid,
+            authorid,
             name: name.into(),
-            bookid: bookid,
+            bookid,
             title: title.into(),
         }
     }
@@ -420,11 +420,9 @@ impl AuthorNameByIdStmt {
     }
 }
 pub fn author_name_starting_with() -> AuthorNameStartingWithStmt {
-    AuthorNameStartingWithStmt(
-        crate::client::async_::Stmt::new(
-            "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
-        ),
-    )
+    AuthorNameStartingWithStmt(crate::client::async_::Stmt::new(
+        "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
+    ))
 }
 pub struct AuthorNameStartingWithStmt(crate::client::async_::Stmt);
 impl AuthorNameStartingWithStmt {

@@ -1,7 +1,7 @@
 // This file was generated with `clorinde`. Do not modify.
 
 pub mod sync {
-    use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct CloneCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],

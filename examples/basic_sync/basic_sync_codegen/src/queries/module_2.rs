@@ -18,7 +18,7 @@ pub struct AuthorsBorrowed<'a> {
 impl<'a> From<AuthorsBorrowed<'a>> for Authors {
     fn from(AuthorsBorrowed { id, name, country }: AuthorsBorrowed<'a>) -> Self {
         Self {
-            id: id,
+            id,
             name: name.into(),
             country: country.into(),
         }
@@ -47,9 +47,9 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }: AuthorNameStartingWithBorrowed<'a>,
     ) -> Self {
         Self {
-            authorid: authorid,
+            authorid,
             name: name.into(),
-            bookid: bookid,
+            bookid,
             title: title.into(),
         }
     }
@@ -76,7 +76,7 @@ impl<'a> From<SelectTranslationsBorrowed<'a>> for SelectTranslations {
         }
     }
 }
-use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+use postgres::{GenericClient, fallible_iterator::FallibleIterator};
 pub struct AuthorsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c mut C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
@@ -383,11 +383,9 @@ impl AuthorNameByIdStmt {
     }
 }
 pub fn author_name_starting_with() -> AuthorNameStartingWithStmt {
-    AuthorNameStartingWithStmt(
-        crate::client::sync::Stmt::new(
-            "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
-        ),
-    )
+    AuthorNameStartingWithStmt(crate::client::sync::Stmt::new(
+        "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
+    ))
 }
 pub struct AuthorNameStartingWithStmt(crate::client::sync::Stmt);
 impl AuthorNameStartingWithStmt {

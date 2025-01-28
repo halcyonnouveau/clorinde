@@ -30,7 +30,7 @@ pub struct CloneCompositeBorrowed<'a> {
 impl<'a> From<CloneCompositeBorrowed<'a>> for CloneComposite {
     fn from(CloneCompositeBorrowed { first, second }: CloneCompositeBorrowed<'a>) -> Self {
         Self {
-            first: first,
+            first,
             second: second.into(),
         }
     }
@@ -217,7 +217,7 @@ impl<'a> From<DomainCompositeBorrowed<'a>> for DomainComposite {
         Self {
             txt: txt.into(),
             json: serde_json::from_str(json.0.get()).unwrap(),
-            nb: nb,
+            nb,
             arr: arr
                 .map(|v| serde_json::from_str(v.0.get()).unwrap())
                 .collect(),
@@ -370,7 +370,7 @@ impl<'a> From<NamedCompositeBorrowed<'a>> for NamedComposite {
     fn from(NamedCompositeBorrowed { wow, such_cool }: NamedCompositeBorrowed<'a>) -> Self {
         Self {
             wow: wow.map(|v| v.into()),
-            such_cool: such_cool,
+            such_cool,
         }
     }
 }
@@ -626,7 +626,7 @@ impl<'a> From<NullityCompositeBorrowed<'a>> for NullityComposite {
                 v.map(|v| v.map(|v| serde_json::from_str(v.0.get()).unwrap()))
                     .collect()
             }),
-            id: id,
+            id,
         }
     }
 }
@@ -834,8 +834,8 @@ impl<'a> From<CustomCompositeBorrowed<'a>> for CustomComposite {
     ) -> Self {
         Self {
             wow: wow.into(),
-            such_cool: such_cool,
-            nice: nice,
+            such_cool,
+            nice,
         }
     }
 }

@@ -1,6 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
-use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+use postgres::{GenericClient, fallible_iterator::FallibleIterator};
 pub fn insert_book() -> InsertBookStmt {
     InsertBookStmt(crate::client::sync::Stmt::new(
         "INSERT INTO Book (title) VALUES ($1)",

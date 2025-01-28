@@ -1,6 +1,6 @@
 use std::{path::PathBuf, str::FromStr};
 
-use clorinde::{config::Config, Error};
+use clorinde::{Error, config::Config};
 
 // This script will generate a new clorinde crate every time your schema or queries change.
 // In this example, we generate the module in our project, but

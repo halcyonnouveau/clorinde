@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use crate::error::PersistError;
@@ -16,6 +17,26 @@ impl Vfs {
         Self {
             fs: BTreeMap::new(),
         }
+    }
+
+    pub(crate) fn rustfmt(path: impl AsRef<Path>) -> bool {
+        let path = path.as_ref();
+
+        // Check if rustfmt is available
+        if Command::new("rustfmt").arg("--version").output().is_err() {
+            // rustfmt not installed - return true since this isn't a critical error
+            return true;
+        }
+
+        Command::new("rustfmt")
+            .args([
+                "--edition",
+                "2024",
+                path.join("src/lib.rs").to_str().unwrap(),
+            ])
+            .status()
+            .unwrap()
+            .success()
     }
 
     /// Add a new file
@@ -53,6 +74,9 @@ impl Vfs {
         if destination.exists() {
             std::fs::remove_dir_all(destination).map_err(PersistError::wrap(destination))?;
         }
+
+        // Format with rustfmt
+        Vfs::rustfmt(tmp.path());
 
         // Create destination directory
         std::fs::create_dir_all(destination).map_err(PersistError::wrap(destination))?;

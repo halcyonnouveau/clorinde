@@ -3,7 +3,7 @@ use std::fmt::Write;
 use clorinde::conn::clorinde_conn;
 use criterion::{BenchmarkId, Criterion};
 use diesel::{Connection, PgConnection};
-use postgres::{fallible_iterator::FallibleIterator, Client, NoTls};
+use postgres::{Client, NoTls, fallible_iterator::FallibleIterator};
 use tokio::runtime::Runtime;
 
 const QUERY_SIZE: &[usize] = &[1, 100, 10_000];

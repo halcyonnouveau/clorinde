@@ -5,8 +5,8 @@ use clorinde::{
     queries::{
         module_1::insert_book,
         module_2::{
-            author_name_by_id, author_name_starting_with, authors, books, select_translations,
-            select_voice_actor_with_character, AuthorNameStartingWithParams,
+            AuthorNameStartingWithParams, author_name_by_id, author_name_starting_with, authors,
+            books, select_translations, select_voice_actor_with_character,
         },
     },
     types::SpongeBobCharacter,
@@ -69,10 +69,9 @@ pub fn main() {
     // !    parameter type was created).
     // ! 2. Import the `Params` trait.
     let name_starting_with_jo = author_name_starting_with()
-        .params(
-            &mut client,
-            &AuthorNameStartingWithParams { start_str: "Jo" },
-        )
+        .params(&mut client, &AuthorNameStartingWithParams {
+            start_str: "Jo",
+        })
         .all()
         .unwrap();
     dbg!(name_starting_with_jo);

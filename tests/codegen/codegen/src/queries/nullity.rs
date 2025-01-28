@@ -38,7 +38,7 @@ impl<'a> From<NullityBorrowed<'a>> for Nullity {
     }
 }
 pub mod sync {
-    use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct NullityQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
@@ -117,14 +117,14 @@ pub mod sync {
         }
     }
     impl<
-            'c,
-            'a,
-            's,
-            C: GenericClient,
-            T1: crate::StringSql,
-            T2: crate::ArraySql<Item = Option<T1>>,
-            T3: crate::StringSql,
-        >
+        'c,
+        'a,
+        's,
+        C: GenericClient,
+        T1: crate::StringSql,
+        T2: crate::ArraySql<Item = Option<T1>>,
+        T3: crate::StringSql,
+    >
         crate::client::sync::Params<
             'c,
             'a,
@@ -250,12 +250,12 @@ pub mod async_ {
         }
     }
     impl<
-            'a,
-            C: GenericClient + Send + Sync,
-            T1: crate::StringSql,
-            T2: crate::ArraySql<Item = Option<T1>>,
-            T3: crate::StringSql,
-        >
+        'a,
+        C: GenericClient + Send + Sync,
+        T1: crate::StringSql,
+        T2: crate::ArraySql<Item = Option<T1>>,
+        T3: crate::StringSql,
+    >
         crate::client::async_::Params<
             'a,
             'a,

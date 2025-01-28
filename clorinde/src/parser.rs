@@ -211,8 +211,8 @@ impl Query {
     }
 
     /// Parse sql query, normalizing named parameters
-    fn parse_sql_query(
-    ) -> impl Parser<char, (String, SourceSpan, Vec<Span<String>>), Error = Simple<char>> {
+    fn parse_sql_query()
+    -> impl Parser<char, (String, SourceSpan, Vec<Span<String>>), Error = Simple<char>> {
         none_of(";")
             .repeated()
             .then_ignore(just(';'))
@@ -240,8 +240,8 @@ impl Query {
             })
     }
 
-    fn parse_query_annotation(
-    ) -> impl Parser<char, (Span<String>, QueryDataStruct, QueryDataStruct), Error = Simple<char>>
+    fn parse_query_annotation()
+    -> impl Parser<char, (Span<String>, QueryDataStruct, QueryDataStruct), Error = Simple<char>>
     {
         just("--!")
             .ignore_then(space())

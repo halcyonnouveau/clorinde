@@ -25,7 +25,7 @@ impl<'a> From<UserBorrowed<'a>> for User {
         }: UserBorrowed<'a>,
     ) -> Self {
         Self {
-            id: id,
+            id,
             name: name.into(),
             hair_color: hair_color.map(|v| v.into()),
         }
@@ -54,8 +54,8 @@ impl<'a> From<PostBorrowed<'a>> for Post {
         }: PostBorrowed<'a>,
     ) -> Self {
         Self {
-            id: id,
-            user_id: user_id,
+            id,
+            user_id,
             title: title.into(),
             body: body.map(|v| v.into()),
         }
@@ -75,8 +75,8 @@ pub struct CommentBorrowed<'a> {
 impl<'a> From<CommentBorrowed<'a>> for Comment {
     fn from(CommentBorrowed { id, post_id, text }: CommentBorrowed<'a>) -> Self {
         Self {
-            id: id,
-            post_id: post_id,
+            id,
+            post_id,
             text: text.into(),
         }
     }
@@ -113,18 +113,18 @@ impl<'a> From<SelectComplexBorrowed<'a>> for SelectComplex {
         }: SelectComplexBorrowed<'a>,
     ) -> Self {
         Self {
-            myuser_id: myuser_id,
+            myuser_id,
             name: name.into(),
             hair_color: hair_color.map(|v| v.into()),
-            post_id: post_id,
-            user_id: user_id,
+            post_id,
+            user_id,
             title: title.map(|v| v.into()),
             body: body.map(|v| v.into()),
         }
     }
 }
 pub mod sync {
-    use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct UserQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
@@ -483,11 +483,9 @@ pub mod sync {
         }
     }
     pub fn select_complex() -> SelectComplexStmt {
-        SelectComplexStmt(
-            crate::client::sync::Stmt::new(
-                "SELECT u.id as myuser_id, u.name, u.hair_color, p.id as post_id, p.user_id, p.title, p.body FROM users as u LEFT JOIN posts as p on u.id = p.user_id",
-            ),
-        )
+        SelectComplexStmt(crate::client::sync::Stmt::new(
+            "SELECT u.id as myuser_id, u.name, u.hair_color, p.id as post_id, p.user_id, p.title, p.body FROM users as u LEFT JOIN posts as p on u.id = p.user_id",
+        ))
     }
     pub struct SelectComplexStmt(crate::client::sync::Stmt);
     impl SelectComplexStmt {
@@ -901,11 +899,9 @@ pub mod async_ {
         }
     }
     pub fn select_complex() -> SelectComplexStmt {
-        SelectComplexStmt(
-            crate::client::async_::Stmt::new(
-                "SELECT u.id as myuser_id, u.name, u.hair_color, p.id as post_id, p.user_id, p.title, p.body FROM users as u LEFT JOIN posts as p on u.id = p.user_id",
-            ),
-        )
+        SelectComplexStmt(crate::client::async_::Stmt::new(
+            "SELECT u.id as myuser_id, u.name, u.hair_color, p.id as post_id, p.user_id, p.title, p.body FROM users as u LEFT JOIN posts as p on u.id = p.user_id",
+        ))
     }
     pub struct SelectComplexStmt(crate::client::async_::Stmt);
     impl SelectComplexStmt {

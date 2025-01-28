@@ -1,6 +1,6 @@
 use quote::quote;
 
-use super::{vfs::Vfs, DependencyAnalysis};
+use super::{DependencyAnalysis, vfs::Vfs};
 use crate::config::Config;
 
 pub(crate) fn gen_lib(
@@ -51,13 +51,12 @@ pub(crate) fn gen_lib(
         }
     };
 
-    let json_imports = if dependency_analysis.json {
-        quote! {
+    let json_imports = dependency_analysis
+        .json
+        .then_some(quote! {
             pub use type_traits::JsonSql;
-        }
-    } else {
-        quote!()
-    };
+        })
+        .unwrap_or_else(|| quote!());
 
     quote! {
         #base_tokens

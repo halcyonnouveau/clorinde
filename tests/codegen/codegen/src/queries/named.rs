@@ -37,10 +37,10 @@ impl<'a> From<NamedBorrowed<'a>> for Named {
         }: NamedBorrowed<'a>,
     ) -> Self {
         Self {
-            id: id,
+            id,
             name: name.into(),
-            price: price,
-            show: show,
+            price,
+            show,
         }
     }
 }
@@ -62,12 +62,12 @@ impl<'a> From<NamedComplexBorrowed<'a>> for NamedComplex {
     ) -> Self {
         Self {
             named: named.into(),
-            named_with_dot: named_with_dot,
+            named_with_dot,
         }
     }
 }
 pub mod sync {
-    use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct IdQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],

@@ -1,6 +1,6 @@
 use quote::{format_ident, quote};
 
-use super::{idx_char, vfs::Vfs, GenCtx};
+use super::{GenCtx, idx_char, vfs::Vfs};
 use crate::{
     codegen::ModCtx,
     config::Config,

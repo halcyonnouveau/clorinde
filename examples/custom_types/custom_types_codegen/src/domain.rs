@@ -1,8 +1,8 @@
 // This file was generated with `clorinde`. Do not modify.
 
 use super::{type_traits::ArraySql, utils::escape_domain};
-use postgres_protocol::types::{array_to_sql, ArrayDimension};
-use postgres_types::{private::BytesMut, IsNull, Kind, ToSql, Type};
+use postgres_protocol::types::{ArrayDimension, array_to_sql};
+use postgres_types::{IsNull, Kind, ToSql, Type, private::BytesMut};
 use std::{
     error::Error,
     fmt::{Debug, Formatter},

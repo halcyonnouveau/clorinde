@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
 use heck::ToUpperCamelCase;
-use indexmap::{map::Entry, IndexMap};
+use indexmap::{IndexMap, map::Entry};
 use postgres_types::{Kind, Type};
 
 use crate::{
-    codegen::{idx_char, DependencyAnalysis, GenCtx},
+    codegen::{DependencyAnalysis, GenCtx, idx_char},
     config::{Config, TypeMapping},
     parser::Span,
     read_queries::ModuleInfo,
@@ -447,7 +447,7 @@ impl TypeRegistrar {
                             query: query_name.span,
                             col_name: name.to_string(),
                             col_ty: ty.to_string(),
-                        })
+                        });
                     }
                 };
                 self.insert(ty, || ClorindeType::Simple {
@@ -462,7 +462,7 @@ impl TypeRegistrar {
                     query: query_name.span,
                     col_name: name.to_string(),
                     col_ty: ty.to_string(),
-                })
+                });
             }
         })
     }

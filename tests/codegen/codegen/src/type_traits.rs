@@ -2,7 +2,7 @@
 
 use super::domain::escape_domain_to_sql;
 use postgres_protocol::types::{self, ArrayDimension};
-use postgres_types::{private::BytesMut, to_sql_checked, IsNull, Kind, ToSql, Type};
+use postgres_types::{IsNull, Kind, ToSql, Type, private::BytesMut, to_sql_checked};
 use std::borrow::Cow;
 pub trait StringSql: std::fmt::Debug + ToSql + Sync {}
 impl<T: StringSql> StringSql for &T {}
@@ -57,10 +57,10 @@ impl<T: std::fmt::Debug + ToSql + Sync> ArraySql for &[T] {
     }
 }
 impl<
-        T: std::fmt::Debug + ToSql + Send + Sync,
-        I: Iterator<Item = T> + ExactSizeIterator,
-        F: Fn() -> I + Send + Sync,
-    > ArraySql for IterSql<T, I, F>
+    T: std::fmt::Debug + ToSql + Send + Sync,
+    I: Iterator<Item = T> + ExactSizeIterator,
+    F: Fn() -> I + Send + Sync,
+> ArraySql for IterSql<T, I, F>
 {
     type Item = T;
     fn escape_domain_to_sql(

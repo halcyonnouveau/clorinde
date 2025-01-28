@@ -111,7 +111,7 @@ impl<'a> From<VoiceactorBorrowed<'a>> for Voiceactor {
     fn from(VoiceactorBorrowed { name, age }: VoiceactorBorrowed<'a>) -> Self {
         Self {
             name: name.into(),
-            age: age,
+            age,
         }
     }
 }

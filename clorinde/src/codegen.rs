@@ -121,7 +121,7 @@ impl PreparedField {
         let call = self.owning_call(None);
         let field_name = format_ident!("{}", self.ident.rs);
         if call == self.ident.rs {
-            quote!(#field_name: #field_name)
+            quote!(#field_name)
         } else {
             let call_expr = syn::parse_str::<syn::Expr>(&call).unwrap();
             quote!(#field_name: #call_expr)

@@ -5,8 +5,8 @@ use deadpool_postgres::{
     Client as DeadpoolClient, ClientWrapper, Transaction as DeadpoolTransaction,
 };
 use tokio_postgres::{
-    types::BorrowToSql, Client as PgClient, Error, RowStream, Statement, ToStatement,
-    Transaction as PgTransaction,
+    Client as PgClient, Error, RowStream, Statement, ToStatement, Transaction as PgTransaction,
+    types::BorrowToSql,
 };
 impl GenericClient for DeadpoolClient {
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {

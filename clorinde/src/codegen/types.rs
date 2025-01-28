@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 
 use crate::{
     codegen::ModCtx,

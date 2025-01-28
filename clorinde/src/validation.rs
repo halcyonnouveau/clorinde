@@ -4,7 +4,7 @@ use crate::{
     parser::{Module, NullableIdent, Query, QueryDataStruct, Span, TypeAnnotation},
     prepare_queries::{PreparedField, PreparedModule},
     read_queries::ModuleInfo,
-    utils::{find_duplicate, STRICT_KEYWORD},
+    utils::{STRICT_KEYWORD, find_duplicate},
 };
 
 use error::Error;
