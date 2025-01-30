@@ -9,9 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.11.3](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.2...clorinde-v0.11.3) - 2025-01-29
 
+### Fixed
+
+- publish to specific repo wasn't supported in clorinde.toml (#40)
+
 ### Refactor
 
 - use quote crate instead of codegen_template and run `cargo fmt` after generation (#35)
+
+### Added
+
+- add citext and other extension friends (#44)
 
 ## [0.11.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.1...clorinde-v0.11.2) - 2025-01-23
 
