@@ -56,7 +56,11 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     if config.r#async {
         let mut default_features = vec!["\"deadpool\""];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            default_features.push("\"chrono\"");
+            if config.time_crate {
+                default_features.push("\"time\"");
+            } else {
+                default_features.push("\"chrono\"");
+            }
         }
 
         let mut wasm_features = vec!["\"tokio-postgres/js\""];

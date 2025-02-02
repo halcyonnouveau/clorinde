@@ -8,6 +8,8 @@ pub(crate) fn gen_lib(
     config: &Config,
 ) -> proc_macro2::TokenStream {
     let base_tokens = quote! {
+        #![cfg(any(all(feature = "chrono", not(feature = "time")), all(feature = "time", not(feature = "chrono"))))]
+
         #[allow(clippy::all, clippy::pedantic)]
         #[allow(unused_variables)]
         #[allow(unused_imports)]

@@ -31,7 +31,7 @@ miette = { version = "7.4.0", features = ["fancy"] }
 chumsky = "0.9.3"
 
 # CLI handling
-clap = { version = "4.5.24", features = ["derive"] }
+clap = { version = "4.5.24", features = ["derive", "env"] }
 
 # Word case
 heck = "0.5.0"

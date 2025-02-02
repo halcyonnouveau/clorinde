@@ -27,6 +27,9 @@ pub struct Config {
     /// Derive serde's `Serialize` trait for generated types.
     #[serde(default = "default_false")]
     pub serialize: bool,
+    /// Default to time crate instead of chrono
+    #[serde(default = "default_false")]
+    pub time_crate: bool,
 
     #[serde(default)]
     pub types: Types,
