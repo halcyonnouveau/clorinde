@@ -1,3 +1,5 @@
+static = ["kafstel.txt"]
+
 [package]
 name = "custom_types_codegen"
 

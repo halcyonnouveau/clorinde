@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-use crate::error::PersistError;
+use crate::{config::StaticFile, error::PersistError};
 
 /// In memory storage of file
 /// Can only fail while persisting
@@ -55,7 +55,11 @@ impl Vfs {
         assert!(self.fs.insert(path.into(), content.into()).is_none())
     }
 
-    pub fn persist(self, destination: impl AsRef<Path>) -> Result<(), PersistError> {
+    pub fn persist(
+        self,
+        destination: impl AsRef<Path>,
+        static_files: Vec<StaticFile>,
+    ) -> Result<(), PersistError> {
         let destination = destination.as_ref();
         // First write in a temporary directory to prevent leaving the destination in a bad state
         let tmp = tempfile::tempdir().map_err(PersistError::wrap("tempfile"))?;
@@ -68,6 +72,39 @@ impl Vfs {
                 .expect("Must at least has 'destination' as parent");
             std::fs::create_dir_all(parent).ok(); // Might already exist
             std::fs::write(&path, content).map_err(PersistError::wrap(path))?;
+        }
+
+        // Copy static files to temp directory
+        if !static_files.is_empty() {
+            for file in static_files {
+                let (path, hard_link) = match file {
+                    StaticFile::Simple(path) => (path, false),
+                    StaticFile::Detailed { path, hard_link } => (path, hard_link),
+                };
+
+                let src = Path::new(&path);
+                if !src.exists() {
+                    return Err(PersistError::wrap(&path)(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "Static file not found",
+                    )));
+                }
+
+                let file_name = src.file_name().ok_or_else(|| {
+                    PersistError::wrap(&path)(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "Invalid file name",
+                    ))
+                })?;
+
+                let dst = tmp.path().join(file_name);
+
+                if hard_link {
+                    std::fs::hard_link(src, dst).map_err(PersistError::wrap(&path))?;
+                } else {
+                    std::fs::copy(src, dst).map_err(PersistError::wrap(&path))?;
+                }
+            }
         }
 
         // Remove existing destination if it exists

@@ -32,6 +32,19 @@ pub struct Config {
     pub types: Types,
     #[serde(default)]
     pub package: Package,
+    #[serde(default, rename = "static")]
+    pub static_files: Vec<StaticFile>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum StaticFile {
+    Simple(String),
+    Detailed {
+        path: String,
+        #[serde(default = "default_false")]
+        hard_link: bool,
+    },
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

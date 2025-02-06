@@ -47,7 +47,7 @@ pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
     let generated = codegen::gen(prepared_modules, &config);
 
     // Write
-    generated.persist(config.destination)?;
+    generated.persist(config.destination, config.static_files)?;
 
     Ok(())
 }
@@ -74,7 +74,7 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
     container::cleanup(config.podman)?;
 
     // Write
-    generated.persist(config.destination)?;
+    generated.persist(config.destination, config.static_files)?;
 
     Ok(())
 }
