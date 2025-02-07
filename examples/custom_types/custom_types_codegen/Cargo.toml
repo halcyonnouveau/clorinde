@@ -23,8 +23,8 @@ postgres-protocol = { workspace = true }
 fallible-iterator = { workspace = true }
 
 ## Custom type crates
-ctypes = { path = "../ctypes" }
 postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
+ctypes = { path = "../ctypes" }
 
 ## Types dependencies
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ

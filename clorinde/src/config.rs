@@ -39,7 +39,7 @@ pub struct Config {
     #[serde(default, rename = "static")]
     pub static_files: Vec<StaticFile>,
     /// Use workspace dependencies
-    #[serde(default = "default_false")]
+    #[serde(default = "default_false", rename = "use-workspace-deps")]
     pub use_workspace_deps: bool,
 }
 
