@@ -5,7 +5,6 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-
 [features]
 default = ["deadpool", "chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
@@ -17,27 +16,27 @@ time = ["dep:time"]
 [dependencies]
 ## Core dependencies
 # Postgres types
-postgres-types = { version = "0.2.8", features = ["derive"] }
+postgres-types = { workspace = true, features = ["derive"] }
 # Postgres interaction
-postgres-protocol = "0.6.7"
+postgres-protocol = { workspace = true }
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
-fallible-iterator = "0.2.0"
+fallible-iterator = { workspace = true }
 
 ## Custom type crates
-postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 ctypes = { path = "../ctypes" }
+postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 
 ## Types dependencies
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
-chrono = { version = "0.4.39", optional = true }
-time = { version = "0.3.37", optional = true }
+chrono = { workspace = true, optional = true }
+time = { workspace = true, optional = true }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.12", default-features = false, features = ["with-chrono-0_4","with-time-0_3",] }
+tokio-postgres = { workspace = true, features = ["with-chrono-0_4", "with-time-0_3"], default-features = false }
 # Async utils
-futures = "0.3.31"
+futures = { workspace = true }
 
 ## Async features dependencies
 # Async connection pooling
-deadpool-postgres = { version = "0.14.1", optional = true }
+deadpool-postgres = { workspace = true, optional = true }

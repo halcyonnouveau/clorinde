@@ -38,6 +38,9 @@ pub struct Config {
     /// List of static files to copy into the generated directory
     #[serde(default, rename = "static")]
     pub static_files: Vec<StaticFile>,
+    /// Use workspace dependencies
+    #[serde(default = "default_false")]
+    pub use_workspace_deps: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -65,13 +68,19 @@ pub struct Types {
 #[serde(untagged)]
 pub enum CrateDependency {
     Simple(String),
-    Detailed {
-        version: Option<String>,
-        path: Option<String>,
-        features: Option<Vec<String>>,
-        default_features: Option<bool>,
-        optional: Option<bool>,
-    },
+    Detailed(Dependency),
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct Dependency {
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace: Option<bool>,
+    pub path: Option<String>,
+    pub optional: Option<bool>,
+    pub features: Option<Vec<String>>,
+    #[serde(rename = "default-features")]
+    pub default_features: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

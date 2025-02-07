@@ -1,4 +1,5 @@
 static = ["kafstel.txt"]
+use_workspace_deps = true
 
 [package]
 name = "custom_types_codegen"

@@ -5,7 +5,6 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-
 [features]
 default = ["deadpool"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
@@ -19,15 +18,15 @@ time = []
 # Postgres types
 postgres-types = { version = "0.2.8", features = ["derive"] }
 # Postgres interaction
-postgres-protocol = "0.6.7"
+postgres-protocol = { version = "0.6.7" }
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
-fallible-iterator = "0.2.0"
+fallible-iterator = { version = "0.2.0" }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.12", default-features = false, features = [] }
+tokio-postgres = { version = "0.7.12", features = [], default-features = false }
 # Async utils
-futures = "0.3.31"
+futures = { version = "0.3.31" }
 
 ## Async features dependencies
 # Async connection pooling

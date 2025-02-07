@@ -1,3 +1,17 @@
 [workspace]
 resolver = "2"
 members = ["benches", "clorinde", "examples/*", "tests/*"]
+
+[workspace.dependencies]
+# Dependencies for examples that use `use_workspace_deps = true`
+postgres-types = { version = "0.2.8", features = ["derive"] }
+postgres-protocol = "0.6.7"
+fallible-iterator = "0.2.0"
+chrono = "0.4.39"
+time = "0.3.37"
+tokio-postgres = { version = "0.7.12", default-features = false, features = [
+    "with-chrono-0_4",
+    "with-time-0_3",
+] }
+futures = "0.3.31"
+deadpool-postgres = "0.14.1"

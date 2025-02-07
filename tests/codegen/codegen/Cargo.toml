@@ -5,7 +5,6 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-
 [features]
 default = ["deadpool", "chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
@@ -19,16 +18,16 @@ time = ["dep:time"]
 # Postgres types
 postgres-types = { version = "0.2.8", features = ["derive"] }
 # Postgres interaction
-postgres-protocol = "0.6.7"
+postgres-protocol = { version = "0.6.7" }
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
-fallible-iterator = "0.2.0"
+fallible-iterator = { version = "0.2.0" }
 
 ## Types dependencies
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
 chrono = { version = "0.4.39", optional = true }
 time = { version = "0.3.37", optional = true }
 # UUID
-uuid = "1.11.0"
+uuid = { version = "1.11.0" }
 # MAC ADDRESS
 eui48 = { version = "1.1.0", default-features = false }
 # DECIMAL
@@ -39,13 +38,13 @@ serde = { version = "1.0.217", features = ["derive"] }
 
 ## Sync client dependencies
 # Postgres sync client
-postgres = { version = "0.19.9", features = ["with-chrono-0_4","with-time-0_3","with-uuid-1","with-eui48-1","with-serde_json-1",] }
+postgres = { version = "0.19.9", features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"] }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.12", default-features = false, features = ["with-chrono-0_4","with-time-0_3","with-uuid-1","with-eui48-1","with-serde_json-1",] }
+tokio-postgres = { version = "0.7.12", features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"], default-features = false }
 # Async utils
-futures = "0.3.31"
+futures = { version = "0.3.31" }
 
 ## Async features dependencies
 # Async connection pooling

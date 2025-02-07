@@ -13,7 +13,6 @@ publish = true
 
 [dependencies]
 # Codegen tools
-indoc = "2.0.5"
 quote = "1.0.38"
 prettyplease = "0.2.29"
 syn = { version = "2.0.96", features = ["full"] }
