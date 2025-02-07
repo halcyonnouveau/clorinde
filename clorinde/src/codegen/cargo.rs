@@ -120,7 +120,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         &mut buf,
         "postgres-types",
         Dependency {
-            version: Some("0.2.8".to_string()),
+            version: Some("0.2.9".to_string()),
             features: Some(vec!["derive".to_string()]),
             workspace: Some(workspace),
             ..Default::default()
@@ -132,7 +132,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         &mut buf,
         "postgres-protocol",
         Dependency {
-            version: Some("0.6.7".to_string()),
+            version: Some("0.6.8".to_string()),
             workspace: Some(workspace),
             ..Default::default()
         },
@@ -217,7 +217,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 &mut buf,
                 "uuid",
                 Dependency {
-                    version: Some("1.11.0".to_string()),
+                    version: Some("1.13.1".to_string()),
                     workspace: Some(workspace),
                     ..Default::default()
                 },
@@ -302,7 +302,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             &mut buf,
             "postgres",
             Dependency {
-                version: Some("0.19.9".to_string()),
+                version: Some("0.19.10".to_string()),
                 workspace: Some(workspace),
                 features: Some(client_features.clone()),
                 ..Default::default()
@@ -317,7 +317,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             &mut buf,
             "tokio-postgres",
             Dependency {
-                version: Some("0.7.12".to_string()),
+                version: Some("0.7.13".to_string()),
                 workspace: Some(workspace),
                 features: Some(client_features),
                 default_features: Some(false),

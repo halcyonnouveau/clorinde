@@ -16,9 +16,9 @@ time = ["dep:time"]
 [dependencies]
 ## Core dependencies
 # Postgres types
-postgres-types = { version = "0.2.8", features = ["derive"] }
+postgres-types = { version = "0.2.9", features = ["derive"] }
 # Postgres interaction
-postgres-protocol = { version = "0.6.7" }
+postgres-protocol = { version = "0.6.8" }
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
 fallible-iterator = { version = "0.2.0" }
 
@@ -29,7 +29,7 @@ time = { version = "0.3.37", optional = true }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.12", features = ["with-chrono-0_4", "with-time-0_3"], default-features = false }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3"], default-features = false }
 # Async utils
 futures = { version = "0.3.31" }
 
