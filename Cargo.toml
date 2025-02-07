@@ -3,7 +3,7 @@ resolver = "2"
 members = ["benches", "clorinde", "examples/*", "tests/*"]
 
 [workspace.dependencies]
-# Dependencies for examples that use `use_workspace_deps = true`
+# Dependencies for examples that have `use-workspace-deps = true`
 postgres-types = { version = "0.2", features = ["derive"] }
 postgres-protocol = "0.6"
 fallible-iterator = "0.2"
