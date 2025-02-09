@@ -83,6 +83,22 @@ pub struct Dependency {
     pub default_features: Option<bool>,
 }
 
+impl Dependency {
+    pub fn is_simple_version(&self) -> bool {
+        matches!(
+            self,
+            Dependency {
+                version: Some(_),
+                path: None,
+                workspace: None,
+                optional: None,
+                features: None,
+                default_features: None,
+            }
+        )
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TypeMapping {

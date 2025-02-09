@@ -49,13 +49,17 @@ fn write_dep(buf: &mut String, name: &str, mut dep: Dependency) {
         dep.workspace = None;
     }
 
-    let dep_str = toml::to_string(&dep)
-        .unwrap()
-        .replace('\n', ", ")
-        .trim_end_matches(", ")
-        .to_string();
+    if dep.is_simple_version() {
+        writeln!(buf, "{} = \"{}\"", name, dep.version.unwrap()).unwrap();
+    } else {
+        let dep_str = toml::to_string(&dep)
+            .unwrap()
+            .replace('\n', ", ")
+            .trim_end_matches(", ")
+            .to_string();
 
-    writeln!(buf, "{} = {{ {} }}", name, dep_str).unwrap();
+        writeln!(buf, "{} = {{ {} }}", name, dep_str).unwrap();
+    }
 }
 
 pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {

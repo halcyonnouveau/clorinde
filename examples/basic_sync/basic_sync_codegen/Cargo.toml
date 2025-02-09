@@ -17,9 +17,9 @@ time = []
 # Postgres types
 postgres-types = { version = "0.2.9", features = ["derive"] }
 # Postgres interaction
-postgres-protocol = { version = "0.6.8" }
+postgres-protocol = "0.6.8"
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
-fallible-iterator = { version = "0.2.0" }
+fallible-iterator = "0.2.0"
 
 ## Sync client dependencies
 # Postgres sync client
