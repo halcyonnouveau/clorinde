@@ -235,16 +235,13 @@ pub mod sync {
             composite: &'a Option<crate::types::DomainCompositeParams<'a>>,
         ) -> Result<u64, postgres::Error> {
             let stmt = self.0.prepare(client)?;
-            client.execute(
-                stmt,
-                &[
-                    &crate::Domain(txt),
-                    &crate::Domain(json),
-                    &crate::Domain(nb),
-                    &crate::Domain(&crate::DomainArray(arr)),
-                    composite,
-                ],
-            )
+            client.execute(stmt, &[
+                &crate::Domain(txt),
+                &crate::Domain(json),
+                &crate::Domain(nb),
+                &crate::Domain(&crate::DomainArray(arr)),
+                composite,
+            ])
         }
     }
     impl<
@@ -474,16 +471,13 @@ pub mod async_ {
         ) -> Result<u64, tokio_postgres::Error> {
             let stmt = self.0.prepare(client).await?;
             client
-                .execute(
-                    stmt,
-                    &[
-                        &crate::Domain(txt),
-                        &crate::Domain(json),
-                        &crate::Domain(nb),
-                        &crate::Domain(&crate::DomainArray(arr)),
-                        composite,
-                    ],
-                )
+                .execute(stmt, &[
+                    &crate::Domain(txt),
+                    &crate::Domain(json),
+                    &crate::Domain(nb),
+                    &crate::Domain(&crate::DomainArray(arr)),
+                    composite,
+                ])
                 .await
         }
     }

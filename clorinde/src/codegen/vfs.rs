@@ -82,15 +82,14 @@ impl Vfs {
                     StaticFile::Detailed { path, hard_link } => (path, hard_link),
                 };
 
-                let src = Path::new(&path);
-                if !src.exists() {
+                if !path.exists() {
                     return Err(PersistError::wrap(&path)(std::io::Error::new(
                         std::io::ErrorKind::NotFound,
                         "Static file not found",
                     )));
                 }
 
-                let file_name = src.file_name().ok_or_else(|| {
+                let file_name = path.file_name().ok_or_else(|| {
                     PersistError::wrap(&path)(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
                         "Invalid file name",
@@ -100,9 +99,9 @@ impl Vfs {
                 let dst = tmp.path().join(file_name);
 
                 if hard_link {
-                    std::fs::hard_link(src, dst).map_err(PersistError::wrap(&path))?;
+                    std::fs::hard_link(path.clone(), dst).map_err(PersistError::wrap(&path))?;
                 } else {
-                    std::fs::copy(src, dst).map_err(PersistError::wrap(&path))?;
+                    std::fs::copy(path.clone(), dst).map_err(PersistError::wrap(&path))?;
                 }
             }
         }

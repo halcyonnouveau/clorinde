@@ -39,19 +39,32 @@ pub struct Config {
     #[serde(default, rename = "static")]
     pub static_files: Vec<StaticFile>,
     /// Use workspace dependencies
-    #[serde(default = "default_false", rename = "use-workspace-deps")]
-    pub use_workspace_deps: bool,
+    #[serde(default, rename = "use-workspace-deps")]
+    pub use_workspace_deps: UseWorkspaceDeps,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum StaticFile {
-    Simple(String),
+    Simple(PathBuf),
     Detailed {
-        path: String,
+        path: PathBuf,
         #[serde(default = "default_false")]
         hard_link: bool,
     },
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum UseWorkspaceDeps {
+    Bool(bool),
+    Path(PathBuf),
+}
+
+impl Default for UseWorkspaceDeps {
+    fn default() -> Self {
+        UseWorkspaceDeps::Bool(false)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
@@ -67,12 +80,14 @@ pub struct Types {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum CrateDependency {
+    /// Simple version string
     Simple(String),
-    Detailed(Dependency),
+    /// Detailed table information
+    Detailed(DependencyTable),
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct Dependency {
+pub struct DependencyTable {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workspace: Option<bool>,
@@ -83,19 +98,38 @@ pub struct Dependency {
     pub default_features: Option<bool>,
 }
 
-impl Dependency {
+impl DependencyTable {
+    pub fn new(version: impl Into<String>) -> Self {
+        Self {
+            version: Some(version.into()),
+            ..Default::default()
+        }
+    }
+
+    pub fn features(mut self, features: Vec<impl Into<String>>) -> Self {
+        self.features = Some(features.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn optional(mut self) -> Self {
+        self.optional = Some(true);
+        self
+    }
+
+    pub fn no_default_features(mut self) -> Self {
+        self.default_features = Some(false);
+        self
+    }
+
     pub fn is_simple_version(&self) -> bool {
-        matches!(
-            self,
-            Dependency {
-                version: Some(_),
-                path: None,
-                workspace: None,
-                optional: None,
-                features: None,
-                default_features: None,
-            }
-        )
+        matches!(self, DependencyTable {
+            version: Some(_),
+            path: None,
+            workspace: None,
+            optional: None,
+            features: None,
+            default_features: None,
+        })
     }
 }
 

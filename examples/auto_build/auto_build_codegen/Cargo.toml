@@ -24,7 +24,7 @@ fallible-iterator = "0.2.0"
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.13", features = [], default-features = false }
+tokio-postgres = { version = "0.7.13", features = [] }
 # Async utils
 futures = "0.3.31"
 

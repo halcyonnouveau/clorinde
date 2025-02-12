@@ -29,7 +29,7 @@ time = { version = "0.3.37", optional = true }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3"], default-features = false }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3"] }
 # Async utils
 futures = "0.3.31"
 

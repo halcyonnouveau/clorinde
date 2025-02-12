@@ -28,7 +28,7 @@ postgres = { version = "0.19.10", features = [] }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.13", features = [], default-features = false }
+tokio-postgres = { version = "0.7.13", features = [] }
 # Async utils
 futures = "0.3.31"
 

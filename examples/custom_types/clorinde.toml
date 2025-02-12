@@ -1,5 +1,5 @@
 static = ["kafstel.txt"]
-use-workspace-deps = true
+use-workspace-deps = "../../Cargo.toml"
 
 [package]
 name = "custom_types_codegen"
