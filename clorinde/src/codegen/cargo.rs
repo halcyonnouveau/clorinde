@@ -93,7 +93,7 @@ impl CargoWriter {
             UseWorkspaceDeps::Path(_) => true,
         };
 
-        return enabled && self.workspace_deps.contains(dep_name);
+        enabled && self.workspace_deps.contains(dep_name)
     }
 
     fn line(&mut self, line: &str) {
