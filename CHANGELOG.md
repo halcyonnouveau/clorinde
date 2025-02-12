@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.3...clorinde-v0.11.4) - 2025-02-07
+
+### Added
+
+- feat; add static files config ([#49](https://github.com/halcyonnouveau/clorinde/pull/49))
+- feat; add prompt for generating on a non-default directory
+
 ## [0.11.3](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.2...clorinde-v0.11.3) - 2025-01-29
 
 ### Fixed

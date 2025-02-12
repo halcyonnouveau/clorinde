@@ -49,7 +49,7 @@ pub enum StaticFile {
     Simple(PathBuf),
     Detailed {
         path: PathBuf,
-        #[serde(default = "default_false")]
+        #[serde(default = "default_false", rename = "hard-link")]
         hard_link: bool,
     },
 }
