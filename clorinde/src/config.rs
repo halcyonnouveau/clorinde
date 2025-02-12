@@ -122,14 +122,17 @@ impl DependencyTable {
     }
 
     pub fn is_simple_version(&self) -> bool {
-        matches!(self, DependencyTable {
-            version: Some(_),
-            path: None,
-            workspace: None,
-            optional: None,
-            features: None,
-            default_features: None,
-        })
+        matches!(
+            self,
+            DependencyTable {
+                version: Some(_),
+                path: None,
+                workspace: None,
+                optional: None,
+                features: None,
+                default_features: None,
+            }
+        )
     }
 }
 

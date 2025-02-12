@@ -69,9 +69,10 @@ pub fn main() {
     // !    parameter type was created).
     // ! 2. Import the `Params` trait.
     let name_starting_with_jo = author_name_starting_with()
-        .params(&mut client, &AuthorNameStartingWithParams {
-            start_str: "Jo",
-        })
+        .params(
+            &mut client,
+            &AuthorNameStartingWithParams { start_str: "Jo" },
+        )
         .all()
         .unwrap();
     dbg!(name_starting_with_jo);

@@ -91,16 +91,19 @@ pub fn test_params(client: &mut Client) {
             .bind(client, &Some("Marcel Proust"), &"In Search of Lost Time")
             .unwrap()
     );
-    assert_eq!(select_book().bind(client).all().unwrap(), &[
-        SelectBook {
-            author: None,
-            name: "Necronomicon".into()
-        },
-        SelectBook {
-            author: Some("Marcel Proust".into()),
-            name: "In Search of Lost Time".into()
-        }
-    ]);
+    assert_eq!(
+        select_book().bind(client).all().unwrap(),
+        &[
+            SelectBook {
+                author: None,
+                name: "Necronomicon".into()
+            },
+            SelectBook {
+                author: Some("Marcel Proust".into()),
+                name: "In Search of Lost Time".into()
+            }
+        ]
+    );
     params_use_twice().bind(client, &"name").unwrap();
 }
 
@@ -146,39 +149,51 @@ pub fn test_trait_sql(client: &mut Client) {
 
 pub fn test_nullity(client: &mut Client) {
     new_nullity()
-        .params(client, &NullityParams {
-            composite: Some(NullityCompositeParams {
-                jsons: Some(&[None]),
+        .params(
+            client,
+            &NullityParams {
+                composite: Some(NullityCompositeParams {
+                    jsons: Some(&[None]),
+                    id: 42,
+                }),
+                name: "James Bond",
+                texts: [Some("Hello"), Some("world"), None].as_slice(),
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        nullity().bind(client).one().unwrap(),
+        Nullity {
+            composite: Some(NullityComposite {
+                jsons: Some(vec![None]),
                 id: 42,
             }),
-            name: "James Bond",
-            texts: [Some("Hello"), Some("world"), None].as_slice(),
-        })
-        .unwrap();
-    assert_eq!(nullity().bind(client).one().unwrap(), Nullity {
-        composite: Some(NullityComposite {
-            jsons: Some(vec![None]),
-            id: 42,
-        }),
-        name: "James Bond".to_string(),
-        texts: vec![Some("Hello".to_string()), Some("world".to_string()), None],
-    });
+            name: "James Bond".to_string(),
+            texts: vec![Some("Hello".to_string()), Some("world".to_string()), None],
+        }
+    );
 }
 
 pub fn test_named(client: &mut Client) {
     let hidden_id = new_named_hidden()
-        .params(client, &NamedParams {
-            name: "secret",
-            price: Some(42.0),
-        })
+        .params(
+            client,
+            &NamedParams {
+                name: "secret",
+                price: Some(42.0),
+            },
+        )
         .one()
         .unwrap()
         .id;
     let visible_id = new_named_visible()
-        .params(client, &NamedParams {
-            name: "stuff",
-            price: Some(84.0),
-        })
+        .params(
+            client,
+            &NamedParams {
+                name: "stuff",
+                price: Some(84.0),
+            },
+        )
         .one()
         .unwrap()
         .id;
@@ -187,26 +202,29 @@ pub fn test_named(client: &mut Client) {
         .one()
         .unwrap()
         .id;
-    assert_eq!(named().bind(client).all().unwrap(), &[
-        Named {
-            id: hidden_id,
-            name: "secret".into(),
-            price: Some(42.0),
-            show: false
-        },
-        Named {
-            id: visible_id,
-            name: "stuff".into(),
-            price: Some(84.0),
-            show: true
-        },
-        Named {
-            id: last_id,
-            name: "can't by me".into(),
-            price: None,
-            show: true
-        }
-    ]);
+    assert_eq!(
+        named().bind(client).all().unwrap(),
+        &[
+            Named {
+                id: hidden_id,
+                name: "secret".into(),
+                price: Some(42.0),
+                show: false
+            },
+            Named {
+                id: visible_id,
+                name: "stuff".into(),
+                price: Some(84.0),
+                show: true
+            },
+            Named {
+                id: last_id,
+                name: "can't by me".into(),
+                price: None,
+                show: true
+            }
+        ]
+    );
     assert_eq!(
         named_by_id().bind(client, &hidden_id).one().unwrap(),
         Named {
@@ -225,50 +243,60 @@ pub fn test_named(client: &mut Client) {
             show: true
         }
     );
-    assert_eq!(named().bind(client).map(|it| it.id).all().unwrap(), &[
-        hidden_id, visible_id, last_id
-    ]);
+    assert_eq!(
+        named().bind(client).map(|it| it.id).all().unwrap(),
+        &[hidden_id, visible_id, last_id]
+    );
 
     new_named_complex()
-        .params(client, &NamedComplexParams {
-            named: NamedCompositeBorrowed {
-                wow: Some("Hello world"),
-                such_cool: None,
+        .params(
+            client,
+            &NamedComplexParams {
+                named: NamedCompositeBorrowed {
+                    wow: Some("Hello world"),
+                    such_cool: None,
+                },
+                named_with_dot: Some(NamedCompositeWithDot {
+                    this_is_inconceivable: Some(EnumWithDot::variant_with_dot),
+                }),
             },
-            named_with_dot: Some(NamedCompositeWithDot {
-                this_is_inconceivable: Some(EnumWithDot::variant_with_dot),
-            }),
-        })
+        )
         .unwrap();
 
     new_named_complex()
-        .params(client, &NamedComplexParams {
-            named: NamedCompositeBorrowed {
-                wow: Some("Hello world, again"),
-                such_cool: None,
+        .params(
+            client,
+            &NamedComplexParams {
+                named: NamedCompositeBorrowed {
+                    wow: Some("Hello world, again"),
+                    such_cool: None,
+                },
+                named_with_dot: None,
             },
-            named_with_dot: None,
-        })
+        )
         .unwrap();
 
-    assert_eq!(named_complex().bind(client).all().unwrap(), vec![
-        NamedComplex {
-            named: NamedComposite {
-                wow: Some("Hello world".into()),
-                such_cool: None,
+    assert_eq!(
+        named_complex().bind(client).all().unwrap(),
+        vec![
+            NamedComplex {
+                named: NamedComposite {
+                    wow: Some("Hello world".into()),
+                    such_cool: None,
+                },
+                named_with_dot: Some(NamedCompositeWithDot {
+                    this_is_inconceivable: Some(EnumWithDot::variant_with_dot),
+                }),
             },
-            named_with_dot: Some(NamedCompositeWithDot {
-                this_is_inconceivable: Some(EnumWithDot::variant_with_dot),
-            }),
-        },
-        NamedComplex {
-            named: NamedComposite {
-                wow: Some("Hello world, again".into()),
-                such_cool: None,
-            },
-            named_with_dot: None,
-        }
-    ],);
+            NamedComplex {
+                named: NamedComposite {
+                    wow: Some("Hello world, again".into()),
+                    such_cool: None,
+                },
+                named_with_dot: None,
+            }
+        ],
+    );
 }
 
 // Test we correctly implement borrowed version and copy derive

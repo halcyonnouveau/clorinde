@@ -223,12 +223,15 @@ impl PreparedModule {
         row_idx: Option<(usize, Vec<usize>)>,
         sql: String,
     ) {
-        self.queries.insert(name.clone(), PreparedQuery {
-            ident: Ident::new(name.value),
-            row: row_idx,
-            sql,
-            param: param_idx,
-        });
+        self.queries.insert(
+            name.clone(),
+            PreparedQuery {
+                ident: Ident::new(name.value),
+                row: row_idx,
+                sql,
+                param: param_idx,
+            },
+        );
     }
 }
 
