@@ -43,8 +43,8 @@ impl DependencyAnalysis {
 
 struct CargoWriter {
     buf: String,
+    use_workspace_deps: bool,
     workspace_deps: HashSet<String>,
-    use_workspace_deps: UseWorkspaceDeps,
 }
 
 impl CargoWriter {
@@ -70,6 +70,11 @@ impl CargoWriter {
     }
 
     fn new(config: &Config) -> Self {
+        let use_workspace_deps = match &config.use_workspace_deps {
+            UseWorkspaceDeps::Bool(enabled) => *enabled,
+            UseWorkspaceDeps::Path(_) => true,
+        };
+
         let workspace_deps = match &config.use_workspace_deps {
             UseWorkspaceDeps::Bool(true) => {
                 CargoWriter::get_workspace_deps(Path::new("./Cargo.toml"))
@@ -80,20 +85,9 @@ impl CargoWriter {
 
         Self {
             buf: String::new(),
+            use_workspace_deps,
             workspace_deps,
-            use_workspace_deps: config.use_workspace_deps.clone(),
         }
-    }
-
-    fn should_use_workspace(&self, dep_name: &str) -> bool {
-        // use `workspace = true` when `use-workspace-deps` option is enabled
-        // and dependency appears in user's Cargo.toml `[workspace.dependencies]`
-        let enabled = match &self.use_workspace_deps {
-            UseWorkspaceDeps::Bool(enabled) => *enabled,
-            UseWorkspaceDeps::Path(_) => true,
-        };
-
-        enabled && self.workspace_deps.contains(dep_name)
     }
 
     fn line(&mut self, line: &str) {
@@ -101,7 +95,9 @@ impl CargoWriter {
     }
 
     fn dep(&mut self, name: &str, mut dep: DependencyTable) {
-        if self.should_use_workspace(name) {
+        // add `workspace = true` when `use-workspace-deps` option is enabled
+        // and dependency appears in user's Cargo.toml `[workspace.dependencies]`
+        if self.use_workspace_deps && self.workspace_deps.contains(name) {
             dep.version = None;
             dep.workspace = Some(true);
         } else {
