@@ -214,14 +214,14 @@ impl Query {
                 // Dollar quotes ($$ or $tag$)
                 '$' => {
                     let mut content = String::from("$");
-                    while let Some(x) = chars.next() {
+                    for x in chars.by_ref() {
                         content.push(x);
                         if x == '$' {
                             break;
                         }
                     }
                     let tag = content.clone();
-                    while let Some(x) = chars.next() {
+                    for x in chars.by_ref() {
                         content.push(x);
                         if content.ends_with(&tag) {
                             break;
@@ -446,6 +446,7 @@ impl QueryDataStruct {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 enum Statement {
     Type(TypeAnnotation),
