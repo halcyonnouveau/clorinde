@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.4...clorinde-v0.12.0) - 2025-02-16
+
+### Added
+
+- Some CLI improvements (#54)
+- feat; add `use-workspace-deps` option ([#50](https://github.com/halcyonnouveau/clorinde/pull/50))
+
+### Fixed
+
+- fix; config defaults
+
+### Refactor
+
+- refactor; type register for better custom type support
+
 ## [0.11.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.11.3...clorinde-v0.11.4) - 2025-02-07
 
 ### Added
