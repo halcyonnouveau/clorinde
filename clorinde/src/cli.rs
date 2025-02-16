@@ -65,9 +65,6 @@ struct CommonArgs {
     /// Derive serde's `Serialize` trait for generated types.
     #[clap(long)]
     serialize: Option<bool>,
-    /// Default to time crate instead of chrono
-    #[clap(long)]
-    time_crate: Option<bool>,
 }
 
 #[allow(clippy::result_large_err)]
@@ -82,7 +79,6 @@ pub fn run() -> Result<(), Error> {
         sync,
         r#async,
         serialize,
-        time_crate,
     } = action.args();
 
     let mut cfg = match config.is_file() {
@@ -108,9 +104,6 @@ pub fn run() -> Result<(), Error> {
     }
     if let Some(serialize) = serialize {
         cfg.serialize = serialize;
-    }
-    if let Some(time_crate) = time_crate {
-        cfg.time_crate = time_crate;
     }
     let podman = cfg.podman;
 
