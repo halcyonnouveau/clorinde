@@ -86,25 +86,13 @@ pub fn run() -> Result<(), Error> {
         false => Config::default(),
     };
 
-    if let Some(podman) = podman {
-        cfg.podman = podman;
-    }
-    if let Some(queries_path) = queries_path {
-        cfg.queries = queries_path;
-    }
-    if let Some(destination) = destination {
-        cfg.destination = destination;
-    }
+    cfg.podman = podman.unwrap_or(cfg.podman);
+    cfg.queries = queries_path.unwrap_or(cfg.queries);
+    cfg.destination = destination.unwrap_or(cfg.destination);
+    cfg.sync = sync.unwrap_or(cfg.sync);
+    cfg.r#async = r#async.map_or(cfg.r#async, |a| a || !cfg.sync);
+    cfg.serialize = serialize.unwrap_or(cfg.serialize);
 
-    if let Some(sync) = sync {
-        cfg.sync = sync;
-    }
-    if let Some(r#async) = r#async {
-        cfg.r#async = r#async || !cfg.sync;
-    }
-    if let Some(serialize) = serialize {
-        cfg.serialize = serialize;
-    }
     let podman = cfg.podman;
 
     match action {
