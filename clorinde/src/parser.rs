@@ -7,7 +7,7 @@ use miette::SourceSpan;
 
 use crate::read_queries::ModuleInfo;
 
-/// Th    if is data structure holds a value and the context in which it was parsed.
+/// This data structure holds a value and the context in which it was parsed.
 /// This context is used for error reporting.
 #[derive(Debug, Clone)]
 pub struct Span<T> {
@@ -149,6 +149,7 @@ impl TypeAnnotation {
 pub(crate) struct Query {
     pub(crate) name: Span<String>,
     pub(crate) param: QueryDataStruct,
+    pub(crate) comments: Vec<String>,
     pub(crate) row: QueryDataStruct,
     pub(crate) sql_span: SourceSpan,
     pub(crate) sql_str: String,
@@ -201,6 +202,72 @@ impl Query {
             .ignored()
     }
 
+    /// Removes regular SQL comments (starting with '--') while making sure to preserve:
+    /// - String literals (both 'single' and "double" quoted)
+    /// - Dollar-quoted strings ($$text$$ or $tag$text$tag$)
+    fn clean_sql_comments(sql: &str) -> String {
+        let mut result = String::new();
+        let mut chars = sql.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                // Dollar quotes ($$ or $tag$)
+                '$' => {
+                    let mut content = String::from("$");
+                    while let Some(x) = chars.next() {
+                        content.push(x);
+                        if x == '$' {
+                            break;
+                        }
+                    }
+                    let tag = content.clone();
+                    while let Some(x) = chars.next() {
+                        content.push(x);
+                        if content.ends_with(&tag) {
+                            break;
+                        }
+                    }
+                    result.push_str(&content);
+                }
+                // String literals
+                '\'' | '"' => {
+                    let quote = c;
+                    let mut content = String::from(quote);
+                    while let Some(x) = chars.next() {
+                        content.push(x);
+                        if x == '\\' {
+                            if let Some(escaped) = chars.next() {
+                                content.push(escaped);
+                            }
+                        } else if x == quote {
+                            break;
+                        }
+                    }
+                    result.push_str(&content);
+                }
+                // Comments
+                '-' if chars.peek() == Some(&'-') => {
+                    chars.next(); // consume second dash
+                    if matches!(chars.peek(), Some(&':') | Some(&'!')) {
+                        result.push_str("--");
+                        if let Some(x) = chars.next() {
+                            result.push(x);
+                        }
+                    } else {
+                        while let Some(&x) = chars.peek() {
+                            if x == '\n' {
+                                break;
+                            }
+                            chars.next();
+                        }
+                    }
+                }
+                _ => result.push(c),
+            }
+        }
+        result
+    }
+
     /// Parse all bind from an SQL query
     fn parse_bind() -> impl Parser<char, Vec<Span<String>>, Error = Simple<char>> {
         just(':')
@@ -213,11 +280,22 @@ impl Query {
     /// Parse sql query, normalizing named parameters
     fn parse_sql_query()
     -> impl Parser<char, (String, SourceSpan, Vec<Span<String>>), Error = Simple<char>> {
+        // TODO(bug): Using none_of(";") breaks on the first semicolon it encounters, even if that semicolon is inside:
+        // - String literals: 'text with ; in it'
+        // - Dollar-quoted strings: $$text with ; in it$$
+        // - Comments: -- comment with ; in it
+        // We need proper SQL token awareness to know if a semicolon is part of these constructs or if it's the actual query terminator.
         none_of(";")
             .repeated()
             .then_ignore(just(';'))
             .collect::<String>()
             .map_with_span(|mut sql_str, span: Range<usize>| {
+                sql_str = Self::clean_sql_comments(&sql_str)
+                    .lines()
+                    .filter(|line| !line.trim().is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
                 let bind_params: Vec<_> = Self::parse_bind().parse(sql_str.clone()).unwrap();
                 // Remove duplicate
                 let dedup_params: Vec<_> = bind_params
@@ -238,6 +316,18 @@ impl Query {
 
                 (sql_str, span.into(), dedup_params)
             })
+    }
+
+    fn parse_comments() -> impl Parser<char, Vec<String>, Error = Simple<char>> {
+        just("---")
+            .ignore_then(
+                none_of('\n')
+                    .repeated()
+                    .collect::<String>()
+                    .map(|s| s.trim().to_string()),
+            )
+            .then_ignore(ln())
+            .repeated()
     }
 
     fn parse_query_annotation()
@@ -262,11 +352,13 @@ impl Query {
         Self::parse_query_annotation()
             .then_ignore(space())
             .then_ignore(ln())
+            .then(Self::parse_comments())
             .then(Self::parse_sql_query())
             .map(
-                |((name, param, row), (sql_str, sql_span, bind_params))| Self {
+                |(((name, param, row), comments), (sql_str, sql_span, bind_params))| Self {
                     name,
                     param,
+                    comments,
                     row,
                     sql_span,
                     sql_str,

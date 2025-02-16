@@ -45,8 +45,8 @@ use codegen::{
             },
         },
         syntax::{
-            TrickySql10Params,
-            sync::{tricky_sql10, r#typeof},
+            SelectInlineComment, TrickySql10Params,
+            sync::{select_inline_comment, tricky_sql10, r#typeof},
         },
     },
     types::{
@@ -76,6 +76,7 @@ pub fn main() {
     test_domain(client);
     test_trait_sql(client);
     test_keyword_escaping(client);
+    test_inline_comment(client);
 }
 
 pub fn test_params(client: &mut Client) {
@@ -617,4 +618,17 @@ pub fn test_keyword_escaping(client: &mut Client) {
     };
     tricky_sql10().params(client, &params).unwrap();
     r#typeof().bind(client).all().unwrap();
+}
+
+// Test inline comment removing
+pub fn test_inline_comment(client: &mut Client) {
+    let expected = SelectInlineComment {
+        c1: "-- dont remove this".to_string(),
+        c2: "-- or this".to_string(),
+        c3: "-- escape string here".to_string(),
+        c4: "-- another escape string".to_string(),
+        c5: "-- dollar quoted here".to_string(),
+    };
+    let actual = select_inline_comment().bind(client).one().unwrap();
+    assert_eq!(expected, actual);
 }

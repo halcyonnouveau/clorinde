@@ -2,20 +2,20 @@
 --:CompactRow()
      --:          SpaceRow     ()
 --:CompactField(a?,b?,c?)
---: SpaceField      (  a?   ,  b?  ,  c?  )   
+--: SpaceField      (  a?   ,  b?  ,  c?  )
 
 --simple comment
 
 --! select_compact
 SELECT * FROM clone;
-      --!      select_spaced   
-      SELECT * FROM clone ;   
+      --!      select_spaced
+      SELECT * FROM clone ;
 
   --        spaced comment
 
 --!implicit_compact(name?,price?):(id?)
 INSERT INTO named (name, price, show) VALUES (:name, :price, false) RETURNING id;
-             --!  implicit_spaced        (     name? , price? ) :       ( id? ) 
+             --!  implicit_spaced        (     name? , price? ) :       ( id? )
 INSERT INTO named (name, price, show) VALUES (:name, :price, false) RETURNING id;
 
 -- Multi line
@@ -23,7 +23,7 @@ INSERT INTO named (name, price, show) VALUES (:name, :price, false) RETURNING id
 
 --!named_compact Params():Row()
 INSERT INTO named (name, price, show) VALUES (:name, :price, false) RETURNING id;
-      --!       named_spaced            ParamsSpace  ()     :        RowSpace  () 
+      --!       named_spaced            ParamsSpace  ()     :        RowSpace  ()
 INSERT INTO named (name, price, show) VALUES (:name, :price, false) RETURNING id;
 
 --! tricky_sql
@@ -53,3 +53,20 @@ SELECT * FROM syntax;
 -- Multi
 
 -- Comment
+
+--! select_comment
+--- Multi line
+---
+--- Doc string comment
+SELECT * FROM syntax;
+
+--! select_inline_comment
+SELECT
+    -- remove this comment:
+    '-- dont remove this' as c1,          -- and this:
+    $$-- or this$$ as c2,                 -- and this
+    E'-- escape string here' as c3,       -- this too
+    -- you guess it, this too
+    e'-- another escape string' as c4,    -- and this
+    $tag$-- dollar quoted here$tag$ as c5 -- finally this
+;
