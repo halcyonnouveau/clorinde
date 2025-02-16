@@ -240,6 +240,7 @@ fn gen_query_fn(
     let PreparedQuery {
         ident,
         row,
+        comments,
         sql,
         param,
     } = query;
@@ -397,7 +398,13 @@ fn gen_query_fn(
         .collect::<Vec<&str>>()
         .join(" ");
 
+    let doc_comments = comments.iter().map(|comment| {
+        let comment_with_space = format!(" {}", comment);
+        quote! { #[doc = #comment_with_space] }
+    });
+
     let struct_tokens = quote! {
+        #(#doc_comments)*
         pub fn #name() -> #stmt_ident {
             #stmt_ident(#client::Stmt::new(#sql))
         }

@@ -104,6 +104,60 @@ impl<'a> From<TypeofBorrowed<'a>> for Typeof {
         }
     }
 }
+#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+pub struct SelectComment {
+    pub trick_y: String,
+    pub r#async: crate::types::SyntaxComposite,
+    pub r#enum: crate::types::SyntaxEnum,
+}
+pub struct SelectCommentBorrowed<'a> {
+    pub trick_y: &'a str,
+    pub r#async: crate::types::SyntaxComposite,
+    pub r#enum: crate::types::SyntaxEnum,
+}
+impl<'a> From<SelectCommentBorrowed<'a>> for SelectComment {
+    fn from(
+        SelectCommentBorrowed {
+            trick_y,
+            r#async,
+            r#enum,
+        }: SelectCommentBorrowed<'a>,
+    ) -> Self {
+        Self {
+            trick_y: trick_y.into(),
+            r#async,
+            r#enum,
+        }
+    }
+}
+#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+pub struct SelectInlineComment {
+    pub c1: String,
+    pub c2: String,
+    pub c3: String,
+    pub c4: String,
+    pub c5: String,
+}
+pub struct SelectInlineCommentBorrowed<'a> {
+    pub c1: &'a str,
+    pub c2: &'a str,
+    pub c3: &'a str,
+    pub c4: &'a str,
+    pub c5: &'a str,
+}
+impl<'a> From<SelectInlineCommentBorrowed<'a>> for SelectInlineComment {
+    fn from(
+        SelectInlineCommentBorrowed { c1, c2, c3, c4, c5 }: SelectInlineCommentBorrowed<'a>,
+    ) -> Self {
+        Self {
+            c1: c1.into(),
+            c2: c2.into(),
+            c3: c3.into(),
+            c4: c4.into(),
+            c5: c5.into(),
+        }
+    }
+}
 pub mod sync {
     use postgres::{GenericClient, fallible_iterator::FallibleIterator};
     pub struct CloneCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
@@ -320,6 +374,108 @@ pub mod sync {
             mapper: fn(super::TypeofBorrowed) -> R,
         ) -> TypeofQuery<'c, 'a, 's, C, R, N> {
             TypeofQuery {
+                client: self.client,
+                params: self.params,
+                stmt: self.stmt,
+                extractor: self.extractor,
+                mapper,
+            }
+        }
+        pub fn one(self) -> Result<T, postgres::Error> {
+            let stmt = self.stmt.prepare(self.client)?;
+            let row = self.client.query_one(stmt, &self.params)?;
+            Ok((self.mapper)((self.extractor)(&row)))
+        }
+        pub fn all(self) -> Result<Vec<T>, postgres::Error> {
+            self.iter()?.collect()
+        }
+        pub fn opt(self) -> Result<Option<T>, postgres::Error> {
+            let stmt = self.stmt.prepare(self.client)?;
+            Ok(self
+                .client
+                .query_opt(stmt, &self.params)?
+                .map(|row| (self.mapper)((self.extractor)(&row))))
+        }
+        pub fn iter(
+            self,
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
+        {
+            let stmt = self.stmt.prepare(self.client)?;
+            let it = self
+                .client
+                .query_raw(stmt, crate::slice_iter(&self.params))?
+                .iterator()
+                .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))));
+            Ok(it)
+        }
+    }
+    pub struct SelectCommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
+        params: [&'a (dyn postgres_types::ToSql + Sync); N],
+        stmt: &'s mut crate::client::sync::Stmt,
+        extractor: fn(&postgres::Row) -> super::SelectCommentBorrowed,
+        mapper: fn(super::SelectCommentBorrowed) -> T,
+    }
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectCommentQuery<'c, 'a, 's, C, T, N>
+    where
+        C: GenericClient,
+    {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::SelectCommentBorrowed) -> R,
+        ) -> SelectCommentQuery<'c, 'a, 's, C, R, N> {
+            SelectCommentQuery {
+                client: self.client,
+                params: self.params,
+                stmt: self.stmt,
+                extractor: self.extractor,
+                mapper,
+            }
+        }
+        pub fn one(self) -> Result<T, postgres::Error> {
+            let stmt = self.stmt.prepare(self.client)?;
+            let row = self.client.query_one(stmt, &self.params)?;
+            Ok((self.mapper)((self.extractor)(&row)))
+        }
+        pub fn all(self) -> Result<Vec<T>, postgres::Error> {
+            self.iter()?.collect()
+        }
+        pub fn opt(self) -> Result<Option<T>, postgres::Error> {
+            let stmt = self.stmt.prepare(self.client)?;
+            Ok(self
+                .client
+                .query_opt(stmt, &self.params)?
+                .map(|row| (self.mapper)((self.extractor)(&row))))
+        }
+        pub fn iter(
+            self,
+        ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
+        {
+            let stmt = self.stmt.prepare(self.client)?;
+            let it = self
+                .client
+                .query_raw(stmt, crate::slice_iter(&self.params))?
+                .iterator()
+                .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))));
+            Ok(it)
+        }
+    }
+    pub struct SelectInlineCommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c mut C,
+        params: [&'a (dyn postgres_types::ToSql + Sync); N],
+        stmt: &'s mut crate::client::sync::Stmt,
+        extractor: fn(&postgres::Row) -> super::SelectInlineCommentBorrowed,
+        mapper: fn(super::SelectInlineCommentBorrowed) -> T,
+    }
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectInlineCommentQuery<'c, 'a, 's, C, T, N>
+    where
+        C: GenericClient,
+    {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::SelectInlineCommentBorrowed) -> R,
+        ) -> SelectInlineCommentQuery<'c, 'a, 's, C, R, N> {
+            SelectInlineCommentQuery {
                 client: self.client,
                 params: self.params,
                 stmt: self.stmt,
@@ -923,6 +1079,57 @@ pub mod sync {
             }
         }
     }
+    /// Multi line
+    ///
+    /// Doc string comment
+    pub fn select_comment() -> SelectCommentStmt {
+        SelectCommentStmt(crate::client::sync::Stmt::new("SELECT * FROM syntax"))
+    }
+    pub struct SelectCommentStmt(crate::client::sync::Stmt);
+    impl SelectCommentStmt {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectCommentQuery<'c, 'a, 's, C, super::SelectComment, 0> {
+            SelectCommentQuery {
+                client,
+                params: [],
+                stmt: &mut self.0,
+                extractor: |row| super::SelectCommentBorrowed {
+                    trick_y: row.get(0),
+                    r#async: row.get(1),
+                    r#enum: row.get(2),
+                },
+                mapper: |it| super::SelectComment::from(it),
+            }
+        }
+    }
+    pub fn select_inline_comment() -> SelectInlineCommentStmt {
+        SelectInlineCommentStmt(crate::client::sync::Stmt::new(
+            "SELECT '-- dont remove this' as c1, $$-- or this$$ as c2, E'-- escape string here' as c3, e'-- another escape string' as c4, $tag$-- dollar quoted here$tag$ as c5",
+        ))
+    }
+    pub struct SelectInlineCommentStmt(crate::client::sync::Stmt);
+    impl SelectInlineCommentStmt {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c mut C,
+        ) -> SelectInlineCommentQuery<'c, 'a, 's, C, super::SelectInlineComment, 0> {
+            SelectInlineCommentQuery {
+                client,
+                params: [],
+                stmt: &mut self.0,
+                extractor: |row| super::SelectInlineCommentBorrowed {
+                    c1: row.get(0),
+                    c2: row.get(1),
+                    c3: row.get(2),
+                    c4: row.get(3),
+                    c5: row.get(4),
+                },
+                mapper: |it| super::SelectInlineComment::from(it),
+            }
+        }
+    }
 }
 pub mod async_ {
     use crate::client::async_::GenericClient;
@@ -1157,6 +1364,116 @@ pub mod async_ {
             mapper: fn(super::TypeofBorrowed) -> R,
         ) -> TypeofQuery<'c, 'a, 's, C, R, N> {
             TypeofQuery {
+                client: self.client,
+                params: self.params,
+                stmt: self.stmt,
+                extractor: self.extractor,
+                mapper,
+            }
+        }
+        pub async fn one(self) -> Result<T, tokio_postgres::Error> {
+            let stmt = self.stmt.prepare(self.client).await?;
+            let row = self.client.query_one(stmt, &self.params).await?;
+            Ok((self.mapper)((self.extractor)(&row)))
+        }
+        pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
+            self.iter().await?.try_collect().await
+        }
+        pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
+            let stmt = self.stmt.prepare(self.client).await?;
+            Ok(self
+                .client
+                .query_opt(stmt, &self.params)
+                .await?
+                .map(|row| (self.mapper)((self.extractor)(&row))))
+        }
+        pub async fn iter(
+            self,
+        ) -> Result<
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
+            tokio_postgres::Error,
+        > {
+            let stmt = self.stmt.prepare(self.client).await?;
+            let it = self
+                .client
+                .query_raw(stmt, crate::slice_iter(&self.params))
+                .await?
+                .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+                .into_stream();
+            Ok(it)
+        }
+    }
+    pub struct SelectCommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
+        params: [&'a (dyn postgres_types::ToSql + Sync); N],
+        stmt: &'s mut crate::client::async_::Stmt,
+        extractor: fn(&tokio_postgres::Row) -> super::SelectCommentBorrowed,
+        mapper: fn(super::SelectCommentBorrowed) -> T,
+    }
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectCommentQuery<'c, 'a, 's, C, T, N>
+    where
+        C: GenericClient,
+    {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::SelectCommentBorrowed) -> R,
+        ) -> SelectCommentQuery<'c, 'a, 's, C, R, N> {
+            SelectCommentQuery {
+                client: self.client,
+                params: self.params,
+                stmt: self.stmt,
+                extractor: self.extractor,
+                mapper,
+            }
+        }
+        pub async fn one(self) -> Result<T, tokio_postgres::Error> {
+            let stmt = self.stmt.prepare(self.client).await?;
+            let row = self.client.query_one(stmt, &self.params).await?;
+            Ok((self.mapper)((self.extractor)(&row)))
+        }
+        pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
+            self.iter().await?.try_collect().await
+        }
+        pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
+            let stmt = self.stmt.prepare(self.client).await?;
+            Ok(self
+                .client
+                .query_opt(stmt, &self.params)
+                .await?
+                .map(|row| (self.mapper)((self.extractor)(&row))))
+        }
+        pub async fn iter(
+            self,
+        ) -> Result<
+            impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
+            tokio_postgres::Error,
+        > {
+            let stmt = self.stmt.prepare(self.client).await?;
+            let it = self
+                .client
+                .query_raw(stmt, crate::slice_iter(&self.params))
+                .await?
+                .map(move |res| res.map(|row| (self.mapper)((self.extractor)(&row))))
+                .into_stream();
+            Ok(it)
+        }
+    }
+    pub struct SelectInlineCommentQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+        client: &'c C,
+        params: [&'a (dyn postgres_types::ToSql + Sync); N],
+        stmt: &'s mut crate::client::async_::Stmt,
+        extractor: fn(&tokio_postgres::Row) -> super::SelectInlineCommentBorrowed,
+        mapper: fn(super::SelectInlineCommentBorrowed) -> T,
+    }
+    impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectInlineCommentQuery<'c, 'a, 's, C, T, N>
+    where
+        C: GenericClient,
+    {
+        pub fn map<R>(
+            self,
+            mapper: fn(super::SelectInlineCommentBorrowed) -> R,
+        ) -> SelectInlineCommentQuery<'c, 'a, 's, C, R, N> {
+            SelectInlineCommentQuery {
                 client: self.client,
                 params: self.params,
                 stmt: self.stmt,
@@ -1801,6 +2118,57 @@ pub mod async_ {
                     r#enum: row.get(2),
                 },
                 mapper: |it| super::Typeof::from(it),
+            }
+        }
+    }
+    /// Multi line
+    ///
+    /// Doc string comment
+    pub fn select_comment() -> SelectCommentStmt {
+        SelectCommentStmt(crate::client::async_::Stmt::new("SELECT * FROM syntax"))
+    }
+    pub struct SelectCommentStmt(crate::client::async_::Stmt);
+    impl SelectCommentStmt {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectCommentQuery<'c, 'a, 's, C, super::SelectComment, 0> {
+            SelectCommentQuery {
+                client,
+                params: [],
+                stmt: &mut self.0,
+                extractor: |row| super::SelectCommentBorrowed {
+                    trick_y: row.get(0),
+                    r#async: row.get(1),
+                    r#enum: row.get(2),
+                },
+                mapper: |it| super::SelectComment::from(it),
+            }
+        }
+    }
+    pub fn select_inline_comment() -> SelectInlineCommentStmt {
+        SelectInlineCommentStmt(crate::client::async_::Stmt::new(
+            "SELECT '-- dont remove this' as c1, $$-- or this$$ as c2, E'-- escape string here' as c3, e'-- another escape string' as c4, $tag$-- dollar quoted here$tag$ as c5",
+        ))
+    }
+    pub struct SelectInlineCommentStmt(crate::client::async_::Stmt);
+    impl SelectInlineCommentStmt {
+        pub fn bind<'c, 'a, 's, C: GenericClient>(
+            &'s mut self,
+            client: &'c C,
+        ) -> SelectInlineCommentQuery<'c, 'a, 's, C, super::SelectInlineComment, 0> {
+            SelectInlineCommentQuery {
+                client,
+                params: [],
+                stmt: &mut self.0,
+                extractor: |row| super::SelectInlineCommentBorrowed {
+                    c1: row.get(0),
+                    c2: row.get(1),
+                    c3: row.get(2),
+                    c4: row.get(3),
+                    c5: row.get(4),
+                },
+                mapper: |it| super::SelectInlineComment::from(it),
             }
         }
     }
