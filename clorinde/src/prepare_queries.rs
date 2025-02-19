@@ -23,6 +23,7 @@ use self::error::Error;
 pub(crate) struct PreparedQuery {
     pub(crate) ident: Ident,
     pub(crate) param: Option<(usize, Vec<usize>)>,
+    pub(crate) comments: Vec<String>,
     pub(crate) row: Option<(usize, Vec<usize>)>,
     pub(crate) sql: String,
 }
@@ -219,6 +220,7 @@ impl PreparedModule {
     fn add_query(
         &mut self,
         name: Span<String>,
+        comments: Vec<String>,
         param_idx: Option<(usize, Vec<usize>)>,
         row_idx: Option<(usize, Vec<usize>)>,
         sql: String,
@@ -228,6 +230,7 @@ impl PreparedModule {
             PreparedQuery {
                 ident: Ident::new(name.value),
                 row: row_idx,
+                comments,
                 sql,
                 param: param_idx,
             },
@@ -374,6 +377,7 @@ fn prepare_query(
     Query {
         name,
         param,
+        comments,
         bind_params,
         row,
         sql_str,
@@ -460,7 +464,7 @@ fn prepare_query(
     } else {
         Some(module.add_param(params_name, params_fields, param.is_implicit())?)
     };
-    module.add_query(name.clone(), param_idx, row_idx, sql_str);
+    module.add_query(name.clone(), comments, param_idx, row_idx, sql_str);
 
     Ok(())
 }
