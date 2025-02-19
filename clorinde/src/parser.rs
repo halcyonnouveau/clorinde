@@ -202,72 +202,6 @@ impl Query {
             .ignored()
     }
 
-    /// Removes regular SQL comments (starting with '--') while making sure to preserve:
-    /// - String literals (both 'single' and "double" quoted)
-    /// - Dollar-quoted strings ($$text$$ or $tag$text$tag$)
-    fn clean_sql_comments(sql: &str) -> String {
-        let mut result = String::new();
-        let mut chars = sql.chars().peekable();
-
-        while let Some(c) = chars.next() {
-            match c {
-                // Dollar quotes ($$ or $tag$)
-                '$' => {
-                    let mut content = String::from("$");
-                    for x in chars.by_ref() {
-                        content.push(x);
-                        if x == '$' {
-                            break;
-                        }
-                    }
-                    let tag = content.clone();
-                    for x in chars.by_ref() {
-                        content.push(x);
-                        if content.ends_with(&tag) {
-                            break;
-                        }
-                    }
-                    result.push_str(&content);
-                }
-                // String literals
-                '\'' | '"' => {
-                    let quote = c;
-                    let mut content = String::from(quote);
-                    while let Some(x) = chars.next() {
-                        content.push(x);
-                        if x == '\\' {
-                            if let Some(escaped) = chars.next() {
-                                content.push(escaped);
-                            }
-                        } else if x == quote {
-                            break;
-                        }
-                    }
-                    result.push_str(&content);
-                }
-                // Comments
-                '-' if chars.peek() == Some(&'-') => {
-                    chars.next(); // consume second dash
-                    if matches!(chars.peek(), Some(&':') | Some(&'!')) {
-                        result.push_str("--");
-                        if let Some(x) = chars.next() {
-                            result.push(x);
-                        }
-                    } else {
-                        while let Some(&x) = chars.peek() {
-                            if x == '\n' {
-                                break;
-                            }
-                            chars.next();
-                        }
-                    }
-                }
-                _ => result.push(c),
-            }
-        }
-        result
-    }
-
     /// Parse all bind from an SQL query
     fn parse_bind() -> impl Parser<char, Vec<Span<String>>, Error = Simple<char>> {
         just(':')
@@ -275,6 +209,58 @@ impl Query {
             .separated_by(Self::sql_escaping())
             .allow_leading()
             .allow_trailing()
+    }
+
+    /// Remove all comments from a query
+    fn clean_sql_comments(sql: &str) -> String {
+        let mut result = String::new();
+        let mut chars = sql.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                // Preserve everything in quotes
+                '$' | '\'' | '"' => {
+                    let mut content = String::from(c);
+                    let end_marker = if c == '$' {
+                        // For dollar quotes, read until $ and use that as tag
+                        for x in chars.by_ref() {
+                            content.push(x);
+                            if x == '$' {
+                                break;
+                            }
+                        }
+                        content.clone()
+                    } else {
+                        content.clone()
+                    };
+
+                    while let Some(x) = chars.next() {
+                        content.push(x);
+                        if x == '\\' && c != '$' {
+                            // Handle escapes in regular strings
+                            if let Some(escaped) = chars.next() {
+                                content.push(escaped);
+                            }
+                        } else if content.ends_with(&end_marker) {
+                            break;
+                        }
+                    }
+                    result.push_str(&content);
+                }
+                // Remove comments
+                '-' if chars.peek() == Some(&'-') => {
+                    chars.next();
+                    while let Some(&x) = chars.peek() {
+                        if x == '\n' {
+                            break;
+                        }
+                        chars.next();
+                    }
+                }
+                _ => result.push(c),
+            }
+        }
+        result
     }
 
     /// Parse sql query, normalizing named parameters
