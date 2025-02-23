@@ -56,7 +56,7 @@ fn gen_params_struct(params: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenS
 
 fn gen_row_structs(
     row: &PreparedItem,
-    derive_traits: &Vec<String>,
+    derive_traits: &[String],
     ctx: &GenCtx,
 ) -> proc_macro2::TokenStream {
     let PreparedItem {

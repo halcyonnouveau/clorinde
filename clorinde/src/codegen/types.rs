@@ -74,7 +74,7 @@ pub(crate) fn gen_type_modules(
 fn gen_custom_type(
     schema: &str,
     prepared: &PreparedType,
-    derive_traits: &Vec<String>,
+    derive_traits: &[String],
     ctx: &GenCtx,
 ) -> proc_macro2::TokenStream {
     let PreparedType {
