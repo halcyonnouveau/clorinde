@@ -45,4 +45,3 @@ SELECT
     Translations
 FROM
     Book;
-

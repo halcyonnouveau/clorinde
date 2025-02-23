@@ -99,19 +99,26 @@ impl PreparedField {
 pub(crate) struct PreparedItem {
     pub(crate) name: Span<String>,
     pub(crate) fields: Vec<PreparedField>,
+    pub(crate) traits: Vec<String>,
     pub(crate) is_copy: bool,
     pub(crate) is_named: bool,
     pub(crate) is_ref: bool,
 }
 
 impl PreparedItem {
-    pub fn new(name: Span<String>, fields: Vec<PreparedField>, is_implicit: bool) -> Self {
+    pub fn new(
+        name: Span<String>,
+        fields: Vec<PreparedField>,
+        traits: Vec<String>,
+        is_implicit: bool,
+    ) -> Self {
         Self {
             name,
             is_copy: fields.iter().all(|f| f.ty.is_copy()),
             is_ref: fields.iter().any(|f| f.ty.is_ref()),
             is_named: !is_implicit || fields.len() > 1,
             fields,
+            traits,
         }
     }
 
@@ -133,6 +140,7 @@ pub(crate) struct PreparedType {
     pub(crate) content: PreparedContent,
     pub(crate) is_copy: bool,
     pub(crate) is_params: bool,
+    pub(crate) traits: Vec<String>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -165,6 +173,7 @@ impl PreparedModule {
         map: &mut IndexMap<Span<String>, PreparedItem>,
         name: Span<String>,
         fields: Vec<PreparedField>,
+        traits: Vec<String>,
         is_implicit: bool,
     ) -> Result<(usize, Vec<usize>), Error> {
         assert!(!fields.is_empty());
@@ -186,8 +195,13 @@ impl PreparedModule {
                 Ok((o.index(), indexes))
             }
             Entry::Vacant(v) => {
-                v.insert(PreparedItem::new(name.clone(), fields.clone(), is_implicit));
-                Self::add(info, map, name, fields, is_implicit)
+                v.insert(PreparedItem::new(
+                    name.clone(),
+                    fields.clone(),
+                    traits.clone(),
+                    is_implicit,
+                ));
+                Self::add(info, map, name, fields, traits, is_implicit)
             }
         }
     }
@@ -197,14 +211,15 @@ impl PreparedModule {
         &mut self,
         name: Span<String>,
         fields: Vec<PreparedField>,
+        traits: Vec<String>,
         is_implicit: bool,
     ) -> Result<(usize, Vec<usize>), Error> {
-        let fuck = if fields.len() == 1 && is_implicit {
+        let n = if fields.len() == 1 && is_implicit {
             name.map(|_| fields[0].unwrapped_name())
         } else {
             name
         };
-        Self::add(&self.info, &mut self.rows, fuck, fields, is_implicit)
+        Self::add(&self.info, &mut self.rows, n, fields, traits, is_implicit)
     }
 
     #[allow(clippy::result_large_err)]
@@ -214,7 +229,14 @@ impl PreparedModule {
         fields: Vec<PreparedField>,
         is_implicit: bool,
     ) -> Result<(usize, Vec<usize>), Error> {
-        Self::add(&self.info, &mut self.params, name, fields, is_implicit)
+        Self::add(
+            &self.info,
+            &mut self.params,
+            name,
+            fields,
+            vec![],
+            is_implicit,
+        )
     }
 
     fn add_query(
@@ -298,10 +320,10 @@ fn prepare_type(
         ..
     } = ty
     {
-        let declared = types
-            .iter()
-            .find(|it| it.name.value == pg_ty.name())
-            .map_or(&[] as &[NullableIdent], |it| it.fields.as_slice());
+        let type_annotation = types.iter().find(|it| it.name.value == pg_ty.name());
+        let declared = type_annotation.map_or(&[] as &[NullableIdent], |it| it.fields.as_slice());
+        let traits = type_annotation.map_or_else(Vec::new, |it| it.traits.clone());
+
         let content = match pg_ty.kind() {
             Kind::Enum(variants) => {
                 PreparedContent::Enum(variants.clone().into_iter().map(Ident::new).collect())
@@ -329,6 +351,7 @@ fn prepare_type(
             content,
             is_copy: *is_copy,
             is_params: *is_params,
+            traits,
         })
     } else {
         None
@@ -390,8 +413,11 @@ fn prepare_query(
         .prepare(&sql_str)
         .map_err(|e| Error::new_db_err(&e, module_info, &sql_span, &name))?;
 
-    let (nullable_params_fields, params_name) = param.name_and_fields(types, &name, Some("Params"));
-    let (nullable_row_fields, row_name) = row.name_and_fields(types, &name, None);
+    let (nullable_params_fields, _, params_name) =
+        param.name_and_fields(types, &name, Some("Params"));
+
+    let (nullable_row_fields, traits, row_name) = row.name_and_fields(types, &name, None);
+
     let params_fields = {
         let stmt_params = stmt.params();
         let params = bind_params
@@ -457,13 +483,15 @@ fn prepare_query(
     let row_idx = if row_fields.is_empty() {
         None
     } else {
-        Some(module.add_row(row_name, row_fields, row.is_implicit())?)
+        Some(module.add_row(row_name, row_fields, traits, row.is_implicit())?)
     };
+
     let param_idx = if params_fields.is_empty() {
         None
     } else {
         Some(module.add_param(params_name, params_fields, param.is_implicit())?)
     };
+
     module.add_query(name.clone(), comments, param_idx, row_idx, sql_str);
 
     Ok(())

@@ -35,7 +35,12 @@ pub(crate) fn gen_type_modules(
             let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
             {
                 for ty in types {
-                    tokens.extend(gen_custom_type(schema, ty, &ctx))
+                    tokens.extend(gen_custom_type(
+                        schema,
+                        ty,
+                        &config.types.derive_traits,
+                        &ctx,
+                    ))
                 }
             }
         } else {
@@ -43,7 +48,12 @@ pub(crate) fn gen_type_modules(
             {
                 let mut p_tokens = quote!();
                 for ty in types {
-                    p_tokens.extend(gen_custom_type(schema, ty, &ctx))
+                    p_tokens.extend(gen_custom_type(
+                        schema,
+                        ty,
+                        &config.types.derive_traits,
+                        &ctx,
+                    ))
                 }
                 let schema_name = format_ident!("{}", schema);
                 tokens.extend(quote! {
@@ -64,6 +74,7 @@ pub(crate) fn gen_type_modules(
 fn gen_custom_type(
     schema: &str,
     prepared: &PreparedType,
+    derive_traits: &Vec<String>,
     ctx: &GenCtx,
 ) -> proc_macro2::TokenStream {
     let PreparedType {
@@ -72,6 +83,7 @@ fn gen_custom_type(
         is_copy,
         is_params,
         name,
+        traits,
     } = prepared;
 
     let struct_name_ident = format_ident!("{}", struct_name);
@@ -86,13 +98,18 @@ fn gen_custom_type(
         quote!()
     };
 
+    let trait_attrs = traits
+        .iter()
+        .chain(derive_traits.iter())
+        .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
+
     match content {
         PreparedContent::Enum(variants) => {
             let variants_ident: Vec<_> =
                 variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
 
             let enum_def = quote! {
-                #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq)]
+                #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq #(,#trait_attrs)*)]
                 #[allow(non_camel_case_types)]
                 pub enum #struct_name_ident {
                     #(#variants_ident,)*
@@ -122,7 +139,7 @@ fn gen_custom_type(
                 .collect();
 
             let struct_def = quote! {
-                #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq)]
+                #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq #(,#trait_attrs)*)]
                 #[postgres(name = #name_lit)]
                 pub struct #struct_name_ident {
                     #(

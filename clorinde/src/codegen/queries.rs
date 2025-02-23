@@ -54,10 +54,15 @@ fn gen_params_struct(params: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenS
     }
 }
 
-fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
+fn gen_row_structs(
+    row: &PreparedItem,
+    derive_traits: &Vec<String>,
+    ctx: &GenCtx,
+) -> proc_macro2::TokenStream {
     let PreparedItem {
         name,
         fields,
+        traits,
         is_copy,
         ..
     } = row;
@@ -83,8 +88,13 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream
         quote!()
     };
 
+    let trait_attrs = traits
+        .iter()
+        .chain(derive_traits.iter())
+        .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
+
     let main_struct = quote! {
-        #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr)]
+        #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr #(,#trait_attrs)*)]
         pub struct #name_ident {
             #(pub #fields_name: #fields_ty,)*
         }
@@ -515,7 +525,7 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::To
 
     for row in module.rows.values() {
         if row.is_named {
-            let row_tokens = gen_row_structs(row, &ctx);
+            let row_tokens = gen_row_structs(row, &config.types.derive_traits, &ctx);
             tokens.extend(quote!(#row_tokens));
         }
     }

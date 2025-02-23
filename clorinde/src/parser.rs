@@ -132,16 +132,33 @@ fn parse_nullable_ident() -> impl Parser<char, Vec<NullableIdent>, Error = Simpl
 pub struct TypeAnnotation {
     pub name: Span<String>,
     pub fields: Vec<NullableIdent>,
+    pub traits: Vec<String>,
 }
 
 impl TypeAnnotation {
     fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
+        let trait_parser = ident()
+            .map(|s: Span<String>| s.value)
+            .separated_by(just(',').padded())
+            .or(empty().map(|_| Vec::new()));
+
         just("--:")
             .ignore_then(space())
             .ignore_then(ident())
             .then_ignore(space())
             .then(parse_nullable_ident())
-            .map(|(name, fields)| Self { name, fields })
+            .then_ignore(space())
+            .then(
+                just(':')
+                    .ignore_then(space())
+                    .ignore_then(trait_parser)
+                    .or_not(),
+            )
+            .map(|((name, fields), traits)| Self {
+                name,
+                fields,
+                traits: traits.unwrap_or_default(),
+            })
     }
 }
 
@@ -379,23 +396,22 @@ impl QueryDataStruct {
         registered_structs: &'a [TypeAnnotation],
         query_name: &Span<String>,
         name_suffix: Option<&str>,
-    ) -> (&'a [NullableIdent], Span<String>) {
+    ) -> (&'a [NullableIdent], Vec<String>, Span<String>) {
         if let Some(named) = &self.name {
+            let registered = registered_structs.iter().find(|it| it.name == *named);
+
             (
                 self.idents.as_ref().map_or_else(
-                    || {
-                        registered_structs
-                            .iter()
-                            .find_map(|it| (it.name == *named).then_some(it.fields.as_slice()))
-                            .unwrap_or(&[])
-                    },
+                    || registered.map(|it| it.fields.as_slice()).unwrap_or(&[]),
                     Vec::as_slice,
                 ),
+                registered.map(|it| it.traits.clone()).unwrap_or_default(),
                 named.clone(),
             )
         } else {
             (
                 self.idents.as_ref().map_or(&[], Vec::as_slice),
+                vec![],
                 query_name.map(|x| {
                     format!(
                         "{}{}",

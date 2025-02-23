@@ -3,7 +3,7 @@
 --: NamedParams(price?)
 
 --! new_named_visible NamedParams: Id
-INSERT INTO named (name, price, show) VALUES (:name, :price, true) RETURNING id ; 
+INSERT INTO named (name, price, show) VALUES (:name, :price, true) RETURNING id ;
 --! new_named_hidden NamedParams: Id
 INSERT INTO named (price, name, show) VALUES (:price, :name, false) RETURNING id;
 --! named: Named

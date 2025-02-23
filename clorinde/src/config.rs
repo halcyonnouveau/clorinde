@@ -75,6 +75,9 @@ pub struct Types {
     /// Mapping for custom types
     #[serde(default)]
     pub mapping: HashMap<String, TypeMapping>,
+    /// Derive traits added to all generated row structs
+    #[serde(default, rename = "derive-traits")]
+    pub derive_traits: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -245,6 +248,7 @@ impl Default for Config {
             types: Types {
                 crate_info: HashMap::new(),
                 mapping: HashMap::new(),
+                derive_traits: vec![],
             },
             package: Package::default(),
             static_files: vec![],
