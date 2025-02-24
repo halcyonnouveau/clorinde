@@ -214,12 +214,12 @@ impl PreparedModule {
         traits: Vec<String>,
         is_implicit: bool,
     ) -> Result<(usize, Vec<usize>), Error> {
-        let n = if fields.len() == 1 && is_implicit {
+        let nom = if fields.len() == 1 && is_implicit {
             name.map(|_| fields[0].unwrapped_name())
         } else {
             name
         };
-        Self::add(&self.info, &mut self.rows, n, fields, traits, is_implicit)
+        Self::add(&self.info, &mut self.rows, nom, fields, traits, is_implicit)
     }
 
     #[allow(clippy::result_large_err)]

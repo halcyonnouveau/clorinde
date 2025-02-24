@@ -71,6 +71,16 @@ See the [custom_types](https://github.com/halcyonnouveau/clorinde/blob/main/exam
 This ensures that your types can be properly serialized to and deserialized from PostgreSQL's wire format.
 ~~~
 
+## Derive traits
+You can specify `#[derive]` traits for generated structs using this field.
+
+```toml
+[types]
+derive-traits = ["Default", "serde::Deserialize"]
+```
+
+This will add the `Default` and `serde::Deserialize` traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](/writing_queries/type_annotations.html#derive-traits).
+
 ## Static files
 The `static` field allows you to copy or link files into your generated crate directory. This is useful for including files like licenses, build configurations, or other assets that should persist across code generation.
 

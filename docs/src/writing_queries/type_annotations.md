@@ -21,6 +21,16 @@ This will define a struct named `Author` containing typed fields for the `name` 
 Type annotations are declared with this token: `--:`
 ```
 
+## Derive traits
+You can specify additional `#[derive]` traits for the generated struct by declaring them after the type annotation.
+
+```sql
+--: Author(age?) : Default, serde::Deserialize
+
+--! authors : Author
+SELECT name, age FROM Authors;
+```
+
 ## Inline types
 You can also define type inline if you don't plan on reusing them across multiple queries:
 
