@@ -4,27 +4,27 @@
 pub struct AuthorNameStartingWithParams<T1: crate::StringSql> {
     pub start_str: T1,
 }
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct Author {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Authors {
     pub id: i32,
     pub name: String,
     pub country: String,
     pub dob: crate::types::time::Date,
 }
-pub struct AuthorBorrowed<'a> {
+pub struct AuthorsBorrowed<'a> {
     pub id: i32,
     pub name: &'a str,
     pub country: &'a str,
     pub dob: crate::types::time::Date,
 }
-impl<'a> From<AuthorBorrowed<'a>> for Author {
+impl<'a> From<AuthorsBorrowed<'a>> for Authors {
     fn from(
-        AuthorBorrowed {
+        AuthorsBorrowed {
             id,
             name,
             country,
             dob,
-        }: AuthorBorrowed<'a>,
+        }: AuthorsBorrowed<'a>,
     ) -> Self {
         Self {
             id,
@@ -88,19 +88,19 @@ impl<'a> From<SelectTranslationsBorrowed<'a>> for SelectTranslations {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct AuthorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+pub struct AuthorsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> AuthorBorrowed,
-    mapper: fn(AuthorBorrowed) -> T,
+    extractor: fn(&tokio_postgres::Row) -> AuthorsBorrowed,
+    mapper: fn(AuthorsBorrowed) -> T,
 }
-impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorQuery<'c, 'a, 's, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorsQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(AuthorBorrowed) -> R) -> AuthorQuery<'c, 'a, 's, C, R, N> {
-        AuthorQuery {
+    pub fn map<R>(self, mapper: fn(AuthorsBorrowed) -> R) -> AuthorsQuery<'c, 'a, 's, C, R, N> {
+        AuthorsQuery {
             client: self.client,
             params: self.params,
             stmt: self.stmt,
@@ -365,18 +365,18 @@ impl AuthorsStmt {
     pub fn bind<'c, 'a, 's, C: GenericClient>(
         &'s mut self,
         client: &'c C,
-    ) -> AuthorQuery<'c, 'a, 's, C, Author, 0> {
-        AuthorQuery {
+    ) -> AuthorsQuery<'c, 'a, 's, C, Authors, 0> {
+        AuthorsQuery {
             client,
             params: [],
             stmt: &mut self.0,
-            extractor: |row| AuthorBorrowed {
+            extractor: |row| AuthorsBorrowed {
                 id: row.get(0),
                 name: row.get(1),
                 country: row.get(2),
                 dob: row.get(3),
             },
-            mapper: |it| Author::from(it),
+            mapper: |it| Authors::from(it),
         }
     }
 }

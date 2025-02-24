@@ -5,8 +5,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-
 postgres-protocol = "0.6.7"
 postgres-types = "0.2.8"
 time = "0.3.37"
 bytes = "1.9.0"
+serde = { version = "1.0.217", features = ["derive"] }

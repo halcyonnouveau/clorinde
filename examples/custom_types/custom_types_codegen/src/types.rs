@@ -14,7 +14,7 @@ pub mod time {
     pub type Date = time::Date;
     pub type Time = time::Time;
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum SpongeBobCharacter {
     Bob,
@@ -94,7 +94,9 @@ impl<'a> postgres_types::FromSql<'a> for SpongeBobCharacter {
         }
     }
 }
-#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(
+    serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq, Hash, serde::Deserialize,
+)]
 #[postgres(name = "voiceactor")]
 pub struct Voiceactor {
     #[postgres(name = "name")]

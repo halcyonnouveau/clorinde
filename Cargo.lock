@@ -706,6 +706,7 @@ dependencies = [
  "bytes",
  "postgres-protocol",
  "postgres-types",
+ "serde",
  "time",
 ]
 
@@ -730,6 +731,7 @@ dependencies = [
  "postgres-protocol",
  "postgres-types",
  "postgres_range",
+ "serde",
  "time",
  "tokio-postgres",
 ]

@@ -1,8 +1,12 @@
+serialize = true
 static = ["kafstel.txt"]
 use-workspace-deps = "../../Cargo.toml"
 
 [package]
 name = "custom_types_codegen"
+
+[types]
+derive-traits = ["Hash", "serde::Deserialize"]
 
 [types.crates]
 ctypes = { path = "../ctypes" }

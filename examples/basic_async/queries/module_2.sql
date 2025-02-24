@@ -1,6 +1,4 @@
---: Author() : Hash
-
---! authors : Author
+--! authors
 SELECT
     *
 FROM

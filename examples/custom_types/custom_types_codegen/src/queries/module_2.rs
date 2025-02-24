@@ -4,27 +4,27 @@
 pub struct AuthorNameStartingWithParams<T1: crate::StringSql> {
     pub start_str: T1,
 }
-#[derive(Debug, Clone, PartialEq)]
-pub struct Authors {
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Default, Hash, serde::Deserialize)]
+pub struct Author {
     pub id: i32,
     pub name: String,
     pub country: String,
     pub dob: ctypes::date::Date,
 }
-pub struct AuthorsBorrowed<'a> {
+pub struct AuthorBorrowed<'a> {
     pub id: i32,
     pub name: &'a str,
     pub country: &'a str,
     pub dob: ctypes::date::Date,
 }
-impl<'a> From<AuthorsBorrowed<'a>> for Authors {
+impl<'a> From<AuthorBorrowed<'a>> for Author {
     fn from(
-        AuthorsBorrowed {
+        AuthorBorrowed {
             id,
             name,
             country,
             dob,
-        }: AuthorsBorrowed<'a>,
+        }: AuthorBorrowed<'a>,
     ) -> Self {
         Self {
             id,
@@ -34,7 +34,7 @@ impl<'a> From<AuthorsBorrowed<'a>> for Authors {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash, serde::Deserialize)]
 pub struct AuthorNameStartingWith {
     pub authorid: i32,
     pub name: String,
@@ -64,7 +64,7 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }
     }
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash, serde::Deserialize)]
 pub struct SelectTranslations {
     pub title: String,
     pub translations: Vec<String>,
@@ -88,19 +88,19 @@ impl<'a> From<SelectTranslationsBorrowed<'a>> for SelectTranslations {
 }
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct AuthorsQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+pub struct AuthorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> AuthorsBorrowed,
-    mapper: fn(AuthorsBorrowed) -> T,
+    extractor: fn(&tokio_postgres::Row) -> AuthorBorrowed,
+    mapper: fn(AuthorBorrowed) -> T,
 }
-impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorsQuery<'c, 'a, 's, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> AuthorQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(AuthorsBorrowed) -> R) -> AuthorsQuery<'c, 'a, 's, C, R, N> {
-        AuthorsQuery {
+    pub fn map<R>(self, mapper: fn(AuthorBorrowed) -> R) -> AuthorQuery<'c, 'a, 's, C, R, N> {
+        AuthorQuery {
             client: self.client,
             params: self.params,
             stmt: self.stmt,
@@ -365,18 +365,18 @@ impl AuthorsStmt {
     pub fn bind<'c, 'a, 's, C: GenericClient>(
         &'s mut self,
         client: &'c C,
-    ) -> AuthorsQuery<'c, 'a, 's, C, Authors, 0> {
-        AuthorsQuery {
+    ) -> AuthorQuery<'c, 'a, 's, C, Author, 0> {
+        AuthorQuery {
             client,
             params: [],
             stmt: &mut self.0,
-            extractor: |row| AuthorsBorrowed {
+            extractor: |row| AuthorBorrowed {
                 id: row.get(0),
                 name: row.get(1),
                 country: row.get(2),
                 dob: row.get(3),
             },
-            mapper: |it| Authors::from(it),
+            mapper: |it| Author::from(it),
         }
     }
 }

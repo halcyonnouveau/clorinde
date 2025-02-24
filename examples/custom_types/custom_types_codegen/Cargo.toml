@@ -30,10 +30,12 @@ postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
 chrono = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
+# JSON or JSONB
+serde = { version = "1.0.217", features = ["derive"] }
 
 ## Async client dependencies
 # Postgres async client
-tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3"] }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"] }
 # Async utils
 futures = "0.3.31"
 

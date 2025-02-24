@@ -136,8 +136,25 @@ pub struct TypeAnnotation {
 }
 
 impl TypeAnnotation {
+    fn path_ident() -> impl Parser<char, Span<String>, Error = Simple<char>> {
+        let path_segment = filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_')
+            .repeated()
+            .at_least(1)
+            .collect::<String>();
+
+        path_segment
+            .separated_by(just("::"))
+            .at_least(1)
+            .collect::<Vec<_>>()
+            .map(|segments| segments.join("::"))
+            .map_with_span(|value, span: Range<usize>| Span {
+                value,
+                span: span.into(),
+            })
+    }
+
     fn parser() -> impl Parser<char, Self, Error = Simple<char>> {
-        let trait_parser = ident()
+        let trait_parser = Self::path_ident()
             .map(|s: Span<String>| s.value)
             .separated_by(just(',').padded())
             .or(empty().map(|_| Vec::new()));

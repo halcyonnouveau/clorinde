@@ -5,9 +5,10 @@ use std::error::Error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// A wrapper that can be used to represent infinity with `Type::Date` types.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Date {
     /// Represents `infinity`, a date that is later than all other dates.
+    #[default]
     PosInfinity,
     /// Represents `-infinity`, a date that is earlier than all other dates.
     NegInfinity,

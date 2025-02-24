@@ -33,3 +33,4 @@ destination = "custom_types_codegen"
 async = true
 run = true
 config = true
+derive_ser = true
