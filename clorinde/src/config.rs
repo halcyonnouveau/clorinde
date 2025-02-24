@@ -9,38 +9,67 @@ use std::{
 };
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
 pub struct Config {
+    // Shared with CLI
     /// Use `podman` instead of `docker`
-    #[serde(default = "default_false")]
     pub podman: bool,
     /// Directory containing the queries
-    #[serde(default = "default_queries")]
     pub queries: PathBuf,
     /// Destination folder for generated modules
-    #[serde(default = "default_destination")]
     pub destination: PathBuf,
     /// Generate synchronous rust code
-    #[serde(default = "default_false")]
     pub sync: bool,
     /// Generate asynchronous rust code
-    #[serde(default = "default_true")]
     pub r#async: bool,
     /// Derive serde's `Serialize` trait for generated types
-    #[serde(default = "default_false")]
     pub serialize: bool,
 
+    // Config file exclusive
     /// Custom type settings
-    #[serde(default)]
     pub types: Types,
     /// The `package` table of the generated `Cargo.toml`
-    #[serde(default)]
     pub package: Package,
     /// List of static files to copy into the generated directory
-    #[serde(default, rename = "static")]
+    #[serde(rename = "static")]
     pub static_files: Vec<StaticFile>,
     /// Use workspace dependencies
-    #[serde(default, rename = "use-workspace-deps")]
+    #[serde(rename = "use-workspace-deps")]
     pub use_workspace_deps: UseWorkspaceDeps,
+}
+
+impl Config {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
+        let contents = fs::read_to_string(path)?;
+        let config = toml::from_str(&contents)?;
+        Ok(config)
+    }
+
+    pub(crate) fn get_type_mapping(&self, ty: &Type) -> Option<&TypeMapping> {
+        let key = format!("{}.{}", ty.schema(), ty.name());
+        self.types.mapping.get(&key)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            podman: false,
+            queries: PathBuf::from_str("queries/").unwrap(),
+            destination: PathBuf::from_str("clorinde").unwrap(),
+            sync: false,
+            r#async: true,
+            serialize: false,
+            types: Types {
+                crate_info: HashMap::new(),
+                mapping: HashMap::new(),
+                derive_traits: vec![],
+            },
+            package: Package::default(),
+            static_files: vec![],
+            use_workspace_deps: UseWorkspaceDeps::Bool(false),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -49,7 +78,7 @@ pub enum StaticFile {
     Simple(PathBuf),
     Detailed {
         path: PathBuf,
-        #[serde(default = "default_false", rename = "hard-link")]
+        #[serde(default, rename = "hard-link")]
         hard_link: bool,
     },
 }
@@ -68,15 +97,15 @@ impl Default for UseWorkspaceDeps {
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Types {
     /// Crates to add as a dependency for custom types
-    #[serde(default, rename = "crates")]
+    #[serde(rename = "crates")]
     pub crate_info: HashMap<String, CrateDependency>,
     /// Mapping for custom types
-    #[serde(default)]
     pub mapping: HashMap<String, TypeMapping>,
     /// Derive traits added to all generated row structs
-    #[serde(default, rename = "derive-traits")]
+    #[serde(rename = "derive-traits")]
     pub derive_traits: Vec<String>,
 }
 
@@ -90,6 +119,7 @@ pub enum CrateDependency {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct DependencyTable {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -146,24 +176,20 @@ pub enum TypeMapping {
     Detailed {
         #[serde(rename = "rust-type")]
         rust_type: String,
-        #[serde(rename = "is-copy", default = "default_true")]
+        #[serde(default = "default_true", rename = "is-copy")]
         is_copy: bool,
-        #[serde(rename = "is-params", default = "default_true")]
+        #[serde(default = "default_true", rename = "is-params")]
         is_params: bool,
     },
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(default, deny_unknown_fields)]
 pub struct Package {
-    #[serde(default = "default_name")]
     pub name: String,
-    #[serde(default = "default_version")]
     pub version: String,
-    #[serde(default = "default_edition")]
     pub edition: String,
-    #[serde(default = "default_publish")]
     pub publish: Publish,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authors: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -223,40 +249,6 @@ impl Default for Publish {
     }
 }
 
-impl Config {
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
-        let contents = fs::read_to_string(path)?;
-        let config = toml::from_str(&contents)?;
-        Ok(config)
-    }
-
-    pub(crate) fn get_type_mapping(&self, ty: &Type) -> Option<&TypeMapping> {
-        let key = format!("{}.{}", ty.schema(), ty.name());
-        self.types.mapping.get(&key)
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            podman: false,
-            queries: default_queries(),
-            destination: default_destination(),
-            sync: false,
-            r#async: true,
-            serialize: false,
-            types: Types {
-                crate_info: HashMap::new(),
-                mapping: HashMap::new(),
-                derive_traits: vec![],
-            },
-            package: Package::default(),
-            static_files: vec![],
-            use_workspace_deps: UseWorkspaceDeps::Bool(false),
-        }
-    }
-}
-
 impl Package {
     pub fn to_string(&self) -> Result<String> {
         let mut output = String::from("[package]\n");
@@ -268,10 +260,10 @@ impl Package {
 impl Default for Package {
     fn default() -> Self {
         Self {
-            name: default_name(),
-            version: default_version(),
-            edition: default_edition(),
-            publish: default_publish(),
+            name: "clorinde".to_string(),
+            version: "0.1.0".to_string(),
+            edition: "2021".to_string(),
+            publish: Publish::default(),
             authors: None,
             description: None,
             documentation: None,
@@ -308,32 +300,4 @@ pub enum ConfigError {
 
 fn default_true() -> bool {
     true
-}
-
-fn default_false() -> bool {
-    false
-}
-
-fn default_queries() -> PathBuf {
-    PathBuf::from_str("queries/").unwrap()
-}
-
-fn default_destination() -> PathBuf {
-    PathBuf::from_str("clorinde").unwrap()
-}
-
-fn default_name() -> String {
-    "clorinde".to_string()
-}
-
-fn default_version() -> String {
-    "0.1.0".to_string()
-}
-
-fn default_edition() -> String {
-    "2021".to_string()
-}
-
-fn default_publish() -> Publish {
-    Publish::default()
 }
