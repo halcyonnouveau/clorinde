@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - adding custom deps without type mapping (#61)
 
+### Breaking
+
+- `ctypes` is no longer a default custom type mapping crate
+
 ## [0.13.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.12.1...clorinde-v0.13.0) - 2025-02-25
 
 ### Added
