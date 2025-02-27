@@ -184,37 +184,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         .line("# Iterator utils required for working with `postgres_protocol::types::ArrayValues`");
     cargo.dep("fallible-iterator", DependencyTable::new("0.2.0"));
 
-    // add custom type crates
-    if !config.types.mapping.is_empty() {
-        cargo.line("\n## Custom type crates");
-
-        let references_default_crate = config.types.mapping.values().any(|t| {
-            match t {
-                crate::config::TypeMapping::Simple(t) => t,
-                crate::config::TypeMapping::Detailed { rust_type, .. } => rust_type,
-            }
-            .starts_with("ctypes::")
-        });
-
-        if !config.types.crate_info.is_empty() {
-            let mut crates: Vec<_> = config.types.crate_info.iter().collect();
-            crates.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
-
-            for (name, dep) in crates {
-                match dep {
-                    CrateDependency::Simple(version) => {
-                        cargo.line(&format!("{} = \"{}\"", name, version));
-                    }
-                    CrateDependency::Detailed(dependency) => {
-                        cargo.dep(name, dependency.to_owned());
-                    }
-                }
-            }
-        } else if references_default_crate {
-            cargo.line("ctypes = {{ path = \"../ctypes\" }}");
-        }
-    }
-
     let mut client_features = Vec::new();
 
     if dependency_analysis.has_dependency() {
@@ -294,6 +263,23 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             "deadpool-postgres",
             DependencyTable::new("0.14.1").optional(),
         );
+    }
+
+    if !config.types.crate_info.is_empty() {
+        cargo.line("\n## Custom type dependencies");
+        let mut crates: Vec<_> = config.types.crate_info.iter().collect();
+        crates.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
+
+        for (name, dep) in crates {
+            match dep {
+                CrateDependency::Simple(version) => {
+                    cargo.line(&format!("{} = \"{}\"", name, version));
+                }
+                CrateDependency::Detailed(dependency) => {
+                    cargo.dep(name, dependency.to_owned());
+                }
+            }
+        }
     }
 
     cargo.into_string()

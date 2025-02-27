@@ -1,6 +1,9 @@
 use std::{path::PathBuf, str::FromStr};
 
-use clorinde::{Error, config::Config};
+use clorinde::{
+    Error,
+    config::{Config, Package},
+};
 
 // This script will generate a new clorinde crate every time your schema or queries change.
 // In this example, we generate the module in our project, but
@@ -13,6 +16,10 @@ fn main() -> Result<(), Error> {
 
     let cfg = Config {
         destination: PathBuf::from_str("auto_build_codegen").unwrap(),
+        package: Package {
+            name: "auto_build_codegen".into(),
+            ..Package::default()
+        },
         ..Default::default()
     };
 

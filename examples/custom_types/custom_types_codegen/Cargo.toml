@@ -22,10 +22,6 @@ postgres-protocol = "0.6.8"
 # Iterator utils required for working with `postgres_protocol::types::ArrayValues`
 fallible-iterator = "0.2.0"
 
-## Custom type crates
-ctypes = { path = "../ctypes" }
-postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
-
 ## Types dependencies
 # TIME, DATE, TIMESTAMP or TIMESTAMPZ
 chrono = { workspace = true, optional = true }
@@ -42,3 +38,7 @@ futures = "0.3.31"
 ## Async features dependencies
 # Async connection pooling
 deadpool-postgres = { version = "0.14.1", optional = true }
+
+## Custom type dependencies
+ctypes = { path = "../ctypes" }
+postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
