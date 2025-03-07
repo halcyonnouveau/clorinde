@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.13.1...clorinde-v0.13.2) - 2025-03-07
+
+### Fixed
+
+- add serde to chrono and uuid features
+
 ## [0.13.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.13.0...clorinde-v0.13.1) - 2025-02-27
 
 ### Fixed
