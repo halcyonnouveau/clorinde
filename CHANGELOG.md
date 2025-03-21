@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.13.2...clorinde-v0.14.0) - 2025-03-21
+
+### Added
+
+- add `types.type-traits-mapping` to set traits on specific postgres types
+
 ## [0.13.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.13.1...clorinde-v0.13.2) - 2025-03-07
 
 ### Fixed
