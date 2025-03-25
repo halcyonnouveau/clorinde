@@ -249,7 +249,7 @@ impl Query {
         let dollar_tag = just("$").then(none_of('$').repeated()).then(just("$"));
         let dollar_quoted = none_of('$')
             .repeated()
-            .delimited_by(dollar_tag.clone(), dollar_tag)
+            .delimited_by(dollar_tag, dollar_tag)
             .ignored();
 
         c_style_string
