@@ -533,7 +533,7 @@ pub(crate) struct Module {
     pub(crate) queries: Vec<Query>,
 }
 
-pub fn parse_query_module(info: ModuleInfo) -> Result<Module, Error> {
+pub(crate) fn parse_query_module(info: ModuleInfo) -> Result<Module, Error> {
     let result = TypeAnnotation::parser()
         .map(Statement::Type)
         .or(Query::parser().map(Statement::Query))
