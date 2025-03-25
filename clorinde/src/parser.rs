@@ -224,14 +224,14 @@ impl Query {
         // ::bind
         let cast = just("::").ignored();
 
-        // ":bind" TODO is this possible ?
+        // ":bind"
         let constant = none_of('"')
             .repeated()
-            .delimited_by(just("\""), just("\""))
+            .delimited_by(just('"'), just('"'))
             .ignored();
 
         // ':bind'
-        let string = none_of('\'')
+        let string = none_of("'")
             .repeated()
             .delimited_by(just("'"), just("'"))
             .ignored();
@@ -240,14 +240,14 @@ impl Query {
         let c_style_string = just("\\'")
             .or(just("''"))
             .ignored()
-            .or(none_of('\'').ignored())
+            .or(none_of("'").ignored())
             .repeated()
             .delimited_by(just("e'").or(just("E'")), just("'"))
             .ignored();
 
         // $:bind$:bind$:bind$
-        let dollar_tag = just("$").then(none_of('$').repeated()).then(just("$"));
-        let dollar_quoted = none_of('$')
+        let dollar_tag = just("$").then(none_of("$").repeated()).then(just("$"));
+        let dollar_quoted = none_of("$")
             .repeated()
             .delimited_by(dollar_tag, dollar_tag)
             .ignored();
@@ -258,7 +258,7 @@ impl Query {
             .or(constant)
             .or(dollar_quoted)
             // Non c_style_string e
-            .or(one_of("eE").then(none_of('\'').rewind()).ignored())
+            .or(one_of("eE").then(none_of("'").rewind()).ignored())
             // Non binding sql
             .or(none_of("\"':$eE").ignored())
             .repeated()
