@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.14.0...clorinde-v0.14.1) - 2025-03-27
+
+### Fixed
+
+- `time` feature defined multiple times
+
 ## [0.14.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.13.2...clorinde-v0.14.0) - 2025-03-21
 
 ### Added
