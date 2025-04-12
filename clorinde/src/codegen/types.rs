@@ -23,7 +23,7 @@ pub(crate) fn gen_type_modules(
             pub type Date = chrono::NaiveDate;
             pub type Time = chrono::NaiveTime;
         }
-        #[cfg(feature = "time")]
+        #[cfg(all(feature = "time", not(feature = "chrono")))]
         pub mod time {
             pub type Timestamp = time::PrimitiveDateTime;
             pub type TimestampTz = time::OffsetDateTime;
