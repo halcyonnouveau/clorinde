@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.14.3...clorinde-v0.14.4) - 2025-04-14
+
+### Added
+
+- improve error handling with `try_get` in query extractors
+
+### Fixed
+
+- *(codegen)* make "chrono" and "time" features mutually exclusive ([#88](https://github.com/halcyonnouveau/clorinde/pull/88))
+
 ## [0.14.3](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.14.2...clorinde-v0.14.3) - 2025-04-03
 
 ### Added
