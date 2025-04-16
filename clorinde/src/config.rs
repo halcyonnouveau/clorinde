@@ -24,6 +24,8 @@ pub struct Config {
     pub r#async: bool,
     /// Derive serde's `Serialize` trait for generated types
     pub serialize: bool,
+    /// Ignore query files prefixed with underscore
+    pub ignore_underscore_files: bool,
 
     // Config file exclusive
     /// Custom type settings
@@ -66,6 +68,7 @@ impl Default for Config {
             sync: false,
             r#async: true,
             serialize: false,
+            ignore_underscore_files: false, // Default to false for backwards compatibility
             types: Types {
                 crate_info: HashMap::new(),
                 mapping: HashMap::new(),
@@ -345,6 +348,12 @@ impl ConfigBuilder {
     /// Derive serde's `Serialize` trait for generated types
     pub fn serialize(mut self, serialize: bool) -> Self {
         self.config.serialize = serialize;
+        self
+    }
+    
+    /// Ignore query files prefixed with underscore
+    pub fn ignore_underscore_files(mut self, ignore_underscore_files: bool) -> Self {
+        self.config.ignore_underscore_files = ignore_underscore_files;
         self
     }
 

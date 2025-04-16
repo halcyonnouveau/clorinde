@@ -37,7 +37,7 @@ pub use load_schema::load_schema;
 /// set using the `config` parameter.
 pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
     // Read
-    let modules = read_query_modules(config.queries.as_ref())?
+    let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;
@@ -61,7 +61,7 @@ pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
 /// `podman` parameter to `true`.
 pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result<(), Error> {
     // Read
-    let modules = read_query_modules(config.queries.as_ref())?
+    let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;

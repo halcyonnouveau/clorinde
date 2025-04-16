@@ -66,6 +66,9 @@ struct CommonArgs {
     /// Derive serde's `Serialize` trait for generated types.
     #[clap(long)]
     serialize: Option<bool>,
+    /// Ignore query files prefixed with underscore
+    #[clap(long)]
+    ignore_underscore_files: Option<bool>,
 }
 
 #[allow(clippy::result_large_err)]
@@ -80,6 +83,7 @@ pub fn run() -> Result<(), Error> {
         sync,
         r#async,
         serialize,
+        ignore_underscore_files,
     } = action.args();
 
     let mut cfg = match config.is_file() {
@@ -93,6 +97,7 @@ pub fn run() -> Result<(), Error> {
     cfg.sync = sync.unwrap_or(cfg.sync);
     cfg.r#async = r#async.unwrap_or(false) || !cfg.sync;
     cfg.serialize = serialize.unwrap_or(cfg.serialize);
+    cfg.ignore_underscore_files = ignore_underscore_files.unwrap_or(cfg.ignore_underscore_files);
 
     let podman = cfg.podman;
 
