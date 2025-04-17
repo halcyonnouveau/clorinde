@@ -350,7 +350,7 @@ impl ConfigBuilder {
         self.config.serialize = serialize;
         self
     }
-    
+
     /// Ignore query files prefixed with underscore
     pub fn ignore_underscore_files(mut self, ignore_underscore_files: bool) -> Self {
         self.config.ignore_underscore_files = ignore_underscore_files;

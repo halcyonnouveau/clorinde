@@ -32,7 +32,10 @@ impl From<&ModuleInfo> for NamedSource<Arc<String>> {
 ///
 /// # Error
 /// Returns an error if `dir_path` does not point to a valid directory or if a query file cannot be parsed.
-pub(crate) fn read_query_modules(dir_path: &Path, config: &Config) -> Result<Vec<ModuleInfo>, Error> {
+pub(crate) fn read_query_modules(
+    dir_path: &Path,
+    config: &Config,
+) -> Result<Vec<ModuleInfo>, Error> {
     let mut modules_info = Vec::new();
     for entry_result in std::fs::read_dir(dir_path).map_err(|err| Error {
         err,
@@ -56,7 +59,7 @@ pub(crate) fn read_query_modules(dir_path: &Path, config: &Config) -> Result<Vec
                 .expect("is a file")
                 .to_str()
                 .expect("file name is valid utf8");
-                
+
             // Skip files starting with underscore if configured to do so
             if config.ignore_underscore_files && file_name.starts_with('_') {
                 continue;
