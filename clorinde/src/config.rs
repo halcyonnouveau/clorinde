@@ -193,7 +193,18 @@ pub enum TypeMapping {
         is_copy: bool,
         #[serde(default = "default_true", rename = "is-params")]
         is_params: bool,
+        #[serde(default, rename = "attributes")]
+        attributes: Vec<String>,
     },
+}
+
+impl TypeMapping {
+    pub fn get_attributes(&self) -> &[String] {
+        match self {
+            TypeMapping::Simple(_) => &[],
+            TypeMapping::Detailed { attributes, .. } => attributes,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
