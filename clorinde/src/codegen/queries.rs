@@ -94,20 +94,29 @@ fn gen_row_structs(
         .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
 
     // Generate field attributes if any
-    let fields_with_attrs = fields.iter().zip(fields_name.iter()).zip(fields_ty.iter()).map(|((field, name), ty)| {
-        let attrs = field.attributes.iter().map(|attr| {
-            syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!())
-        }).collect::<Vec<_>>();
-        
-        if attrs.is_empty() {
-            quote! { pub #name: #ty }
-        } else {
-            quote! { 
-                #(#[#attrs])*
-                pub #name: #ty 
+    let fields_with_attrs = fields
+        .iter()
+        .zip(fields_name.iter())
+        .zip(fields_ty.iter())
+        .map(|((field, name), ty)| {
+            let attrs = field
+                .attributes
+                .iter()
+                .map(|attr| {
+                    syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!())
+                })
+                .collect::<Vec<_>>();
+
+            if attrs.is_empty() {
+                quote! { pub #name: #ty }
+            } else {
+                quote! {
+                    #(#[#attrs])*
+                    pub #name: #ty
+                }
             }
-        }
-    }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
 
     let main_struct = quote! {
         #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr #(,#trait_attrs)*)]
@@ -127,21 +136,31 @@ fn gen_row_structs(
         let field_assignments = fields.iter().map(|f| f.owning_assign());
 
         // Generate borrowed field attributes if any
-        let borrowed_fields_with_attrs = fields.iter().zip(fields_name.iter()).zip(borrowed_fields_ty.iter()).map(|((field, name), ty)| {
-            let attrs = field.attributes.iter().map(|attr| {
-                syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!())
-            }).collect::<Vec<_>>();
-            
-            if attrs.is_empty() {
-                quote! { pub #name: #ty }
-            } else {
-                quote! { 
-                    #(#[#attrs])*
-                    pub #name: #ty 
+        let borrowed_fields_with_attrs = fields
+            .iter()
+            .zip(fields_name.iter())
+            .zip(borrowed_fields_ty.iter())
+            .map(|((field, name), ty)| {
+                let attrs = field
+                    .attributes
+                    .iter()
+                    .map(|attr| {
+                        syn::parse_str::<proc_macro2::TokenStream>(attr)
+                            .unwrap_or_else(|_| quote!())
+                    })
+                    .collect::<Vec<_>>();
+
+                if attrs.is_empty() {
+                    quote! { pub #name: #ty }
+                } else {
+                    quote! {
+                        #(#[#attrs])*
+                        pub #name: #ty
+                    }
                 }
-            }
-        }).collect::<Vec<_>>();
-        
+            })
+            .collect::<Vec<_>>();
+
         quote! {
             pub struct #borrowed_name<'a> {
                 #(#borrowed_fields_with_attrs,)*

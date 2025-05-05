@@ -87,7 +87,7 @@ impl PreparedField {
             attributes: Vec::new(),
         }
     }
-    
+
     pub(crate) fn with_attributes(mut self, attributes: Vec<String>) -> Self {
         self.attributes = attributes;
         self
@@ -343,19 +343,18 @@ fn prepare_type(
                     .map(|field| {
                         let nullity = declared.iter().find(|it| it.name.value == field.name());
                         let ty = registrar.ref_of(field.type_());
-                        
+
                         // Get any custom attributes for this field based on its type
-                        let attributes = if let Some(mapping) = registrar.config.get_type_mapping(field.type_()) {
+                        let attributes = if let Some(mapping) =
+                            registrar.get_type_mapping(field.type_())
+                        {
                             mapping.get_attributes().to_vec()
                         } else {
                             Vec::new()
                         };
-                        
-                        PreparedField::new(
-                            field.name().to_string(),
-                            ty, 
-                            nullity,
-                        ).with_attributes(attributes)
+
+                        PreparedField::new(field.name().to_string(), ty, nullity)
+                            .with_attributes(attributes)
                     })
                     .collect(),
             ),
@@ -458,20 +457,16 @@ fn prepare_query(
             let ty = registrar
                 .register(&col_name.value, &col_ty, &name, module_info)?
                 .clone();
-                
+
             // Get any custom attributes for this field based on its type
-            let attributes = if let Some(mapping) = registrar.config.get_type_mapping(&col_ty) {
+            let attributes = if let Some(mapping) = registrar.get_type_mapping(&col_ty) {
                 mapping.get_attributes().to_vec()
             } else {
                 Vec::new()
             };
-            
+
             param_fields.push(
-                PreparedField::new(
-                    col_name.value.clone(),
-                    ty,
-                    nullity,
-                ).with_attributes(attributes)
+                PreparedField::new(col_name.value.clone(), ty, nullity).with_attributes(attributes),
             );
         }
         param_fields
@@ -499,18 +494,15 @@ fn prepare_query(
                 .register(&col_name, col_ty, &name, module_info)?
                 .clone();
             // Get any custom attributes for this field based on its type
-            let attributes = if let Some(mapping) = registrar.config.get_type_mapping(col_ty) {
+            let attributes = if let Some(mapping) = registrar.get_type_mapping(col_ty) {
                 mapping.get_attributes().to_vec()
             } else {
                 Vec::new()
             };
-            
+
             row_fields.push(
-                PreparedField::new(
-                    normalize_rust_name(&col_name),
-                    ty,
-                    nullity,
-                ).with_attributes(attributes)
+                PreparedField::new(normalize_rust_name(&col_name), ty, nullity)
+                    .with_attributes(attributes),
             );
         }
         row_fields
