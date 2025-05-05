@@ -106,18 +106,10 @@ impl Vfs {
             }
         }
 
-        // Remove existing destination if it exists
-        if destination.exists() {
-            std::fs::remove_dir_all(destination).map_err(PersistError::wrap(destination))?;
-        }
-
         // Format with rustfmt
         Vfs::rustfmt(tmp.path());
 
-        // Create destination directory
-        std::fs::create_dir_all(destination).map_err(PersistError::wrap(destination))?;
-
-        // Copy directory contents recursively as a fallback for rename
+        // Copy directory contents recursively for moving files
         fn copy_dir_recursive(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
             let src = src.as_ref();
             let dst = dst.as_ref();
@@ -141,16 +133,57 @@ impl Vfs {
             Ok(())
         }
 
-        // Try rename first, fall back to copy if it fails
-        match std::fs::rename(tmp.path(), destination) {
+        // Create a backup of the destination if it exists
+        let backup_dir = if destination.exists() {
+            // Create a temporary directory for backup
+            let backup = tempfile::tempdir().map_err(PersistError::wrap("backup tempfile"))?;
+            let backup_path = backup.path();
+            
+            // Copy existing files to backup
+            copy_dir_recursive(destination, backup_path)
+                .map_err(PersistError::wrap("backing up existing destination"))?;
+            
+            // Now we can safely remove the destination
+            std::fs::remove_dir_all(destination).map_err(PersistError::wrap(destination))?;
+            
+            Some(backup)
+        } else {
+            None
+        };
+
+        // Create destination directory
+        std::fs::create_dir_all(destination).map_err(PersistError::wrap(destination))?;
+
+        // Try to move the generated files to the destination
+        let result = match std::fs::rename(tmp.path(), destination) {
             Ok(_) => Ok(()), // Rename successful
             Err(e) if e.raw_os_error() == Some(18) => {
                 // EXDEV error, fall back to copy
                 copy_dir_recursive(tmp.path(), destination)
-                    .map_err(PersistError::wrap(destination))?;
-                Ok(())
+                    .map_err(PersistError::wrap(destination))
             }
             Err(e) => Err(PersistError::wrap(destination)(e)),
+        };
+
+        // If something went wrong and we have a backup, restore it
+        if result.is_err() && backup_dir.is_some() {
+            let backup_dir = backup_dir.unwrap();
+            
+            // Clean the destination directory if it exists after a failed operation
+            if destination.exists() {
+                let _ = std::fs::remove_dir_all(destination);
+            }
+            
+            // Ensure the destination directory exists for restoration
+            let _ = std::fs::create_dir_all(destination);
+            
+            // Restore from backup
+            if let Err(restore_err) = copy_dir_recursive(backup_dir.path(), destination) {
+                // If restoration also fails, return a compound error
+                return Err(PersistError::wrap("failed to restore backup after generation error")(restore_err));
+            }
         }
+
+        result
     }
 }
