@@ -333,7 +333,7 @@ impl TypeRegistrar {
             config,
         }
     }
-    
+
     /// Returns the type mapping for a specific type
     pub(crate) fn get_type_mapping(&self, ty: &Type) -> Option<&TypeMapping> {
         self.config.get_type_mapping(ty)

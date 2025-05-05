@@ -345,13 +345,12 @@ fn prepare_type(
                         let ty = registrar.ref_of(field.type_());
 
                         // Get any custom attributes for this field based on its type
-                        let attributes = if let Some(mapping) =
-                            registrar.get_type_mapping(field.type_())
-                        {
-                            mapping.get_attributes().to_vec()
-                        } else {
-                            Vec::new()
-                        };
+                        let attributes =
+                            if let Some(mapping) = registrar.get_type_mapping(field.type_()) {
+                                mapping.get_attributes().to_vec()
+                            } else {
+                                Vec::new()
+                            };
 
                         PreparedField::new(field.name().to_string(), ty, nullity)
                             .with_attributes(attributes)
