@@ -138,14 +138,14 @@ impl Vfs {
             // Create a temporary directory for backup
             let backup = tempfile::tempdir().map_err(PersistError::wrap("backup tempfile"))?;
             let backup_path = backup.path();
-            
+
             // Copy existing files to backup
             copy_dir_recursive(destination, backup_path)
                 .map_err(PersistError::wrap("backing up existing destination"))?;
-            
+
             // Now we can safely remove the destination
             std::fs::remove_dir_all(destination).map_err(PersistError::wrap(destination))?;
-            
+
             Some(backup)
         } else {
             None
@@ -159,8 +159,7 @@ impl Vfs {
             Ok(_) => Ok(()), // Rename successful
             Err(e) if e.raw_os_error() == Some(18) => {
                 // EXDEV error, fall back to copy
-                copy_dir_recursive(tmp.path(), destination)
-                    .map_err(PersistError::wrap(destination))
+                copy_dir_recursive(tmp.path(), destination).map_err(PersistError::wrap(destination))
             }
             Err(e) => Err(PersistError::wrap(destination)(e)),
         };
@@ -168,19 +167,21 @@ impl Vfs {
         // If something went wrong and we have a backup, restore it
         if result.is_err() && backup_dir.is_some() {
             let backup_dir = backup_dir.unwrap();
-            
+
             // Clean the destination directory if it exists after a failed operation
             if destination.exists() {
                 let _ = std::fs::remove_dir_all(destination);
             }
-            
+
             // Ensure the destination directory exists for restoration
             let _ = std::fs::create_dir_all(destination);
-            
+
             // Restore from backup
             if let Err(restore_err) = copy_dir_recursive(backup_dir.path(), destination) {
                 // If restoration also fails, return a compound error
-                return Err(PersistError::wrap("failed to restore backup after generation error")(restore_err));
+                return Err(PersistError::wrap(
+                    "failed to restore backup after generation error",
+                )(restore_err));
             }
         }
 
