@@ -334,6 +334,11 @@ impl TypeRegistrar {
         }
     }
 
+    /// Returns the type mapping for a specific type
+    pub(crate) fn get_type_mapping(&self, ty: &Type) -> Option<&TypeMapping> {
+        self.config.get_type_mapping(ty)
+    }
+
     fn resolve_type(
         &mut self,
         ty: &Type,
@@ -461,6 +466,7 @@ impl TypeRegistrar {
                     rust_type,
                     is_copy,
                     is_params,
+                    attributes: _,
                 } => Some((rust_type.to_string(), *is_copy, *is_params)),
             }
         } else {

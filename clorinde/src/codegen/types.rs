@@ -154,14 +154,42 @@ fn gen_custom_type(
                 .map(|p| syn::parse_str::<syn::Type>(&p.own_struct(ctx)).unwrap())
                 .collect();
 
+            // Generate field attributes if any
+            let fields_with_attrs = fields
+                .iter()
+                .zip(fields_name.iter())
+                .zip(fields_ty.iter())
+                .zip(fields_original_name.iter())
+                .map(|(((field, name), ty), original_name)| {
+                    let field_attrs = field
+                        .attributes
+                        .iter()
+                        .map(|attr| {
+                            syn::parse_str::<proc_macro2::TokenStream>(attr)
+                                .unwrap_or_else(|_| quote!())
+                        })
+                        .collect::<Vec<_>>();
+
+                    if field_attrs.is_empty() {
+                        quote! {
+                            #[postgres(name = #original_name)]
+                            pub #name: #ty
+                        }
+                    } else {
+                        quote! {
+                            #[postgres(name = #original_name)]
+                            #(#[#field_attrs])*
+                            pub #name: #ty
+                        }
+                    }
+                })
+                .collect::<Vec<_>>();
+
             let struct_def = quote! {
                 #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq #(,#trait_attrs)*)]
                 #[postgres(name = #name_lit)]
                 pub struct #struct_name_ident {
-                    #(
-                        #[postgres(name = #fields_original_name)]
-                        pub #fields_name: #fields_ty,
-                    )*
+                    #(#fields_with_attrs,)*
                 }
             };
 
@@ -179,10 +207,36 @@ fn gen_custom_type(
 
                 let field_assignments = fields.iter().map(|p| p.owning_assign());
 
+                // Generate borrowed field attributes if any
+                let borrowed_fields_with_attrs = fields
+                    .iter()
+                    .zip(fields_name.iter())
+                    .zip(fields_brw.iter())
+                    .map(|((field, name), ty)| {
+                        let field_attrs = field
+                            .attributes
+                            .iter()
+                            .map(|attr| {
+                                syn::parse_str::<proc_macro2::TokenStream>(attr)
+                                    .unwrap_or_else(|_| quote!())
+                            })
+                            .collect::<Vec<_>>();
+
+                        if field_attrs.is_empty() {
+                            quote! { pub #name: #ty }
+                        } else {
+                            quote! {
+                                #(#[#field_attrs])*
+                                pub #name: #ty
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
                 let borrowed_struct = quote! {
                     #[derive(Debug)]
                     pub struct #struct_name_borrowed_ident<'a> {
-                        #(pub #fields_name: #fields_brw,)*
+                        #(#borrowed_fields_with_attrs,)*
                     }
 
                     impl<'a> From<#struct_name_borrowed_ident<'a>> for #struct_name_ident {
@@ -212,10 +266,36 @@ fn gen_custom_type(
                         quote!()
                     };
 
+                    // Generate params field attributes if any
+                    let params_fields_with_attrs = fields
+                        .iter()
+                        .zip(fields_name.iter())
+                        .zip(fields_ty.iter())
+                        .map(|((field, name), ty)| {
+                            let field_attrs = field
+                                .attributes
+                                .iter()
+                                .map(|attr| {
+                                    syn::parse_str::<proc_macro2::TokenStream>(attr)
+                                        .unwrap_or_else(|_| quote!())
+                                })
+                                .collect::<Vec<_>>();
+
+                            if field_attrs.is_empty() {
+                                quote! { pub #name: #ty }
+                            } else {
+                                quote! {
+                                    #(#[#field_attrs])*
+                                    pub #name: #ty
+                                }
+                            }
+                        })
+                        .collect::<Vec<_>>();
+
                     quote! {
                         #[derive(Debug #derive)]
                         pub struct #struct_name_params_ident<'a> {
-                            #(pub #fields_name: #fields_ty,)*
+                            #(#params_fields_with_attrs,)*
                         }
                     }
                 } else {

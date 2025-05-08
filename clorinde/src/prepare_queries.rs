@@ -70,6 +70,7 @@ pub struct PreparedField {
     pub(crate) ty: Rc<ClorindeType>,
     pub(crate) is_nullable: bool,
     pub(crate) is_inner_nullable: bool, // Vec only
+    pub(crate) attributes: Vec<String>, // Custom field attributes
 }
 
 impl PreparedField {
@@ -83,7 +84,13 @@ impl PreparedField {
             ty,
             is_nullable: nullity.is_some_and(|it| it.nullable),
             is_inner_nullable: nullity.is_some_and(|it| it.inner_nullable),
+            attributes: Vec::new(),
         }
+    }
+
+    pub(crate) fn with_attributes(mut self, attributes: Vec<String>) -> Self {
+        self.attributes = attributes;
+        self
     }
 }
 
@@ -335,11 +342,18 @@ fn prepare_type(
                     .iter()
                     .map(|field| {
                         let nullity = declared.iter().find(|it| it.name.value == field.name());
-                        PreparedField::new(
-                            field.name().to_string(),
-                            registrar.ref_of(field.type_()),
-                            nullity,
-                        )
+                        let ty = registrar.ref_of(field.type_());
+
+                        // Get any custom attributes for this field based on its type
+                        let attributes =
+                            if let Some(mapping) = registrar.get_type_mapping(field.type_()) {
+                                mapping.get_attributes().to_vec()
+                            } else {
+                                Vec::new()
+                            };
+
+                        PreparedField::new(field.name().to_string(), ty, nullity)
+                            .with_attributes(attributes)
                     })
                     .collect(),
             ),
@@ -439,13 +453,20 @@ fn prepare_query(
                 .iter()
                 .find(|x| x.name.value == col_name.value);
             // Register type
-            param_fields.push(PreparedField::new(
-                col_name.value.clone(),
-                registrar
-                    .register(&col_name.value, &col_ty, &name, module_info)?
-                    .clone(),
-                nullity,
-            ));
+            let ty = registrar
+                .register(&col_name.value, &col_ty, &name, module_info)?
+                .clone();
+
+            // Get any custom attributes for this field based on its type
+            let attributes = if let Some(mapping) = registrar.get_type_mapping(&col_ty) {
+                mapping.get_attributes().to_vec()
+            } else {
+                Vec::new()
+            };
+
+            param_fields.push(
+                PreparedField::new(col_name.value.clone(), ty, nullity).with_attributes(attributes),
+            );
         }
         param_fields
     };
@@ -471,11 +492,17 @@ fn prepare_query(
             let ty = registrar
                 .register(&col_name, col_ty, &name, module_info)?
                 .clone();
-            row_fields.push(PreparedField::new(
-                normalize_rust_name(&col_name),
-                ty,
-                nullity,
-            ));
+            // Get any custom attributes for this field based on its type
+            let attributes = if let Some(mapping) = registrar.get_type_mapping(col_ty) {
+                mapping.get_attributes().to_vec()
+            } else {
+                Vec::new()
+            };
+
+            row_fields.push(
+                PreparedField::new(normalize_rust_name(&col_name), ty, nullity)
+                    .with_attributes(attributes),
+            );
         }
         row_fields
     };
