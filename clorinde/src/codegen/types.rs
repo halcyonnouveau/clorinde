@@ -133,9 +133,11 @@ fn gen_custom_type(
             };
 
             let enum_impl = enum_sql(name, struct_name, variants);
+            let from_str_impl = enum_from_str(struct_name, variants);
             quote! {
                 #enum_def
                 #enum_impl
+                #from_str_impl
             }
         }
         PreparedContent::Composite(fields) => {
@@ -230,6 +232,26 @@ fn gen_custom_type(
                     #fromsql_impl
                     #params_struct
                     #tosql_impl
+                }
+            }
+        }
+    }
+}
+
+fn enum_from_str(enum_name: &str, variants: &[Ident]) -> proc_macro2::TokenStream {
+    let enum_name_ident = format_ident!("{}", enum_name);
+    
+    let rs_variants: Vec<_> = variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
+    let db_variants: Vec<_> = variants.iter().map(|v| &v.db).collect();
+    
+    quote! {
+        impl std::str::FromStr for #enum_name_ident {
+            type Err = String;
+            
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                match s {
+                    #(#db_variants => Ok(#enum_name_ident::#rs_variants),)*
+                    _ => Err(format!("Invalid variant `{}` for {}", s, stringify!(#enum_name_ident)))
                 }
             }
         }
