@@ -1,8 +1,6 @@
 use enum_fromstr_codegen::{
     client::Params,
-    queries::{
-        get_all_items, get_items_by_color, get_items_by_status, create_item
-    },
+    queries::{create_item, get_all_items, get_items_by_color, get_items_by_status},
     types::{Color, Status},
 };
 use std::str::FromStr;
@@ -29,7 +27,10 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let items = get_items_by_color().bind(&client, &color).all().await?;
     println!("\nItems with color {color_str}:");
     for item in items {
-        println!("- Item: {} (Color: {:?}, Status: {:?})", item.name, item.color, item.status);
+        println!(
+            "- Item: {} (Color: {:?}, Status: {:?})",
+            item.name, item.color, item.status
+        );
     }
 
     // Try parsing an invalid color
@@ -43,11 +44,11 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n=== Simulated Command Line Argument Example ===");
     // Simulate command line arguments for color and status
     let args = ["program", "--color", "blue", "--status", "pending"];
-    
+
     // Parse flags
     let mut parsed_color = None;
     let mut parsed_status = None;
-    
+
     for i in 1..args.len() {
         match args[i] {
             "--color" => {
@@ -57,7 +58,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         std::process::exit(1);
                     }));
                 }
-            },
+            }
             "--status" => {
                 if i + 1 < args.len() {
                     parsed_status = Some(Status::from_str(args[i + 1]).unwrap_or_else(|e| {
@@ -65,25 +66,31 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         std::process::exit(1);
                     }));
                 }
-            },
+            }
             _ => {}
         }
     }
-    
+
     // Query with the parsed arguments if available
     if let Some(color) = parsed_color {
         let items = get_items_by_color().bind(&client, &color).all().await?;
         println!("\nItems with command line specified color {:?}:", color);
         for item in items {
-            println!("- Item: {} (Color: {:?}, Status: {:?})", item.name, item.color, item.status);
+            println!(
+                "- Item: {} (Color: {:?}, Status: {:?})",
+                item.name, item.color, item.status
+            );
         }
     }
-    
+
     if let Some(status) = parsed_status {
         let items = get_items_by_status().bind(&client, &status).all().await?;
         println!("\nItems with command line specified status {:?}:", status);
         for item in items {
-            println!("- Item: {} (Color: {:?}, Status: {:?})", item.name, item.color, item.status);
+            println!(
+                "- Item: {} (Color: {:?}, Status: {:?})",
+                item.name, item.color, item.status
+            );
         }
     }
 
