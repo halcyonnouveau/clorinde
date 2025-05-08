@@ -2,6 +2,6 @@
 include!(concat!(env!("OUT_DIR"), "/lib.rs"));
 
 // Re-export postgres-types and other essential dependencies
-pub use postgres_types;
 pub use deadpool_postgres;
+pub use postgres_types;
 pub use tokio_postgres;
