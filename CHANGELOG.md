@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.14.4...clorinde-v0.15.0) - 2025-05-12
+
+### Added
+
+- allow custom field attributes in type mappings ([#96](https://github.com/halcyonnouveau/clorinde/pull/96))
+- Ignore files with names prefixed with `_` ([#90](https://github.com/halcyonnouveau/clorinde/pull/90))
+
+### Fixed
+
+- ensure generated crate is only deleted when new generation succeeds ([#95](https://github.com/halcyonnouveau/clorinde/pull/95))
+
 ## [0.14.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.14.3...clorinde-v0.14.4) - 2025-04-14
 
 ### Added
