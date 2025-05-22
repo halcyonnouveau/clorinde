@@ -1,6 +1,6 @@
 // Take a look at the generated `clorinde` crate if you want to
 // see what it looks like under the hood.
-use clorinde::queries::module_2::authors;
+use clorinde::queries::author::module_2::authors;
 
 #[tokio::main]
 pub async fn main() {

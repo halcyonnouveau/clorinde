@@ -32,18 +32,3 @@ FROM
     INNER JOIN Book ON Book.Id = BookAuthor.BookId
 WHERE
     Author.Name LIKE CONCAT(:start_str::text, '%');
-
---! select_voice_actor_with_character
-SELECT
-    voice_actor
-FROM
-    SpongeBobVoiceActor
-WHERE
-    character = :spongebob_character;
-
---! select_translations
-SELECT
-    Title,
-    Translations
-FROM
-    Book;

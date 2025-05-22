@@ -595,7 +595,6 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::To
     let specific_tokens = if config.r#async && config.sync {
         // Generate both sync and async modules
         let sync_tokens = gen_specific(module, config, ModCtx::ClientQueries, false);
-
         let async_tokens = gen_specific(module, config, ModCtx::ClientQueries, true);
 
         quote! {
@@ -651,17 +650,12 @@ fn gen_specific(
 }
 
 pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Config) {
-    // Step 1: Generate module files for each SQL file
     for module in &preparation.modules {
         let gen = gen_query_module(module, config);
 
-        // Split the full module path into components for file path creation
         let path_components: Vec<&str> = module.info.full_module_path.split("::").collect();
-
-        // Get the file name (last component) - using the name field from ModuleInfo
         let file_name = &module.info.name;
 
-        // Construct the directory path
         let dir_path = if path_components.len() > 1 {
             let parent_components = &path_components[..path_components.len() - 1];
             format!("src/queries/{}", parent_components.join("/"))
@@ -669,14 +663,11 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
             "src/queries".to_string()
         };
 
-        // Generate the file path
         let file_path = format!("{}/{}.rs", dir_path, file_name);
 
-        // Add to the virtual file system
         vfs.add(file_path, gen);
     }
 
-    // Step 2: Build a module hierarchy tree
     let module_tree = crate::read_queries::build_module_hierarchy(
         &preparation
             .modules
@@ -685,17 +676,12 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
             .collect::<Vec<_>>(),
     );
 
-    // Step 3: Generate mod.rs files for each directory in the hierarchy
     for (module_path, submodules) in &module_tree {
         let path_components: Vec<&str> = module_path.split("::").collect();
 
-        // Create directory path
         let dir_path = format!("src/queries/{}", path_components.join("/"));
-
-        // Create mod.rs content with submodule declarations
         let mut submodule_declarations = proc_macro2::TokenStream::new();
 
-        // Deduplicate submodules (they may appear multiple times in the tree)
         let mut unique_submodules = std::collections::HashSet::new();
         for (name, _) in submodules {
             unique_submodules.insert(name);
@@ -708,11 +694,9 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
             });
         }
 
-        // Add the mod.rs file
-        vfs.add(format!("{}/mod.rs", dir_path), submodule_declarations);
+        vfs.add(format!("{}.rs", dir_path), submodule_declarations);
     }
 
-    // Step 4: Generate the root queries.rs module that re-exports all top-level modules
     let root_modules: Vec<_> = preparation
         .modules
         .iter()
@@ -729,57 +713,9 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
         .map(|name| format_ident!("{}", name))
         .collect();
 
-    let mut tokens = quote! {
+    let tokens = quote! {
         #(pub mod #root_modules;)*
     };
-
-    // Step 5: Handle sync/async modules as before
-    if config.r#async && config.sync {
-        let sync_modules = module_tree
-            .iter()
-            .filter_map(|(path, _)| {
-                // Only include top-level modules
-                if !path.contains("::") {
-                    let name = format_ident!("{}", path);
-                    Some(quote! {
-                        pub mod #name {
-                            pub use super::super::#name::*;
-                        }
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let async_modules = module_tree
-            .iter()
-            .filter_map(|(path, _)| {
-                // Only include top-level modules
-                if !path.contains("::") {
-                    let name = format_ident!("{}", path);
-                    Some(quote! {
-                        pub mod #name {
-                            pub use super::super::#name::*;
-                        }
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let sync_async_mods = quote! {
-            pub mod sync {
-                #(#sync_modules)*
-            }
-            pub mod async_ {
-                #(#async_modules)*
-            }
-        };
-
-        tokens.extend(sync_async_mods);
-    }
 
     vfs.add("src/queries.rs", tokens);
 }
