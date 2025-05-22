@@ -595,7 +595,6 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::To
     let specific_tokens = if config.r#async && config.sync {
         // Generate both sync and async modules
         let sync_tokens = gen_specific(module, config, ModCtx::ClientQueries, false);
-
         let async_tokens = gen_specific(module, config, ModCtx::ClientQueries, true);
 
         quote! {
@@ -653,51 +652,70 @@ fn gen_specific(
 pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Config) {
     for module in &preparation.modules {
         let gen = gen_query_module(module, config);
-        vfs.add(format!("src/queries/{}.rs", module.info.name), gen);
-    }
 
-    let modules_name: Vec<_> = preparation
-        .modules
-        .iter()
-        .map(|module| format_ident!("{}", module.info.name))
-        .collect();
+        let path_components: Vec<&str> = module.info.full_module_path.split("::").collect();
+        let file_name = &module.info.name;
 
-    let mut tokens = quote! {
-        #(pub mod #modules_name;)*
-    };
-
-    if config.r#async && config.sync {
-        let sync_modules = preparation.modules.iter().map(|module| {
-            let name = format_ident!("{}", module.info.name);
-            quote! {
-                pub mod #name {
-                    pub use super::super::#name::*;
-                    pub use super::super::#name::sync::*;
-                }
-            }
-        });
-
-        let async_modules = preparation.modules.iter().map(|module| {
-            let name = format_ident!("{}", module.info.name);
-            quote! {
-                pub mod #name {
-                    pub use super::super::#name::*;
-                    pub use super::super::#name::async_::*;
-                }
-            }
-        });
-
-        let sync_async_mods = quote! {
-            pub mod sync {
-                #(#sync_modules)*
-            }
-            pub mod async_ {
-                #(#async_modules)*
-            }
+        let dir_path = if path_components.len() > 1 {
+            let parent_components = &path_components[..path_components.len() - 1];
+            format!("src/queries/{}", parent_components.join("/"))
+        } else {
+            "src/queries".to_string()
         };
 
-        tokens.extend(sync_async_mods);
+        let file_path = format!("{}/{}.rs", dir_path, file_name);
+
+        vfs.add(file_path, gen);
     }
+
+    let module_tree = crate::read_queries::build_module_hierarchy(
+        &preparation
+            .modules
+            .iter()
+            .map(|m| m.info.clone())
+            .collect::<Vec<_>>(),
+    );
+
+    for (module_path, submodules) in &module_tree {
+        let path_components: Vec<&str> = module_path.split("::").collect();
+
+        let dir_path = format!("src/queries/{}", path_components.join("/"));
+        let mut submodule_declarations = proc_macro2::TokenStream::new();
+
+        let mut unique_submodules = std::collections::HashSet::new();
+        for (name, _) in submodules {
+            unique_submodules.insert(name);
+        }
+
+        for name in unique_submodules {
+            let mod_name = format_ident!("{}", name);
+            submodule_declarations.extend(quote! {
+                pub mod #mod_name;
+            });
+        }
+
+        vfs.add(format!("{}.rs", dir_path), submodule_declarations);
+    }
+
+    let root_modules: Vec<_> = preparation
+        .modules
+        .iter()
+        .filter_map(|module| {
+            let components: Vec<&str> = module.info.full_module_path.split("::").collect();
+            if !components.is_empty() {
+                Some(components[0].to_string())
+            } else {
+                None
+            }
+        })
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .map(|name| format_ident!("{}", name))
+        .collect();
+
+    let tokens = quote! {
+        #(pub mod #root_modules;)*
+    };
 
     vfs.add("src/queries.rs", tokens);
 }
