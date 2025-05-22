@@ -11,7 +11,7 @@ publish = false
 clorinde = { path = "../clorinde" }
 
 # benchmarking
-criterion = { version = "0.5.1", features = ["html_reports"] }
+criterion = { version = "0.6.0", features = ["html_reports"] }
 
 # async
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
