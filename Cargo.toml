@@ -6,3 +6,7 @@ members = ["benches", "clorinde", "examples/*", "tests/*"]
 # Dependencies for examples that have `use-workspace-deps = true`
 chrono = "0.4"
 time = "0.3"
+
+[profile.release]
+codegen-units = 1
+lto = true
