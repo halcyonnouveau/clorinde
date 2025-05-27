@@ -17,7 +17,7 @@ Here are some defining features:
 * As close to native `rust-postgres` performance as we can make it.
 
 ```admonish info
-If you just want to get started without having to read all of this, you can take a look at our [examples](../examples.html).
+If you just want to get started without having to read all of this, you can take a look at our [examples](examples.html).
 
 *This book is pretty short and to the point though, so you should probably at least take a glance.*
 ```
