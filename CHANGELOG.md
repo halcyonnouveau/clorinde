@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.15.1...clorinde-v0.15.2) - 2025-05-29
+
+### Fixed
+
+- codegen directory rename on windows
+
 ## [0.15.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.15.0...clorinde-v0.15.1) - 2025-05-26
 
 ### Added
