@@ -1,4 +1,4 @@
-- [Introduction](./introduction/introduction.md)
+- [Introduction](./introduction.md)
     - [Installation](./introduction/installation.md)
     - [Migration from Cornucopia](./introduction/migration_from_cornucopia.md)
     - [Supported types](./introduction/types.md)
