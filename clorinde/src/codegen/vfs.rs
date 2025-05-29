@@ -152,7 +152,11 @@ impl Vfs {
         };
 
         // Create destination directory
-        std::fs::create_dir_all(destination).map_err(PersistError::wrap(destination))?;
+        // only needed for linux/macos, this will break the rename on windows
+        // https://github.com/barosl/rust/commit/bcbc9e5346941011f36f71f66c808675b263a589
+        if cfg!(not(target_os = "windows")) {
+            std::fs::create_dir_all(destination).map_err(PersistError::wrap(destination))?;
+        }
 
         // Try to move the generated files to the destination
         let result = match std::fs::rename(tmp.path(), destination) {
