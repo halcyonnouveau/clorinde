@@ -20,6 +20,7 @@ tokio-postgres = { version = "0.7.13", features = [
 sponge_bob_character = ["serde::Deserialize"]
 
 [types.mapping]
+"public.element" = "ctypes::element::Element"
 "pg_catalog.date" = { rust-type = "ctypes::date::Date", attributes = [
     'allow(dead_code)',
 ] }

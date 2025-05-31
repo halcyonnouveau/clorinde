@@ -335,7 +335,6 @@ fn prepare_type(
             Kind::Enum(variants) => {
                 PreparedContent::Enum(variants.clone().into_iter().map(Ident::new).collect())
             }
-
             Kind::Domain(_) => return None,
             Kind::Composite(fields) => PreparedContent::Composite(
                 fields

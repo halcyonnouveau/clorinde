@@ -66,6 +66,32 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }
     }
 }
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash)]
+pub struct SelectVoiceActorByElement {
+    pub voice_actor: crate::types::Voiceactor,
+    pub element: ctypes::element::Element,
+    pub character: crate::types::SpongeBobCharacter,
+}
+pub struct SelectVoiceActorByElementBorrowed<'a> {
+    pub voice_actor: crate::types::VoiceactorBorrowed<'a>,
+    pub element: ctypes::element::Element,
+    pub character: crate::types::SpongeBobCharacter,
+}
+impl<'a> From<SelectVoiceActorByElementBorrowed<'a>> for SelectVoiceActorByElement {
+    fn from(
+        SelectVoiceActorByElementBorrowed {
+            voice_actor,
+            element,
+            character,
+        }: SelectVoiceActorByElementBorrowed<'a>,
+    ) -> Self {
+        Self {
+            voice_actor: voice_actor.into(),
+            element,
+            character,
+        }
+    }
+}
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
 pub struct AuthorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
@@ -255,6 +281,72 @@ where
         Ok(it)
     }
 }
+pub struct SelectVoiceActorByElementQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+    client: &'c C,
+    params: [&'a (dyn postgres_types::ToSql + Sync); N],
+    stmt: &'s mut crate::client::async_::Stmt,
+    extractor: fn(
+        &tokio_postgres::Row,
+    ) -> Result<SelectVoiceActorByElementBorrowed, tokio_postgres::Error>,
+    mapper: fn(SelectVoiceActorByElementBorrowed) -> T,
+}
+impl<'c, 'a, 's, C, T: 'c, const N: usize> SelectVoiceActorByElementQuery<'c, 'a, 's, C, T, N>
+where
+    C: GenericClient,
+{
+    pub fn map<R>(
+        self,
+        mapper: fn(SelectVoiceActorByElementBorrowed) -> R,
+    ) -> SelectVoiceActorByElementQuery<'c, 'a, 's, C, R, N> {
+        SelectVoiceActorByElementQuery {
+            client: self.client,
+            params: self.params,
+            stmt: self.stmt,
+            extractor: self.extractor,
+            mapper,
+        }
+    }
+    pub async fn one(self) -> Result<T, tokio_postgres::Error> {
+        let stmt = self.stmt.prepare(self.client).await?;
+        let row = self.client.query_one(stmt, &self.params).await?;
+        Ok((self.mapper)((self.extractor)(&row)?))
+    }
+    pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
+        self.iter().await?.try_collect().await
+    }
+    pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
+        let stmt = self.stmt.prepare(self.client).await?;
+        Ok(self
+            .client
+            .query_opt(stmt, &self.params)
+            .await?
+            .map(|row| {
+                let extracted = (self.extractor)(&row)?;
+                Ok((self.mapper)(extracted))
+            })
+            .transpose()?)
+    }
+    pub async fn iter(
+        self,
+    ) -> Result<
+        impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
+        tokio_postgres::Error,
+    > {
+        let stmt = self.stmt.prepare(self.client).await?;
+        let it = self
+            .client
+            .query_raw(stmt, crate::slice_iter(&self.params))
+            .await?
+            .map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            })
+            .into_stream();
+        Ok(it)
+    }
+}
 pub fn authors() -> AuthorsStmt {
     AuthorsStmt(crate::client::async_::Stmt::new("SELECT * FROM Author"))
 }
@@ -366,5 +458,34 @@ impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
         params: &'a AuthorNameStartingWithParams<T1>,
     ) -> AuthorNameStartingWithQuery<'c, 'a, 's, C, AuthorNameStartingWith, 1> {
         self.bind(client, &params.start_str)
+    }
+}
+pub fn select_voice_actor_by_element() -> SelectVoiceActorByElementStmt {
+    SelectVoiceActorByElementStmt(crate::client::async_::Stmt::new(
+        "SELECT voice_actor, element, character FROM SpongeBobVoiceActor WHERE element = $1",
+    ))
+}
+pub struct SelectVoiceActorByElementStmt(crate::client::async_::Stmt);
+impl SelectVoiceActorByElementStmt {
+    pub fn bind<'c, 'a, 's, C: GenericClient>(
+        &'s mut self,
+        client: &'c C,
+        element: &'a ctypes::element::Element,
+    ) -> SelectVoiceActorByElementQuery<'c, 'a, 's, C, SelectVoiceActorByElement, 1> {
+        SelectVoiceActorByElementQuery {
+            client,
+            params: [element],
+            stmt: &mut self.0,
+            extractor: |
+                row: &tokio_postgres::Row,
+            | -> Result<SelectVoiceActorByElementBorrowed, tokio_postgres::Error> {
+                Ok(SelectVoiceActorByElementBorrowed {
+                    voice_actor: row.try_get(0)?,
+                    element: row.try_get(1)?,
+                    character: row.try_get(2)?,
+                })
+            },
+            mapper: |it| SelectVoiceActorByElement::from(it),
+        }
     }
 }

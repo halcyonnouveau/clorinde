@@ -6,12 +6,6 @@ SELECT
 FROM
     Author;
 
---! books
-SELECT
-    Title
-FROM
-    Book;
-
 --! author_name_by_id
 SELECT
     Author.Name
@@ -32,3 +26,11 @@ FROM
     INNER JOIN Book ON Book.Id = BookAuthor.BookId
 WHERE
     Author.Name LIKE CONCAT(:start_str::text, '%');
+
+--! select_voice_actor_by_element
+SELECT
+    voice_actor, element, character
+FROM
+    SpongeBobVoiceActor
+WHERE
+    element = :element;

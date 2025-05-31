@@ -701,6 +701,7 @@ dependencies = [
 name = "custom-types"
 version = "0.1.0"
 dependencies = [
+ "ctypes",
  "custom_types_codegen",
  "futures",
  "tokio",
