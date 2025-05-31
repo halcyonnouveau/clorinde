@@ -473,17 +473,12 @@ impl TypeRegistrar {
             None
         };
 
-        if let Some((rust_name, is_copy, is_params)) = mapping_result {
-            return Ok(match ty.kind() {
-                Kind::Simple => self.insert(ty, || ClorindeType::Simple {
-                    pg_ty: ty.clone(),
-                    rust_name,
-                    is_copy,
-                }),
-                _ => {
-                    self.resolve_type(ty, &rust_name, query_name, module_info, is_copy, is_params)?
-                }
-            });
+        if let Some((rust_name, is_copy, _)) = mapping_result {
+            return Ok(self.insert(ty, || ClorindeType::Simple {
+                pg_ty: ty.clone(),
+                rust_name,
+                is_copy,
+            }));
         }
 
         self.resolve_type(ty, name, query_name, module_info, true, true)
