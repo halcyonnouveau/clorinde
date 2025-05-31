@@ -20,6 +20,10 @@ enum Action {
         /// Postgres url to the database
         url: String,
 
+        #[clap(long)]
+        /// Postgres search path to use for the queries
+        search_path: Option<String>,
+
         #[clap(flatten)]
         args: CommonArgs,
     },
@@ -124,8 +128,14 @@ pub fn run() -> Result<(), Error> {
     }
 
     match action {
-        Action::Live { url, .. } => {
+        Action::Live {
+            url, search_path, ..
+        } => {
             let mut client = conn::from_url(&url)?;
+            if let Some(search_path) = search_path.as_ref() {
+                conn::set_search_path(&mut client, search_path)?;
+            }
+
             gen_live(&mut client, cfg)?;
         }
         Action::Schema { schema_files, .. } => {
