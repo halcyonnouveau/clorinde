@@ -18,6 +18,14 @@ pub fn clorinde_conn() -> Result<Client, Error> {
         .connect(NoTls)?)
 }
 
+// Sets the search path for the given client.
+pub fn set_search_path(client: &mut Client, search_path: &str) -> Result<(), Error> {
+    client
+        .execute(&format!("SET search_path TO {}", search_path), &[])
+        .map_err(Error::from)?;
+    Ok(())
+}
+
 pub(crate) mod error {
     use miette::Diagnostic;
 
