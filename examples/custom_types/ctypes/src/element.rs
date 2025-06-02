@@ -44,7 +44,6 @@ impl ToSql for Element {
 impl<'a> FromSql<'a> for Element {
     fn from_sql(_ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let s = std::str::from_utf8(raw)?;
-        dbg!(s);
         match s {
             "Anemo" => Ok(Element::Anemo),
             "Cryo" => Ok(Element::Cryo),
