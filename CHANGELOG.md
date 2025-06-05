@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.15.2...clorinde-v0.16.0) - 2025-06-05
+
+### Added
+
+- add style setting to configure enum variant style
+- add search_path option to Live action and set in Postgres client ([#110](https://github.com/halcyonnouveau/clorinde/pull/110))
+- allow user custom rust types for all pg types ([#109](https://github.com/halcyonnouveau/clorinde/pull/109))
+
 ## [0.15.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.15.1...clorinde-v0.15.2) - 2025-05-29
 
 ### Fixed
