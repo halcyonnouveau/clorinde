@@ -318,6 +318,7 @@ impl Default for Package {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Style {
     /// Enforces all enum variants to use CamelCase, leaving postgres value in-tact
     #[serde(rename = "enum-variant-camel-case")]
