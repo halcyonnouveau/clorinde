@@ -373,24 +373,6 @@ impl AuthorsStmt {
         }
     }
 }
-pub fn books() -> BooksStmt {
-    BooksStmt(crate::client::async_::Stmt::new("SELECT Title FROM Book"))
-}
-pub struct BooksStmt(crate::client::async_::Stmt);
-impl BooksStmt {
-    pub fn bind<'c, 'a, 's, C: GenericClient>(
-        &'s mut self,
-        client: &'c C,
-    ) -> StringQuery<'c, 'a, 's, C, String, 0> {
-        StringQuery {
-            client,
-            params: [],
-            stmt: &mut self.0,
-            extractor: |row| Ok(row.try_get(0)?),
-            mapper: |it| it.into(),
-        }
-    }
-}
 pub fn author_name_by_id() -> AuthorNameByIdStmt {
     AuthorNameByIdStmt(crate::client::async_::Stmt::new(
         "SELECT Author.Name FROM Author WHERE Author.Id = $1",

@@ -21,14 +21,14 @@ impl ToSql for Element {
         out: &mut bytes::BytesMut,
     ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         let s = match self {
-            Element::Anemo => "Anemo",
-            Element::Cryo => "Cryo",
-            Element::Dendro => "Dendro",
-            Element::Electro => "Electro",
-            Element::Geo => "Geo",
-            Element::Hydro => "Hydro",
-            Element::Pyro => "Pyro",
-            Element::Physical => "Physical",
+            Element::Anemo => "anemo",
+            Element::Cryo => "cryo",
+            Element::Dendro => "dendro",
+            Element::Electro => "electro",
+            Element::Geo => "geo",
+            Element::Hydro => "hydro",
+            Element::Pyro => "pyro",
+            Element::Physical => "physical",
         };
         out.extend_from_slice(s.as_bytes());
         Ok(IsNull::No)
@@ -45,14 +45,14 @@ impl<'a> FromSql<'a> for Element {
     fn from_sql(_ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let s = std::str::from_utf8(raw)?;
         match s {
-            "Anemo" => Ok(Element::Anemo),
-            "Cryo" => Ok(Element::Cryo),
-            "Dendro" => Ok(Element::Dendro),
-            "Electro" => Ok(Element::Electro),
-            "Geo" => Ok(Element::Geo),
-            "Hydro" => Ok(Element::Hydro),
-            "Pyro" => Ok(Element::Pyro),
-            "Physical" => Ok(Element::Physical),
+            "anemo" => Ok(Element::Anemo),
+            "cryo" => Ok(Element::Cryo),
+            "dendro" => Ok(Element::Dendro),
+            "electro" => Ok(Element::Electro),
+            "geo" => Ok(Element::Geo),
+            "hydro" => Ok(Element::Hydro),
+            "pyro" => Ok(Element::Pyro),
+            "physical" => Ok(Element::Physical),
             _ => Err(format!("Unknown element: {}", s).into()),
         }
     }

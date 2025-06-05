@@ -2,6 +2,9 @@ serialize = true
 static = ["kafstel.txt"]
 use-workspace-deps = "../../Cargo.toml"
 
+[style]
+enum-variant-camel-case = true
+
 [package]
 name = "custom_types_codegen"
 

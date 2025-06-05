@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use heck::ToUpperCamelCase;
 use indexmap::IndexMap;
 use quote::{ToTokens, format_ident, quote};
 
@@ -37,13 +36,7 @@ pub(crate) fn gen_type_modules(
             let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
             {
                 for ty in types {
-                    tokens.extend(gen_custom_type(
-                        schema,
-                        ty,
-                        &config.types.derive_traits,
-                        &config.types.type_traits_mapping,
-                        &ctx,
-                    ))
+                    tokens.extend(gen_custom_type(schema, ty, config, &ctx))
                 }
             }
         } else {
@@ -51,13 +44,7 @@ pub(crate) fn gen_type_modules(
             {
                 let mut p_tokens = quote!();
                 for ty in types {
-                    p_tokens.extend(gen_custom_type(
-                        schema,
-                        ty,
-                        &config.types.derive_traits,
-                        &config.types.type_traits_mapping,
-                        &ctx,
-                    ))
+                    p_tokens.extend(gen_custom_type(schema, ty, config, &ctx))
                 }
                 let schema_name = format_ident!("{}", schema);
                 tokens.extend(quote! {
@@ -78,8 +65,7 @@ pub(crate) fn gen_type_modules(
 fn gen_custom_type(
     schema: &str,
     prepared: &PreparedType,
-    derive_traits: &[String],
-    derive_traits_mapping: &HashMap<String, Vec<String>>,
+    config: &Config,
     ctx: &GenCtx,
 ) -> proc_macro2::TokenStream {
     let PreparedType {
@@ -105,9 +91,11 @@ fn gen_custom_type(
 
     let all_traits: Vec<&String> = traits
         .iter()
-        .chain(derive_traits.iter())
+        .chain(config.types.derive_traits.iter())
         .chain(
-            derive_traits_mapping
+            config
+                .types
+                .type_traits_mapping
                 .get(name)
                 .map(|v| v.as_slice())
                 .unwrap_or(&[])
@@ -121,8 +109,19 @@ fn gen_custom_type(
 
     match content {
         PreparedContent::Enum(variants) => {
-            let variants_ident: Vec<_> =
-                variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
+            let variants_ident: Vec<_> = variants
+                .iter()
+                .map(|v| {
+                    format_ident!(
+                        "{}",
+                        if config.style.enum_variant_camel_case {
+                            v.rs.to_upper_camel_case()
+                        } else {
+                            v.rs.clone()
+                        }
+                    )
+                })
+                .collect();
 
             let enum_def = quote! {
                 #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq #(,#trait_attrs)*)]
@@ -132,7 +131,13 @@ fn gen_custom_type(
                 }
             };
 
-            let enum_impl = enum_sql(name, struct_name, variants);
+            let enum_impl = enum_sql(
+                name,
+                struct_name,
+                variants,
+                config.style.enum_variant_camel_case,
+            );
+
             quote! {
                 #enum_def
                 #enum_impl
@@ -316,12 +321,29 @@ fn gen_custom_type(
     }
 }
 
-fn enum_sql(name: &str, enum_name: &str, variants: &[Ident]) -> proc_macro2::TokenStream {
+fn enum_sql(
+    name: &str,
+    enum_name: &str,
+    variants: &[Ident],
+    variant_camel_case: bool,
+) -> proc_macro2::TokenStream {
     let enum_name = format_ident!("{}", enum_name);
     let name_lit = syn::LitStr::new(name, proc_macro2::Span::call_site());
     let nb_variants = proc_macro2::Literal::usize_unsuffixed(variants.len());
 
-    let rs_variants: Vec<_> = variants.iter().map(|v| format_ident!("{}", v.rs)).collect();
+    let rs_variants: Vec<_> = variants
+        .iter()
+        .map(|v| {
+            format_ident!(
+                "{}",
+                if variant_camel_case {
+                    v.rs.to_upper_camel_case()
+                } else {
+                    v.rs.clone()
+                }
+            )
+        })
+        .collect();
 
     let db_variants: Vec<_> = variants
         .iter()

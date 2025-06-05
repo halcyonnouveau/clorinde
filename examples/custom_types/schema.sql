@@ -30,20 +30,20 @@ INSERT INTO BookAuthor (AuthorId, BookId)
     VALUES (1, 1), (1, 2), (2, 3), (2, 4);
 
 CREATE TYPE Element AS ENUM (
-    'Anemo',
-    'Cryo',
-    'Dendro',
-    'Electro',
-    'Geo',
-    'Hydro',
-    'Pyro',
-    'Physical'
+    'anemo',
+    'cryo',
+    'dendro',
+    'electro',
+    'geo',
+    'hydro',
+    'pyro',
+    'physical'
 );
 
 CREATE TYPE Sponge_Bob_Character AS enum (
-    'Bob',
-    'Patrick',
-    'Squidward'
+    'bob',
+    'patrick',
+    'squidward'
 );
 
 CREATE TYPE VoiceActor AS (
@@ -58,4 +58,4 @@ CREATE TABLE SpongeBobVoiceActor (
 );
 
 INSERT INTO SpongeBobVoiceActor (voice_actor, element, character)
-    VALUES (ROW ('Bill Fagerbakke', 65), 'Hydro', 'Patrick');
+    VALUES (ROW ('Bill Fagerbakke', 65), 'hydro', 'patrick');

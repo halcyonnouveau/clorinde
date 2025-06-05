@@ -32,6 +32,8 @@ pub struct Config {
     pub types: Types,
     /// The `package` table of the generated `Cargo.toml`
     pub package: Package,
+    /// Options to configure code style of generated code
+    pub style: Style,
     /// List of static files to copy into the generated directory
     #[serde(rename = "static")]
     pub static_files: Vec<StaticFile>,
@@ -76,6 +78,7 @@ impl Default for Config {
                 type_traits_mapping: HashMap::new(),
             },
             package: Package::default(),
+            style: Style::default(),
             static_files: vec![],
             use_workspace_deps: UseWorkspaceDeps::Bool(false),
         }
@@ -314,6 +317,13 @@ impl Default for Package {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct Style {
+    /// Enforces all enum variants to use CamelCase, leaving postgres value in-tact
+    #[serde(rename = "enum-variant-camel-case")]
+    pub enum_variant_camel_case: bool,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct ConfigBuilder {
     config: Config,
@@ -377,6 +387,12 @@ impl ConfigBuilder {
     /// Set package metadata for the generated `Cargo.toml`
     pub fn package(mut self, package: Package) -> Self {
         self.config.package = package;
+        self
+    }
+
+    /// Set style options for generated code
+    pub fn style(mut self, style: Style) -> Self {
+        self.config.style = style;
         self
     }
 

@@ -138,9 +138,9 @@ impl<'a> postgres_types::ToSql for SpongeBobCharacter {
         buf: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
         let s = match *self {
-            SpongeBobCharacter::Bob => "Bob",
-            SpongeBobCharacter::Patrick => "Patrick",
-            SpongeBobCharacter::Squidward => "Squidward",
+            SpongeBobCharacter::Bob => "bob",
+            SpongeBobCharacter::Patrick => "patrick",
+            SpongeBobCharacter::Squidward => "squidward",
         };
         buf.extend_from_slice(s.as_bytes());
         std::result::Result::Ok(postgres_types::IsNull::No)
@@ -155,9 +155,9 @@ impl<'a> postgres_types::ToSql for SpongeBobCharacter {
                     return false;
                 }
                 variants.iter().all(|v| match &**v {
-                    "Bob" => true,
-                    "Patrick" => true,
-                    "Squidward" => true,
+                    "bob" => true,
+                    "patrick" => true,
+                    "squidward" => true,
                     _ => false,
                 })
             }
@@ -178,9 +178,9 @@ impl<'a> postgres_types::FromSql<'a> for SpongeBobCharacter {
         buf: &'a [u8],
     ) -> Result<SpongeBobCharacter, Box<dyn std::error::Error + Sync + Send>> {
         match std::str::from_utf8(buf)? {
-            "Bob" => Ok(SpongeBobCharacter::Bob),
-            "Patrick" => Ok(SpongeBobCharacter::Patrick),
-            "Squidward" => Ok(SpongeBobCharacter::Squidward),
+            "bob" => Ok(SpongeBobCharacter::Bob),
+            "patrick" => Ok(SpongeBobCharacter::Patrick),
+            "squidward" => Ok(SpongeBobCharacter::Squidward),
             s => Result::Err(Into::into(format!("invalid variant `{}`", s))),
         }
     }
@@ -194,9 +194,9 @@ impl<'a> postgres_types::FromSql<'a> for SpongeBobCharacter {
                     return false;
                 }
                 variants.iter().all(|v| match &**v {
-                    "Bob" => true,
-                    "Patrick" => true,
-                    "Squidward" => true,
+                    "bob" => true,
+                    "patrick" => true,
+                    "squidward" => true,
                     _ => false,
                 })
             }
