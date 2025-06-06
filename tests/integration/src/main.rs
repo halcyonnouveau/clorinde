@@ -42,7 +42,7 @@ fn test(
 ) -> bool {
     // Start by removing previous container if it was left open
     container::cleanup(podman).ok();
-    container::setup(podman).unwrap();
+    container::setup(podman, "docker.io/library/postgres:latest", 250).unwrap();
     let successful = std::panic::catch_unwind(|| {
         let mut client = clorinde::conn::clorinde_conn().unwrap();
         display(run_errors_test(&mut client, apply_errors)).unwrap()

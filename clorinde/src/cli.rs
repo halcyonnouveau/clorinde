@@ -32,6 +32,14 @@ enum Action {
         /// SQL files containing the database schema
         schema_files: Vec<PathBuf>,
 
+        /// Container image to use
+        #[clap(long)]
+        container_image: Option<String>,
+
+        /// Container wait time in milliseconds after health check
+        #[clap(long)]
+        container_wait: Option<u64>,
+
         #[clap(flatten)]
         args: CommonArgs,
     },
@@ -138,7 +146,15 @@ pub fn run() -> Result<(), Error> {
 
             gen_live(&mut client, cfg)?;
         }
-        Action::Schema { schema_files, .. } => {
+        Action::Schema {
+            schema_files,
+            container_image,
+            container_wait,
+            ..
+        } => {
+            cfg.container_image = container_image.unwrap_or(cfg.container_image);
+            cfg.container_wait = container_wait.unwrap_or(cfg.container_wait);
+
             // Run the generate command. If the command is unsuccessful, cleanup Clorinde's container
             if let Err(e) = gen_managed(&schema_files, cfg) {
                 container::cleanup(podman).ok();

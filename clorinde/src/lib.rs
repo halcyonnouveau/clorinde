@@ -66,7 +66,12 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;
 
-    container::setup(config.podman)?;
+    container::setup(
+        config.podman,
+        &config.container_image,
+        config.container_wait,
+    )?;
+
     let mut client = conn::clorinde_conn()?;
     load_schema(&mut client, schema_files)?;
     let prepared_modules = prepare(&mut client, modules, &config)?;

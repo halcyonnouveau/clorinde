@@ -25,7 +25,14 @@ pub struct Config {
     /// Derive serde's `Serialize` trait for generated types
     pub serialize: bool,
     /// Ignore query files prefixed with underscore
+    #[serde(rename = "ignore-underscore-files")]
     pub ignore_underscore_files: bool,
+    /// Container image to use for `schema` command
+    #[serde(rename = "container-image")]
+    pub container_image: String,
+    /// Container wait time in milliseconds after health check
+    #[serde(rename = "container-wait")]
+    pub container_wait: u64,
 
     // Config file exclusive
     /// Custom type settings
@@ -65,6 +72,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             podman: false,
+            container_image: "docker.io/library/postgres:latest".to_string(),
+            container_wait: 250,
             queries: PathBuf::from_str("queries/").unwrap(),
             destination: PathBuf::from_str("clorinde").unwrap(),
             sync: false,
@@ -334,6 +343,18 @@ impl ConfigBuilder {
     /// Use `podman` instead of `docker`
     pub fn podman(mut self, podman: bool) -> Self {
         self.config.podman = podman;
+        self
+    }
+
+    /// Set container image to use for schema command
+    pub fn container_image(mut self, container_image: impl Into<String>) -> Self {
+        self.config.container_image = container_image.into();
+        self
+    }
+
+    /// Set container wait time in milliseconds after health check
+    pub fn container_wait(mut self, container_wait: u64) -> Self {
+        self.config.container_wait = container_wait;
         self
     }
 

@@ -129,7 +129,7 @@ fn prepare_full(client: &mut Client) {
 
 fn bench(c: &mut Criterion) {
     clorinde::container::cleanup(false).ok();
-    clorinde::container::setup(false).unwrap();
+    clorinde::container::setup(false, "docker.io/library/postgres:latest", 250).unwrap();
 
     let client = &mut clorinde_conn().unwrap();
     let rt: &'static Runtime = Box::leak(Box::new(Runtime::new().unwrap()));

@@ -14,7 +14,7 @@ fn is_installed(tool: &str) -> bool {
 }
 
 /// Starts Clorinde's database container and wait until it reports healthy.
-pub fn setup(podman: bool) -> Result<(), Error> {
+pub fn setup(podman: bool, container_image: &str, container_wait: u64) -> Result<(), Error> {
     let command = if podman { "podman" } else { "docker" };
     if !is_installed(command) {
         return Err(Error {
@@ -25,8 +25,8 @@ pub fn setup(podman: bool) -> Result<(), Error> {
         });
     }
 
-    spawn_container(podman)?;
-    healthcheck(podman, 120, 50)?;
+    spawn_container(podman, container_image)?;
+    healthcheck(podman, 120, 50, container_wait)?;
     Ok(())
 }
 
@@ -38,38 +38,37 @@ pub fn cleanup(podman: bool) -> Result<(), Error> {
 }
 
 /// Starts Clorinde's database container.
-fn spawn_container(podman: bool) -> Result<(), Error> {
-    cmd(
-        podman,
-        &[
-            "run",
-            "-d",
-            "--name",
-            "clorinde_postgres",
-            "-p",
-            "5435:5432",
-            "-e",
-            "POSTGRES_PASSWORD=postgres",
-            "docker.io/library/postgres:latest",
-        ],
-        "spawn container",
-    )
+fn spawn_container(podman: bool, container_image: &str) -> Result<(), Error> {
+    let args = vec![
+        "run",
+        "-d",
+        "--name",
+        "clorinde_postgres",
+        "-p",
+        "5435:5432",
+        "-e",
+        "POSTGRES_PASSWORD=postgres",
+        container_image,
+    ];
+    cmd(podman, &args, "spawn container")
 }
 
 /// Checks if Clorinde's container reports healthy
 fn is_postgres_healthy(podman: bool) -> Result<bool, Error> {
-    Ok(cmd(
-        podman,
-        &["exec", "clorinde_postgres", "pg_isready"],
-        "check container health",
-    )
-    .is_ok())
+    let args = ["exec", "clorinde_postgres", "pg_isready"];
+    Ok(cmd(podman, &args, "check container health").is_ok())
 }
 
 /// This function controls how the healthcheck retries are handled.
-fn healthcheck(podman: bool, max_retries: u64, ms_per_retry: u64) -> Result<(), Error> {
+fn healthcheck(
+    podman: bool,
+    max_retries: u64,
+    ms_per_retry: u64,
+    container_wait: u64,
+) -> Result<(), Error> {
     let slow_threshold = 10 + max_retries / 10;
     let mut nb_retries = 0;
+
     while !is_postgres_healthy(podman)? {
         if nb_retries >= max_retries {
             return Err(Error::new(
@@ -86,26 +85,25 @@ fn healthcheck(podman: bool, max_retries: u64, ms_per_retry: u64) -> Result<(), 
             );
         }
     }
+
     // Just for extra safety...
-    std::thread::sleep(std::time::Duration::from_millis(250));
+    std::thread::sleep(std::time::Duration::from_millis(container_wait));
     Ok(())
 }
 
 /// Stops Clorinde's container.
 fn stop_container(podman: bool) -> Result<(), Error> {
-    cmd(podman, &["stop", "clorinde_postgres"], "stop container")
+    let args = ["stop", "clorinde_postgres"];
+    cmd(podman, &args, "stop container")
 }
 
 /// Removes Clorinde's container and its volume.
 fn remove_container(podman: bool) -> Result<(), Error> {
-    cmd(
-        podman,
-        &["rm", "-v", "clorinde_postgres"],
-        "remove container",
-    )
+    let args = ["rm", "-v", "clorinde_postgres"];
+    cmd(podman, &args, "remove container")
 }
 
-fn cmd(podman: bool, args: &[&'static str], action: &'static str) -> Result<(), Error> {
+fn cmd(podman: bool, args: &[&str], action: &'static str) -> Result<(), Error> {
     let command = if podman { "podman" } else { "docker" };
     let output = Command::new(command)
         .args(args)
