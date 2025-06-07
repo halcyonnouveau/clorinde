@@ -71,6 +71,7 @@ pub struct PreparedField {
     pub(crate) is_nullable: bool,
     pub(crate) is_inner_nullable: bool, // Vec only
     pub(crate) attributes: Vec<String>, // Custom field attributes
+    pub(crate) nested_nullability: std::collections::HashMap<String, bool>, // Field name -> nullable
 }
 
 impl PreparedField {
@@ -79,12 +80,22 @@ impl PreparedField {
         ty: Rc<ClorindeType>,
         nullity: Option<&NullableIdent>,
     ) -> Self {
+        let mut nested_nullability = std::collections::HashMap::new();
+
+        // Extract nested field nullability specifications
+        if let Some(nullity) = nullity {
+            for (field_name, is_nullable) in nullity.get_field_nullability() {
+                nested_nullability.insert(field_name.to_string(), is_nullable);
+            }
+        }
+
         Self {
             ident: Ident::new(db_ident),
             ty,
             is_nullable: nullity.is_some_and(|it| it.nullable),
             is_inner_nullable: nullity.is_some_and(|it| it.inner_nullable),
             attributes: Vec::new(),
+            nested_nullability,
         }
     }
 
@@ -277,6 +288,10 @@ pub(crate) fn prepare(
     let mut registrar = TypeRegistrar::new(config.clone());
     let mut prepared_types: IndexMap<String, Vec<PreparedType>> = IndexMap::new();
     let mut prepared_modules = Vec::new();
+    let mut nested_nullability_specs: std::collections::HashMap<
+        String,
+        std::collections::HashMap<String, bool>,
+    > = std::collections::HashMap::new();
 
     let declared: Vec<_> = modules
         .iter()
@@ -285,12 +300,28 @@ pub(crate) fn prepare(
         .collect();
 
     for module in modules {
-        prepared_modules.push(prepare_module(client, module, &mut registrar)?);
+        let (prepared_module, module_nested_specs) =
+            prepare_module(client, module, &mut registrar)?;
+
+        prepared_modules.push(prepared_module);
+
+        // Merge nested nullability specifications
+        for (type_name, field_specs) in module_nested_specs {
+            nested_nullability_specs
+                .entry(type_name)
+                .or_insert_with(std::collections::HashMap::new)
+                .extend(field_specs);
+        }
     }
 
     // Prepare types grouped by schema
     for ((schema, name), ty) in &registrar.types {
-        if let Some(ty) = prepare_type(&registrar, name, ty, &declared) {
+        let type_nested_specs = nested_nullability_specs
+            .get(name)
+            .cloned()
+            .unwrap_or_default();
+
+        if let Some(ty) = prepare_type(&registrar, name, ty, &declared, &type_nested_specs) {
             match prepared_types.entry(schema.clone()) {
                 Entry::Occupied(mut entry) => {
                     entry.get_mut().push(ty);
@@ -301,6 +332,7 @@ pub(crate) fn prepare(
             }
         }
     }
+
     Ok(Preparation {
         modules: prepared_modules,
         types: prepared_types,
@@ -318,6 +350,7 @@ fn prepare_type(
     name: &str,
     ty: &ClorindeType,
     types: &[TypeAnnotation],
+    nested_specs: &std::collections::HashMap<String, bool>,
 ) -> Option<PreparedType> {
     if let ClorindeType::Custom {
         pg_ty,
@@ -340,7 +373,29 @@ fn prepare_type(
                 fields
                     .iter()
                     .map(|field| {
-                        let nullity = declared.iter().find(|it| it.name.value == field.name());
+                        let mut nullity = declared
+                            .iter()
+                            .find(|it| it.name.value == field.name())
+                            .cloned();
+
+                        // Apply nested nullability specifications
+                        if let Some(&should_be_nullable) = nested_specs.get(field.name()) {
+                            if let Some(ref mut existing_nullity) = nullity {
+                                existing_nullity.nullable = should_be_nullable;
+                            } else if should_be_nullable {
+                                // Create new nullity specification
+                                nullity = Some(NullableIdent {
+                                    name: crate::parser::Span {
+                                        span: (0..0).into(),
+                                        value: field.name().to_string(),
+                                    },
+                                    nullable: true,
+                                    inner_nullable: false,
+                                    nested_fields: Vec::new(),
+                                });
+                            }
+                        }
+
                         let ty = registrar.ref_of(field.type_());
 
                         // Get any custom attributes for this field based on its type
@@ -351,7 +406,7 @@ fn prepare_type(
                                 Vec::new()
                             };
 
-                        PreparedField::new(field.name().to_string(), ty, nullity)
+                        PreparedField::new(field.name().to_string(), ty, nullity.as_ref())
                             .with_attributes(attributes)
                     })
                     .collect(),
@@ -372,12 +427,18 @@ fn prepare_type(
 }
 
 #[allow(clippy::result_large_err)]
-/// Prepares all queries in this module
+/// Prepares all queries in this module and collects nested nullability specifications
 fn prepare_module(
     client: &mut Client,
     module: Module,
     registrar: &mut TypeRegistrar,
-) -> Result<PreparedModule, Error> {
+) -> Result<
+    (
+        PreparedModule,
+        std::collections::HashMap<String, std::collections::HashMap<String, bool>>,
+    ),
+    Error,
+> {
     validation::validate_module(&module)?;
 
     let mut tmp_prepared_module = PreparedModule {
@@ -387,8 +448,13 @@ fn prepare_module(
         rows: IndexMap::new(),
     };
 
+    let mut all_nested_specs: std::collections::HashMap<
+        String,
+        std::collections::HashMap<String, bool>,
+    > = std::collections::HashMap::new();
+
     for query in module.queries {
-        prepare_query(
+        let query_nested_specs = prepare_query(
             client,
             &mut tmp_prepared_module,
             registrar,
@@ -396,11 +462,19 @@ fn prepare_module(
             query,
             &module.info,
         )?;
+
+        // Merge nested specs from this query
+        for (type_name, field_specs) in query_nested_specs {
+            all_nested_specs
+                .entry(type_name)
+                .or_insert_with(std::collections::HashMap::new)
+                .extend(field_specs);
+        }
     }
 
     validation::validate_preparation(&tmp_prepared_module)?;
 
-    Ok(tmp_prepared_module)
+    Ok((tmp_prepared_module, all_nested_specs))
 }
 
 #[allow(clippy::result_large_err)]
@@ -420,7 +494,12 @@ fn prepare_query(
         sql_span,
     }: Query,
     module_info: &ModuleInfo,
-) -> Result<(), Error> {
+) -> Result<std::collections::HashMap<String, std::collections::HashMap<String, bool>>, Error> {
+    let mut nested_specs: std::collections::HashMap<
+        String,
+        std::collections::HashMap<String, bool>,
+    > = std::collections::HashMap::new();
+
     // Prepare the statement
     let stmt = client
         .prepare(&sql_str)
@@ -484,13 +563,42 @@ fn prepare_query(
 
         let mut row_fields = Vec::new();
         for (col_name, col_ty) in stmt_cols.iter().map(|c| (c.name().to_owned(), c.type_())) {
-            let nullity = nullable_row_fields
+            // Find ALL matching nullity entries (there may be multiple for the same field with different nested specs)
+            let matching_nullities: Vec<&NullableIdent> = nullable_row_fields
                 .iter()
-                .find(|x| x.name.value == col_name);
+                .filter(|x| x.name.value == col_name)
+                .collect();
+
+            let nullity = matching_nullities.first();
+
+            // Collect nested nullability specifications from ALL matching entries
+            let mut all_nested_specs = std::collections::HashMap::new();
+
+            for nullity_entry in &matching_nullities {
+                if !nullity_entry.nested_fields.is_empty() {
+                    if extract_composite_type_name(col_ty).is_some() {
+                        // Collect field specifications
+                        let field_specs: std::collections::HashMap<String, bool> = nullity_entry
+                            .get_field_nullability()
+                            .map(|(k, v)| (k.to_string(), v))
+                            .collect();
+                        all_nested_specs.extend(field_specs);
+                    }
+                }
+            }
+
+            if !all_nested_specs.is_empty() {
+                let type_key = extract_composite_type_name(col_ty);
+                if let Some(type_name) = type_key {
+                    nested_specs.insert(type_name, all_nested_specs);
+                }
+            }
+
             // Register type
             let ty = registrar
                 .register(&col_name, col_ty, &name, module_info)?
                 .clone();
+
             // Get any custom attributes for this field based on its type
             let attributes = if let Some(mapping) = registrar.get_type_mapping(col_ty) {
                 mapping.get_attributes().to_vec()
@@ -499,7 +607,7 @@ fn prepare_query(
             };
 
             row_fields.push(
-                PreparedField::new(normalize_rust_name(&col_name), ty, nullity)
+                PreparedField::new(normalize_rust_name(&col_name), ty, nullity.copied())
                     .with_attributes(attributes),
             );
         }
@@ -520,7 +628,21 @@ fn prepare_query(
 
     module.add_query(name.clone(), comments, param_idx, row_idx, sql_str);
 
-    Ok(())
+    Ok(nested_specs)
+}
+
+fn extract_composite_type_name(col_ty: &postgres_types::Type) -> Option<String> {
+    match col_ty.kind() {
+        Kind::Array(inner_type) => {
+            // For arrays, get the inner type name
+            Some(inner_type.name().to_string())
+        }
+        Kind::Composite(_) => {
+            // For direct composite types
+            Some(col_ty.name().to_string())
+        }
+        _ => None,
+    }
 }
 
 pub(crate) mod error {
