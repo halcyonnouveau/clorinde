@@ -2,6 +2,7 @@
 --: NullityParams(texts[?], composite?)
 --: TestNestedComposite(composite[].jsons?, composite[].id?)
 --: TestDirectComposite(composite?.jsons?, composite?.id?)
+--: nullity_composite(jsons?[?])
 
 --! new_nullity NullityParams
 INSERT INTO nullity(texts, name, composite) VALUES (:texts, :name, :composite);

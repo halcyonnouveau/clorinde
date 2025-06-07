@@ -17,6 +17,8 @@ use crate::{
 
 use self::error::Error;
 
+type ModuleNestedSpecs = std::collections::HashMap<String, std::collections::HashMap<String, bool>>;
+
 /// This data structure is used by Clorinde to generate
 /// all constructs related to this particular query.
 #[derive(Debug, Clone)]
@@ -309,7 +311,7 @@ pub(crate) fn prepare(
         for (type_name, field_specs) in module_nested_specs {
             nested_nullability_specs
                 .entry(type_name)
-                .or_insert_with(std::collections::HashMap::new)
+                .or_default()
                 .extend(field_specs);
         }
     }
@@ -432,13 +434,7 @@ fn prepare_module(
     client: &mut Client,
     module: Module,
     registrar: &mut TypeRegistrar,
-) -> Result<
-    (
-        PreparedModule,
-        std::collections::HashMap<String, std::collections::HashMap<String, bool>>,
-    ),
-    Error,
-> {
+) -> Result<(PreparedModule, ModuleNestedSpecs), Error> {
     validation::validate_module(&module)?;
 
     let mut tmp_prepared_module = PreparedModule {
@@ -467,7 +463,7 @@ fn prepare_module(
         for (type_name, field_specs) in query_nested_specs {
             all_nested_specs
                 .entry(type_name)
-                .or_insert_with(std::collections::HashMap::new)
+                .or_default()
                 .extend(field_specs);
         }
     }
@@ -575,15 +571,15 @@ fn prepare_query(
             let mut all_nested_specs = std::collections::HashMap::new();
 
             for nullity_entry in &matching_nullities {
-                if !nullity_entry.nested_fields.is_empty() {
-                    if extract_composite_type_name(col_ty).is_some() {
-                        // Collect field specifications
-                        let field_specs: std::collections::HashMap<String, bool> = nullity_entry
-                            .get_field_nullability()
-                            .map(|(k, v)| (k.to_string(), v))
-                            .collect();
-                        all_nested_specs.extend(field_specs);
-                    }
+                if !nullity_entry.nested_fields.is_empty()
+                    && extract_composite_type_name(col_ty).is_some()
+                {
+                    // Collect field specifications
+                    let field_specs: std::collections::HashMap<String, bool> = nullity_entry
+                        .get_field_nullability()
+                        .map(|(k, v)| (k.to_string(), v))
+                        .collect();
+                    all_nested_specs.extend(field_specs);
                 }
             }
 

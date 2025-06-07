@@ -157,7 +157,7 @@ pub fn test_nullity(client: &mut Client) {
             client,
             &NullityParams {
                 composite: Some(NullityCompositeParams {
-                    jsons: Some(&[None]),
+                    jsons: Some(&[]),
                     id: Some(42),
                 }),
                 name: "James Bond",
@@ -170,7 +170,7 @@ pub fn test_nullity(client: &mut Client) {
         nullity().bind(client).one().unwrap(),
         Nullity {
             composite: Some(NullityComposite {
-                jsons: Some(vec![None]),
+                jsons: Some(vec![]),
                 id: Some(42),
             }),
             name: "James Bond".to_string(),

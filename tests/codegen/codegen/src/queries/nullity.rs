@@ -555,26 +555,6 @@ pub mod sync {
             }
         }
     }
-    pub fn test_id_only_nested() -> TestIdOnlyNestedStmt {
-        TestIdOnlyNestedStmt(crate::client::sync::Stmt::new(
-            "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
-    }
-    pub struct TestIdOnlyNestedStmt(crate::client::sync::Stmt);
-    impl TestIdOnlyNestedStmt {
-        pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
-            client: &'c mut C,
-        ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
-            NullityCompositeQuery {
-                client,
-                params: [],
-                stmt: &mut self.0,
-                extractor: |row| Ok(row.try_get(0)?),
-                mapper: |it| it.into(),
-            }
-        }
-    }
     pub fn test_nested_array() -> TestNestedArrayStmt {
         TestNestedArrayStmt(crate::client::sync::Stmt::new(
             "SELECT ARRAY[composite, composite] as composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
@@ -650,27 +630,6 @@ pub mod sync {
     }
     pub struct TestSingleDirectStmt(crate::client::sync::Stmt);
     impl TestSingleDirectStmt {
-        pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
-            client: &'c mut C,
-        ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
-        {
-            OptionNullityCompositeQuery {
-                client,
-                params: [],
-                stmt: &mut self.0,
-                extractor: |row| Ok(row.try_get(0)?),
-                mapper: |it| it.map(|v| v.into()),
-            }
-        }
-    }
-    pub fn test_id_only_direct() -> TestIdOnlyDirectStmt {
-        TestIdOnlyDirectStmt(crate::client::sync::Stmt::new(
-            "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
-    }
-    pub struct TestIdOnlyDirectStmt(crate::client::sync::Stmt);
-    impl TestIdOnlyDirectStmt {
         pub fn bind<'c, 'a, 's, C: GenericClient>(
             &'s mut self,
             client: &'c mut C,
@@ -1236,26 +1195,6 @@ pub mod async_ {
             }
         }
     }
-    pub fn test_id_only_nested() -> TestIdOnlyNestedStmt {
-        TestIdOnlyNestedStmt(crate::client::async_::Stmt::new(
-            "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
-    }
-    pub struct TestIdOnlyNestedStmt(crate::client::async_::Stmt);
-    impl TestIdOnlyNestedStmt {
-        pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
-            client: &'c C,
-        ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
-            NullityCompositeQuery {
-                client,
-                params: [],
-                stmt: &mut self.0,
-                extractor: |row| Ok(row.try_get(0)?),
-                mapper: |it| it.into(),
-            }
-        }
-    }
     pub fn test_nested_array() -> TestNestedArrayStmt {
         TestNestedArrayStmt(crate::client::async_::Stmt::new(
             "SELECT ARRAY[composite, composite] as composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
@@ -1332,27 +1271,6 @@ pub mod async_ {
     }
     pub struct TestSingleDirectStmt(crate::client::async_::Stmt);
     impl TestSingleDirectStmt {
-        pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
-            client: &'c C,
-        ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
-        {
-            OptionNullityCompositeQuery {
-                client,
-                params: [],
-                stmt: &mut self.0,
-                extractor: |row| Ok(row.try_get(0)?),
-                mapper: |it| it.map(|v| v.into()),
-            }
-        }
-    }
-    pub fn test_id_only_direct() -> TestIdOnlyDirectStmt {
-        TestIdOnlyDirectStmt(crate::client::async_::Stmt::new(
-            "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
-    }
-    pub struct TestIdOnlyDirectStmt(crate::client::async_::Stmt);
-    impl TestIdOnlyDirectStmt {
         pub fn bind<'c, 'a, 's, C: GenericClient>(
             &'s mut self,
             client: &'c C,
