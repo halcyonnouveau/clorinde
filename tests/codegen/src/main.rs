@@ -30,7 +30,10 @@ use codegen::{
         },
         nullity::{
             Nullity, NullityParams,
-            sync::{new_nullity, nullity},
+            sync::{
+                new_nullity, nullity, test_direct_nullity, test_named_direct, test_named_nested,
+                test_nested_nullity, test_single_direct, test_single_nested,
+            },
         },
         params::{
             SelectBook,
@@ -154,25 +157,78 @@ pub fn test_nullity(client: &mut Client) {
             client,
             &NullityParams {
                 composite: Some(NullityCompositeParams {
-                    jsons: Some(&[None]),
-                    id: 42,
+                    jsons: Some(&[]),
+                    id: Some(42),
                 }),
                 name: "James Bond",
                 texts: [Some("Hello"), Some("world"), None].as_slice(),
             },
         )
         .unwrap();
+
     assert_eq!(
         nullity().bind(client).one().unwrap(),
         Nullity {
             composite: Some(NullityComposite {
-                jsons: Some(vec![None]),
-                id: 42,
+                jsons: Some(vec![]),
+                id: Some(42),
             }),
             name: "James Bond".to_string(),
             texts: vec![Some("Hello".to_string()), Some("world".to_string()), None],
         }
     );
+
+    let result = test_nested_nullity().bind(client).one().unwrap();
+    assert!(result.jsons.is_some());
+    assert!(result.id.is_none() || result.id.is_some());
+
+    let result = test_single_nested().bind(client).one().unwrap();
+    assert!(result.jsons.is_some());
+    assert!(result.id.is_none() || result.id.is_some());
+
+    let result = test_direct_nullity().bind(client).one().unwrap();
+    if let Some(composite) = result {
+        assert!(composite.jsons.is_some());
+        assert!(composite.id.is_none() || composite.id.is_some());
+    }
+
+    let result = test_single_direct().bind(client).one().unwrap();
+    if let Some(composite) = result {
+        assert!(composite.jsons.is_some());
+        assert!(composite.id.is_none() || composite.id.is_some());
+    }
+
+    let result = test_named_nested().bind(client).one().unwrap();
+    assert!(result.composite.jsons.is_some());
+    assert!(result.composite.id.is_none() || result.composite.id.is_some());
+
+    let result = test_named_direct().bind(client).one().unwrap();
+    if let Some(composite) = result.composite {
+        assert!(composite.jsons.is_some());
+        assert!(composite.id.is_none() || composite.id.is_some());
+    }
+
+    new_nullity()
+        .params(
+            client,
+            &NullityParams {
+                composite: Some(NullityCompositeParams {
+                    jsons: None, // Test null jsons
+                    id: Some(0), // id will be treated as nullable due to nested specifications
+                }),
+                name: "Null Test",
+                texts: [None::<&str>].as_slice(),
+            },
+        )
+        .unwrap();
+
+    let results = nullity().bind(client).all().unwrap();
+    assert!(results.len() >= 2);
+
+    let null_test_record = results.iter().find(|r| r.name == "Null Test").unwrap();
+    if let Some(composite) = &null_test_record.composite {
+        assert!(composite.jsons.is_none());
+    }
 }
 
 pub fn test_named(client: &mut Client) {

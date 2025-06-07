@@ -16,7 +16,14 @@ pub(crate) fn duplicate_nullable_ident(
     info: &ModuleInfo,
     idents: &[NullableIdent],
 ) -> Result<(), Box<Error>> {
-    find_duplicate(idents, |a, b| a.name == b.name).map_or(Ok(()), |(first, second)| {
+    find_duplicate(idents, |a, b| {
+        // Two nullable idents are duplicates only if they specify nullity for the exact same field path
+        a.name == b.name
+            && a.nullable == b.nullable
+            && a.inner_nullable == b.inner_nullable
+            && a.nested_fields == b.nested_fields
+    })
+    .map_or(Ok(()), |(first, second)| {
         Err(Box::new(Error::DuplicateFieldNullity {
             src: info.into(),
             name: first.name.value.clone(),

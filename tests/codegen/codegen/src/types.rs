@@ -610,14 +610,14 @@ pub struct NullityComposite {
     #[postgres(name = "jsons")]
     pub jsons: Option<Vec<Option<serde_json::Value>>>,
     #[postgres(name = "id")]
-    pub id: i32,
+    pub id: Option<i32>,
 }
 #[derive(Debug)]
 pub struct NullityCompositeBorrowed<'a> {
     pub jsons: Option<
         crate::ArrayIterator<'a, Option<postgres_types::Json<&'a serde_json::value::RawValue>>>,
     >,
-    pub id: i32,
+    pub id: Option<i32>,
 }
 impl<'a> From<NullityCompositeBorrowed<'a>> for NullityComposite {
     fn from(NullityCompositeBorrowed { jsons, id }: NullityCompositeBorrowed<'a>) -> Self {
@@ -661,7 +661,7 @@ impl<'a> postgres_types::FromSql<'a> for NullityCompositeBorrowed<'a> {
 #[derive(Debug)]
 pub struct NullityCompositeParams<'a> {
     pub jsons: Option<&'a [Option<&'a serde_json::value::Value>]>,
-    pub id: i32,
+    pub id: Option<i32>,
 }
 impl<'a> postgres_types::ToSql for NullityCompositeParams<'a> {
     fn to_sql(
