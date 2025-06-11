@@ -121,24 +121,80 @@ fn blank<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Simple<'src, cha
         .ignored()
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldSegment {
+    pub name: Span<String>,
+    pub nullable: bool,
+    pub is_array: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct NullableIdent {
     pub name: Span<String>,
     pub nullable: bool,
     pub inner_nullable: bool,
+    pub nested_fields: Vec<FieldSegment>,
+}
+
+impl NullableIdent {
+    /// Get all field nullability specifications for this identifier
+    pub fn get_field_nullability(&self) -> impl Iterator<Item = (&str, bool)> + '_ {
+        self.nested_fields
+            .iter()
+            .map(|segment| (segment.name.value.as_str(), segment.nullable))
+    }
+}
+
+fn parse_field_segment<'src>()
+-> impl Parser<'src, &'src str, FieldSegment, extra::Err<Simple<'src, char>>> {
+    ident()
+        .then(just('?').or_not())
+        .map(|(name, nullable)| FieldSegment {
+            name,
+            nullable: nullable.is_some(),
+            is_array: false,
+        })
 }
 
 fn parse_nullable_ident<'src>()
 -> impl Parser<'src, &'src str, Vec<NullableIdent>, extra::Err<Simple<'src, char>>> {
     let single_ident = space()
-        .ignore_then(ident())
-        .then(just('?').or_not())
-        .then(just("[?]").or_not())
-        .map(|((name, null), inner_null)| NullableIdent {
-            name,
-            nullable: null.is_some(),
-            inner_nullable: inner_null.is_some(),
-        })
+        .ignore_then(
+            ident()
+                .then(just('?').or_not())
+                .then(just("[?]").or_not())
+                .then(
+                    // Parse nested field paths like .field or [].field
+                    choice((
+                        // Handle [].field? syntax for array element field access
+                        just("[]")
+                            .ignore_then(just('.'))
+                            .ignore_then(parse_field_segment())
+                            .map(|segment| (segment, true)), // true indicates this is an array access
+                        // Handle .field? syntax for direct field access
+                        just('.')
+                            .ignore_then(parse_field_segment())
+                            .map(|segment| (segment, false)), // false indicates this is direct access
+                    ))
+                    .repeated()
+                    .collect::<Vec<_>>(),
+                )
+                .map(|(((name, nullable), array_nullable), nested_accesses)| {
+                    let mut nested_fields = Vec::new();
+
+                    for (mut segment, is_array_access) in nested_accesses {
+                        segment.is_array = is_array_access;
+                        nested_fields.push(segment);
+                    }
+
+                    NullableIdent {
+                        name,
+                        nullable: nullable.is_some(),
+                        inner_nullable: array_nullable.is_some(),
+                        nested_fields,
+                    }
+                }),
+        )
         .then_ignore(space());
 
     single_ident
