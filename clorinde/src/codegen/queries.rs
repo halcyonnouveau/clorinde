@@ -407,7 +407,7 @@ fn gen_query_fn(
             };
 
             let bind_visibility =
-                if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
+                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
                     quote! {} // No visibility modifier means private
                 } else {
                     quote! { pub }
@@ -434,7 +434,7 @@ fn gen_query_fn(
             let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
 
             let bind_visibility =
-                if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
+                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
                     quote! {} // No visibility modifier means private
                 } else {
                     quote! { pub }
@@ -465,8 +465,7 @@ fn gen_query_fn(
             })
             .collect();
 
-        let bind_visibility = if config.params_only && param.as_ref().map_or(false, |p| p.is_named)
-        {
+        let bind_visibility = if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
             quote! {} // No visibility modifier means private
         } else {
             quote! { pub }
