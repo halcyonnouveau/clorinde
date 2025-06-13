@@ -33,6 +33,9 @@ pub struct Config {
     /// Container wait time in milliseconds after health check
     #[serde(rename = "container-wait")]
     pub container_wait: u64,
+    /// Make bind functions private to force usage of params() method
+    #[serde(rename = "params-only")]
+    pub params_only: bool,
 
     // Config file exclusive
     /// Custom type settings
@@ -80,6 +83,7 @@ impl Default for Config {
             r#async: true,
             serialize: false,
             ignore_underscore_files: false, // Default to false for backwards compatibility
+            params_only: false,
             types: Types {
                 crate_info: HashMap::new(),
                 mapping: HashMap::new(),
@@ -397,6 +401,12 @@ impl ConfigBuilder {
     /// Ignore query files prefixed with underscore
     pub fn ignore_underscore_files(mut self, ignore_underscore_files: bool) -> Self {
         self.config.ignore_underscore_files = ignore_underscore_files;
+        self
+    }
+
+    /// Make bind functions private to force usage of params() method
+    pub fn params_only(mut self, params_only: bool) -> Self {
+        self.config.params_only = params_only;
         self
     }
 
