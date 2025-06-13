@@ -406,11 +406,12 @@ fn gen_query_fn(
                 |it| #path::from(it)
             };
 
-            let bind_visibility = if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
-                quote! {}  // No visibility modifier means private
-            } else {
-                quote! { pub }
-            };
+            let bind_visibility =
+                if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
+                    quote! {} // No visibility modifier means private
+                } else {
+                    quote! { pub }
+                };
 
             quote! {
                 #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
@@ -432,11 +433,12 @@ fn gen_query_fn(
             let field_type = syn::parse_str::<syn::Type>(&field.own_struct(ctx)).unwrap();
             let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
 
-            let bind_visibility = if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
-                quote! {}  // No visibility modifier means private
-            } else {
-                quote! { pub }
-            };
+            let bind_visibility =
+                if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
+                    quote! {} // No visibility modifier means private
+                } else {
+                    quote! { pub }
+                };
 
             quote! {
                 #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
@@ -463,8 +465,9 @@ fn gen_query_fn(
             })
             .collect();
 
-        let bind_visibility = if config.params_only && param.as_ref().map_or(false, |p| p.is_named) {
-            quote! {}  // No visibility modifier means private
+        let bind_visibility = if config.params_only && param.as_ref().map_or(false, |p| p.is_named)
+        {
+            quote! {} // No visibility modifier means private
         } else {
             quote! { pub }
         };
