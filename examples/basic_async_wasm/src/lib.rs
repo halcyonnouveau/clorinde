@@ -129,7 +129,7 @@ pub async fn create_db_client() -> Result<Client, Box<dyn std::error::Error>> {
 
     wasm_bindgen_futures::spawn_local(async move {
         if let Err(e) = connection.await {
-            eprintln!("connection error: {}", e);
+            eprintln!("connection error: {e}");
         }
     });
 

@@ -132,57 +132,6 @@ pub struct Types {
     pub type_traits_mapping: HashMap<String, Vec<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct DependencyTable {
-    pub version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub workspace: Option<bool>,
-    pub path: Option<String>,
-    pub optional: Option<bool>,
-    pub features: Option<Vec<String>>,
-    #[serde(rename = "default-features")]
-    pub default_features: Option<bool>,
-}
-
-impl DependencyTable {
-    pub fn new(version: impl Into<String>) -> Self {
-        Self {
-            version: Some(version.into()),
-            ..Default::default()
-        }
-    }
-
-    pub fn features(mut self, features: Vec<impl Into<String>>) -> Self {
-        self.features = Some(features.into_iter().map(Into::into).collect());
-        self
-    }
-
-    pub fn optional(mut self) -> Self {
-        self.optional = Some(true);
-        self
-    }
-
-    pub fn no_default_features(mut self) -> Self {
-        self.default_features = Some(false);
-        self
-    }
-
-    pub fn is_simple_version(&self) -> bool {
-        matches!(
-            self,
-            DependencyTable {
-                version: Some(_),
-                path: None,
-                workspace: None,
-                optional: None,
-                features: None,
-                default_features: None,
-            }
-        )
-    }
-}
-
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TypeMapping {
@@ -413,7 +362,10 @@ impl ConfigBuilder {
         name: impl Into<String>,
         dependency: cargo_toml::Dependency,
     ) -> Self {
-        self.config.manifest.dependencies.insert(name.into(), dependency);
+        self.config
+            .manifest
+            .dependencies
+            .insert(name.into(), dependency);
         self
     }
 
