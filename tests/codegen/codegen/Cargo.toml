@@ -1,48 +1,65 @@
 # This file was generated with `clorinde`. Do not modify.
+
 [package]
 name = "codegen"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
+[dependencies.chrono]
+version = "0.4.40"
+features = ["serde"]
+optional = true
+
+[dependencies.deadpool-postgres]
+version = "0.14.1"
+optional = true
+
+[dependencies.eui48]
+version = "1.1.0"
+default-features = false
+
+[dependencies.futures]
+version = "0.3.31"
+
+[dependencies.postgres]
+version = "0.19.10"
+features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
+
+[dependencies.postgres-protocol]
+version = "0.6.8"
+
+[dependencies.postgres-types]
+version = "0.2.9"
+features = ["derive"]
+
+[dependencies.rust_decimal]
+version = "1.37.1"
+features = ["db-postgres"]
+
+[dependencies.serde]
+version = "1.0.219"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1.0.140"
+features = ["raw_value"]
+
+[dependencies.time]
+version = "0.3.41"
+optional = true
+
+[dependencies.tokio-postgres]
+version = "0.7.13"
+features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
+
+[dependencies.uuid]
+version = "1.16.0"
+features = ["serde"]
+
 [features]
-default = ["deadpool", "chrono"]
-deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
-wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
-
 chrono = ["dep:chrono"]
+deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
+default = ["deadpool", "chrono"]
 time = ["dep:time"]
-
-[dependencies]
-## Core dependencies
-# Postgres types
-postgres-types = { version = "0.2.9", features = ["derive"] }
-# Postgres interaction
-postgres-protocol = "0.6.8"
-
-## Types dependencies
-# TIME, DATE, TIMESTAMP or TIMESTAMPZ
-chrono = { version = "0.4.40", optional = true, features = ["serde"] }
-time = { version = "0.3.41", optional = true }
-# UUID
-uuid = { version = "1.16.0", features = ["serde"] }
-# MAC ADDRESS
-eui48 = { version = "1.1.0", default-features = false }
-# DECIMAL
-rust_decimal = { version = "1.37.1", features = ["db-postgres"] }
-# JSON or JSONB
-serde_json = { version = "1.0.140", features = ["raw_value"] }
-serde = { version = "1.0.219", features = ["derive"] }
-
-# Postgres
-postgres = { version = "0.19.10", features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"] }
-
-## Async client dependencies
-# Postgres async client
-tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-time-0_3", "with-uuid-1", "with-eui48-1", "with-serde_json-1"] }
-# Async utils
-futures = "0.3.31"
-
-## Async features dependencies
-# Async connection pooling
-deadpool-postgres = { version = "0.14.1", optional = true }
+wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]

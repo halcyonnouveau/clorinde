@@ -44,3 +44,4 @@ tempfile = "3.19.1"
 # Config handling
 serde = { version = "1.0.219", features = ["derive"] }
 toml = "0.8.22"
+cargo_toml = "0.22.1"

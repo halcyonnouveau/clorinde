@@ -15,12 +15,13 @@ pub mod conn;
 /// High-level interfaces to work with Clorinde's container manager.
 pub mod container;
 
-use config::Config;
-
+/// Re-export of cargo_toml for working with manifest configurations
+pub use cargo_toml;
 use std::path::Path;
 
 use postgres::Client;
 
+use config::Config;
 use parser::parse_query_module;
 use prepare_queries::prepare;
 use read_queries::read_query_modules;

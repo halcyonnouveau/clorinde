@@ -117,7 +117,7 @@ fn read_query_modules_recursive(
             } else {
                 // Create a path that represents the module hierarchy
                 let rel_path_str = path_to_module_path(relative_path);
-                format!("{}::{}", rel_path_str, module_name)
+                format!("{rel_path_str}::{module_name}")
             };
 
             let file_contents = std::fs::read_to_string(&path_buf).map_err(|err| Error {
