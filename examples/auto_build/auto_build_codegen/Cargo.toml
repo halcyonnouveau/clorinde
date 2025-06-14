@@ -1,34 +1,34 @@
 # This file was generated with `clorinde`. Do not modify.
+
 [package]
 name = "auto_build_codegen"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
+[dependencies.deadpool-postgres]
+version = "0.14.1"
+optional = true
+
+[dependencies.futures]
+version = "0.3.31"
+
+[dependencies.postgres]
+version = "0.19.10"
+
+[dependencies.postgres-protocol]
+version = "0.6.8"
+
+[dependencies.postgres-types]
+version = "0.2.9"
+features = ["derive"]
+
+[dependencies.tokio-postgres]
+version = "0.7.13"
+
 [features]
-default = ["deadpool"]
-deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
-wasm-async = ["tokio-postgres/js"]
-
 chrono = []
+deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
+default = ["deadpool"]
 time = []
-
-[dependencies]
-## Core dependencies
-# Postgres types
-postgres-types = { version = "0.2.9", features = ["derive"] }
-# Postgres interaction
-postgres-protocol = "0.6.8"
-
-# Postgres
-postgres = { version = "0.19.10", features = [] }
-
-## Async client dependencies
-# Postgres async client
-tokio-postgres = { version = "0.7.13", features = [] }
-# Async utils
-futures = "0.3.31"
-
-## Async features dependencies
-# Async connection pooling
-deadpool-postgres = { version = "0.14.1", optional = true }
+wasm-async = ["tokio-postgres/js"]

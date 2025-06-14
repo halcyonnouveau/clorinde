@@ -1,45 +1,59 @@
 # This file was generated with `clorinde`. Do not modify.
+
 [package]
 name = "custom_types_codegen"
 version = "0.1.0"
 edition = "2021"
-publish = false
+
+[dependencies.chrono]
+features = ["serde"]
+optional = true
+workspace = true
+
+[dependencies.ctypes]
+path = "../ctypes"
+
+[dependencies.deadpool-postgres]
+version = "0.14.1"
+optional = true
+
+[dependencies.futures]
+version = "0.3.31"
+
+[dependencies.postgres]
+version = "0.19.10"
+features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"]
+
+[dependencies.postgres-protocol]
+version = "0.6.8"
+
+[dependencies.postgres-types]
+version = "0.2.9"
+features = ["derive"]
+
+[dependencies.postgres_range]
+version = "0.11.1"
+features = ["with-chrono-0_4"]
+
+[dependencies.serde]
+version = "1.0.219"
+features = ["derive"]
+
+[dependencies.time]
+optional = true
+workspace = true
+
+[dependencies.tokio-postgres]
+version = "0.7.13"
+features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"]
 
 [features]
-default = ["deadpool", "chrono"]
+chrono = ["dep:chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
+default = ["deadpool", "chrono"]
+time = ["dep:time"]
 wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
 
-chrono = ["dep:chrono"]
-time = ["dep:time"]
-
-[dependencies]
-## Core dependencies
-# Postgres types
-postgres-types = { version = "0.2.9", features = ["derive"] }
-# Postgres interaction
-postgres-protocol = "0.6.8"
-
-## Types dependencies
-# TIME, DATE, TIMESTAMP or TIMESTAMPZ
-chrono = { workspace = true, optional = true, features = ["serde"] }
-time = { workspace = true, optional = true }
-# JSON or JSONB
-serde = { version = "1.0.219", features = ["derive"] }
-
-# Postgres
-postgres = { version = "0.19.10", features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"] }
-
-## Async client dependencies
-# Postgres async client
-# Async utils
-futures = "0.3.31"
-
-## Async features dependencies
-# Async connection pooling
-deadpool-postgres = { version = "0.14.1", optional = true }
-
-## Custom type dependencies
-ctypes = { path = "../ctypes" }
-postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
-tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4", "with-serde_json-1"] }
+[lints.rust]
+dead_code = "allow"
+unused_imports = "allow"

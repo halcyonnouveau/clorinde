@@ -1,4 +1,4 @@
-use miette::{Diagnostic, IntoDiagnostic, Result};
+use miette::{Diagnostic, Result};
 use postgres_types::Type;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -37,8 +37,8 @@ pub struct Config {
     // Config file exclusive
     /// Custom type settings
     pub types: Types,
-    /// The `package` table of the generated `Cargo.toml`
-    pub package: Package,
+    /// The Cargo.toml manifest configuration
+    pub manifest: cargo_toml::Manifest<toml::Value>,
     /// Options to configure code style of generated code
     pub style: Style,
     /// List of static files to copy into the generated directory
@@ -53,7 +53,9 @@ impl Config {
     /// Create config from file
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
         let contents = fs::read_to_string(path)?;
-        let config = toml::from_str(&contents)?;
+        let mut config: Config = toml::from_str(&contents)?;
+        config.manifest = merge_manifest_with_defaults(config.manifest);
+
         Ok(config)
     }
 
@@ -81,12 +83,11 @@ impl Default for Config {
             serialize: false,
             ignore_underscore_files: false, // Default to false for backwards compatibility
             types: Types {
-                crate_info: HashMap::new(),
                 mapping: HashMap::new(),
                 derive_traits: vec![],
                 type_traits_mapping: HashMap::new(),
             },
-            package: Package::default(),
+            manifest: default_manifest(),
             style: Style::default(),
             static_files: vec![],
             use_workspace_deps: UseWorkspaceDeps::Bool(false),
@@ -121,9 +122,6 @@ impl Default for UseWorkspaceDeps {
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct Types {
-    /// Crates to add as a dependency for custom types
-    #[serde(rename = "crates")]
-    pub crate_info: HashMap<String, CrateDependency>,
     /// Mapping for postgres to rust types
     pub mapping: HashMap<String, TypeMapping>,
     /// Derive traits added to all generated row structs and custom types
@@ -132,15 +130,6 @@ pub struct Types {
     /// Mapping for custom postgres types (eg. domains, enums, etc) to derive traits
     #[serde(rename = "type-traits-mapping")]
     pub type_traits_mapping: HashMap<String, Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum CrateDependency {
-    /// Simple version string
-    Simple(String),
-    /// Detailed table information
-    Detailed(DependencyTable),
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
@@ -219,111 +208,49 @@ impl TypeMapping {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(default, deny_unknown_fields)]
-pub struct Package {
-    pub name: String,
-    pub version: String,
-    pub edition: String,
-    pub publish: Publish,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub authors: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub documentation: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub readme: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub homepage: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub repository: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub license: Option<String>,
-    #[serde(rename = "license-file", skip_serializing_if = "Option::is_none")]
-    pub license_file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub keywords: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub categories: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub workspace: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub build: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub links: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exclude: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub include: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<toml::Value>,
-    #[serde(rename = "default-run", skip_serializing_if = "Option::is_none")]
-    pub default_run: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub autobins: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub autoexamples: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub autotests: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub autobenches: Option<bool>,
-    #[serde(rename = "rust-version", skip_serializing_if = "Option::is_none")]
-    pub rust_version: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(untagged)]
-pub enum Publish {
-    Bool(bool),
-    Repositories(Vec<String>),
-}
-
-impl Default for Publish {
-    fn default() -> Self {
-        Self::Bool(false)
-    }
-}
-
-impl Package {
-    pub fn to_string(&self) -> Result<String> {
-        let mut output = String::from("[package]\n");
-        output.push_str(&toml::to_string_pretty(self).into_diagnostic()?);
-        Ok(output)
-    }
-}
-
-impl Default for Package {
-    fn default() -> Self {
-        Self {
-            name: "clorinde".to_string(),
-            version: "0.1.0".to_string(),
-            edition: "2021".to_string(),
-            publish: Publish::default(),
-            authors: None,
-            description: None,
-            documentation: None,
-            readme: None,
-            homepage: None,
-            repository: None,
-            license: None,
-            license_file: None,
-            keywords: None,
-            categories: None,
-            workspace: None,
-            build: None,
-            links: None,
-            exclude: None,
-            include: None,
-            metadata: None,
-            default_run: None,
-            autobins: None,
-            autoexamples: None,
-            autotests: None,
-            autobenches: None,
-            rust_version: None,
+fn merge_manifest_with_defaults(
+    mut user_manifest: cargo_toml::Manifest<toml::Value>,
+) -> cargo_toml::Manifest<toml::Value> {
+    if let Some(user_package) = &mut user_manifest.package {
+        // Apply better defaults for commonly unspecified fields
+        if user_package.version == cargo_toml::Inheritable::Set("0.0.0".to_string()) {
+            user_package.version = cargo_toml::Inheritable::Set("0.1.0".to_string());
+        }
+        if user_package.edition == cargo_toml::Inheritable::Set(cargo_toml::Edition::E2015) {
+            user_package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
         }
     }
+    user_manifest
+}
+
+#[allow(deprecated)]
+fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
+    let mut manifest = cargo_toml::Manifest {
+        package: None,
+        workspace: None,
+        dependencies: Default::default(),
+        dev_dependencies: Default::default(),
+        build_dependencies: Default::default(),
+        target: Default::default(),
+        features: Default::default(),
+        replace: Default::default(),
+        patch: Default::default(),
+        lib: None,
+        profile: cargo_toml::Profiles::default(),
+        badges: Default::default(),
+        bin: vec![],
+        bench: vec![],
+        test: vec![],
+        example: vec![],
+        lints: cargo_toml::Inheritable::default(),
+    };
+
+    let mut package = cargo_toml::Package::new("clorinde", "0.1.0");
+    package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
+    package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
+    manifest.package = Some(package);
+
+    manifest
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
@@ -366,7 +293,14 @@ impl ConfigBuilder {
 
     /// Set just the package name, keeping other package defaults
     pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.config.package.name = name.into();
+        if let Some(package) = &mut self.config.manifest.package {
+            package.name = name.into();
+        } else {
+            let mut package = cargo_toml::Package::new(name.into(), "0.1.0");
+            package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
+            package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
+            self.config.manifest.package = Some(package);
+        }
         self
     }
 
@@ -406,9 +340,15 @@ impl ConfigBuilder {
         self
     }
 
+    /// Set the entire Cargo.toml manifest
+    pub fn manifest(mut self, manifest: cargo_toml::Manifest<toml::Value>) -> Self {
+        self.config.manifest = manifest;
+        self
+    }
+
     /// Set package metadata for the generated `Cargo.toml`
-    pub fn package(mut self, package: Package) -> Self {
-        self.config.package = package;
+    pub fn package(mut self, package: cargo_toml::Package) -> Self {
+        self.config.manifest.package = Some(package);
         self
     }
 
@@ -442,29 +382,6 @@ impl ConfigBuilder {
         self
     }
 
-    /// Add a crate dependency
-    pub fn add_crate_dependency(
-        mut self,
-        name: impl Into<String>,
-        dependency: CrateDependency,
-    ) -> Self {
-        self.config.types.crate_info.insert(name.into(), dependency);
-        self
-    }
-
-    /// Add a simple crate dependency
-    pub fn add_simple_crate_dependency(
-        mut self,
-        name: impl Into<String>,
-        version: impl Into<String>,
-    ) -> Self {
-        self.config
-            .types
-            .crate_info
-            .insert(name.into(), CrateDependency::Simple(version.into()));
-        self
-    }
-
     /// Add a derive trait for all generated structs/types
     pub fn add_derive_trait(mut self, trait_name: impl Into<String>) -> Self {
         self.config.types.derive_traits.push(trait_name.into());
@@ -487,6 +404,16 @@ impl ConfigBuilder {
             type_name.into(),
             traits.into_iter().map(Into::into).collect(),
         );
+        self
+    }
+
+    /// Add a dependency to the generated Cargo.toml
+    pub fn add_dependency(
+        mut self,
+        name: impl Into<String>,
+        dependency: cargo_toml::Dependency,
+    ) -> Self {
+        self.config.manifest.dependencies.insert(name.into(), dependency);
         self
     }
 

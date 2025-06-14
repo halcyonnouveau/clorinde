@@ -1,23 +1,23 @@
 # This file was generated with `clorinde`. Do not modify.
+
 [package]
 name = "basic_sync_codegen"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
+[dependencies.postgres]
+version = "0.19.10"
+
+[dependencies.postgres-protocol]
+version = "0.6.8"
+
+[dependencies.postgres-types]
+version = "0.2.9"
+features = ["derive"]
+
 [features]
-default = []
-wasm-sync = []
-
 chrono = []
+default = []
 time = []
-
-[dependencies]
-## Core dependencies
-# Postgres types
-postgres-types = { version = "0.2.9", features = ["derive"] }
-# Postgres interaction
-postgres-protocol = "0.6.8"
-
-# Postgres
-postgres = { version = "0.19.10", features = [] }
+wasm-sync = []
