@@ -35,18 +35,18 @@ pub struct Config {
     /// Make bind functions private to force usage of params() method
     #[serde(rename = "params-only")]
     pub params_only: bool,
-    /// Custom type settings
-    pub types: Types,
-    /// The Cargo.toml manifest configuration
-    pub manifest: cargo_toml::Manifest<toml::Value>,
-    /// Options to configure code style of generated code
-    pub style: Style,
     /// List of static files to copy into the generated directory
     #[serde(rename = "static")]
     pub static_files: Vec<StaticFile>,
     /// Use workspace dependencies
     #[serde(rename = "use-workspace-deps")]
     pub use_workspace_deps: UseWorkspaceDeps,
+    /// Options to configure code style of generated code
+    pub style: Style,
+    /// Custom type settings
+    pub types: Types,
+    /// The Cargo.toml manifest configuration
+    pub manifest: cargo_toml::Manifest<toml::Value>,
 }
 
 impl Config {
@@ -81,7 +81,7 @@ impl Default for Config {
             sync: false,
             r#async: true,
             serialize: false,
-            ignore_underscore_files: false, // Default to false for backwards compatibility
+            ignore_underscore_files: false,
             params_only: false,
             types: Types {
                 mapping: HashMap::new(),
@@ -175,8 +175,12 @@ fn merge_manifest_with_defaults(
 
 #[allow(deprecated)]
 fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
-    let mut manifest = cargo_toml::Manifest {
-        package: None,
+    let mut package = cargo_toml::Package::new("clorinde", "0.1.0");
+    package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
+    package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
+
+    let manifest = cargo_toml::Manifest {
+        package: Some(package),
         workspace: None,
         dependencies: Default::default(),
         dev_dependencies: Default::default(),
@@ -194,11 +198,6 @@ fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
         example: vec![],
         lints: cargo_toml::Inheritable::default(),
     };
-
-    let mut package = cargo_toml::Package::new("clorinde", "0.1.0");
-    package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
-    package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
-    manifest.package = Some(package);
 
     manifest
 }
