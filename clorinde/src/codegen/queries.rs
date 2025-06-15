@@ -306,6 +306,7 @@ fn gen_query_fn(
     module: &PreparedModule,
     query: &PreparedQuery,
     ctx: &GenCtx,
+    config: &Config,
 ) -> proc_macro2::TokenStream {
     let PreparedQuery {
         ident,
@@ -405,8 +406,15 @@ fn gen_query_fn(
                 |it| #path::from(it)
             };
 
+            let bind_visibility =
+                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
+                    quote! {} // No visibility modifier means private
+                } else {
+                    quote! { pub }
+                };
+
             quote! {
-                pub fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
                     &'s mut self,
                     client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
@@ -425,8 +433,15 @@ fn gen_query_fn(
             let field_type = syn::parse_str::<syn::Type>(&field.own_struct(ctx)).unwrap();
             let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
 
+            let bind_visibility =
+                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
+                    quote! {} // No visibility modifier means private
+                } else {
+                    quote! { pub }
+                };
+
             quote! {
-                pub fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+                #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
                     &'s mut self,
                     client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
@@ -450,8 +465,14 @@ fn gen_query_fn(
             })
             .collect();
 
+        let bind_visibility = if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
+            quote! {} // No visibility modifier means private
+        } else {
+            quote! { pub }
+        };
+
         quote! {
-            pub #fn_async fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
+            #bind_visibility #fn_async fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
                 &'s mut self,
                 client: &'c #client_mut C,
                 #(#params_name: &'a #params_ty,)*
@@ -642,7 +663,7 @@ fn gen_specific(
     }
 
     for query in module.queries.values() {
-        let query_tokens = gen_query_fn(module, query, &ctx);
+        let query_tokens = gen_query_fn(module, query, &ctx, config);
         tokens.extend(quote!(#query_tokens));
     }
 
