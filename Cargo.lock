@@ -527,6 +527,7 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
+ "rand 0.9.0",
  "serde",
  "syn 2.0.101",
  "tempfile",

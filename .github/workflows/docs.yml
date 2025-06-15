@@ -1,11 +1,8 @@
 name: Deploy book to GitHub pages
 on:
   push:
-    branches:
-      - main
-    paths:
-      - "docs/**"
-      - ".github/workflows/docs.yml"
+    tags:
+      - 'v*'  # Deploy docs on version releases
 
 jobs:
   deploy:

@@ -11,7 +11,6 @@ use std::{
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
-    // Shared with CLI
     /// Use `podman` instead of `docker`
     pub podman: bool,
     /// Directory containing the queries
@@ -33,8 +32,9 @@ pub struct Config {
     /// Container wait time in milliseconds after health check
     #[serde(rename = "container-wait")]
     pub container_wait: u64,
-
-    // Config file exclusive
+    /// Make bind functions private to force usage of params() method
+    #[serde(rename = "params-only")]
+    pub params_only: bool,
     /// Custom type settings
     pub types: Types,
     /// The Cargo.toml manifest configuration
@@ -82,6 +82,7 @@ impl Default for Config {
             r#async: true,
             serialize: false,
             ignore_underscore_files: false, // Default to false for backwards compatibility
+            params_only: false,
             types: Types {
                 mapping: HashMap::new(),
                 derive_traits: vec![],
@@ -280,6 +281,12 @@ impl ConfigBuilder {
     /// Ignore query files prefixed with underscore
     pub fn ignore_underscore_files(mut self, ignore_underscore_files: bool) -> Self {
         self.config.ignore_underscore_files = ignore_underscore_files;
+        self
+    }
+
+    /// Make bind functions private to force usage of params() method
+    pub fn params_only(mut self, params_only: bool) -> Self {
+        self.config.params_only = params_only;
         self
     }
 

@@ -84,3 +84,68 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
 
     Ok(())
 }
+
+#[allow(clippy::result_large_err)]
+/// Generates Rust queries from PostgreSQL queries located at `queries_path`, using
+/// a temporary database created on an existing PostgreSQL server. The database schema
+/// is created using `schema_files`. Code generation settings are set using the `config` parameter.
+///
+/// This function creates a temporary database on the specified server, loads the schema,
+/// generates the code, and optionally drops the temporary database based on the `keep_db` parameter.
+pub fn gen_fresh<P: AsRef<Path>>(
+    url: &str,
+    db_name: &str,
+    schema_files: &[P],
+    search_path: Option<&str>,
+    keep_db: bool,
+    config: Config,
+) -> Result<(), Error> {
+    let modules = read_query_modules(config.queries.as_ref(), &config)?
+        .into_iter()
+        .map(parse_query_module)
+        .collect::<Result<_, parser::error::Error>>()?;
+
+    let mut server_client = conn::from_url(url)?;
+
+    let create_db_query = format!("CREATE DATABASE \"{}\"", db_name);
+    server_client
+        .execute(&create_db_query, &[])
+        .map_err(conn::error::Error)?;
+
+    let db_url = if url.contains('?') {
+        format!("{}&dbname={}", url, db_name)
+    } else if url.ends_with('/') {
+        format!("{}{}?", url, db_name)
+    } else {
+        format!("{}/{}?", url, db_name)
+    };
+
+    let generation_result = (|| -> Result<(), Error> {
+        let mut db_client = conn::from_url(&db_url)?;
+
+        if let Some(search_path) = search_path {
+            conn::set_search_path(&mut db_client, search_path)?;
+        }
+
+        load_schema(&mut db_client, schema_files)?;
+
+        let prepared_modules = prepare(&mut db_client, modules, &config)?;
+        let generated = codegen::gen(prepared_modules, &config);
+
+        generated.persist(config.destination, config.static_files)?;
+
+        Ok(())
+    })();
+
+    if !keep_db {
+        let drop_db_query = format!("DROP DATABASE \"{}\"", db_name);
+        if let Err(e) = server_client.execute(&drop_db_query, &[]) {
+            eprintln!(
+                "Warning: Failed to drop temporary database '{}': {}",
+                db_name, e
+            );
+        }
+    }
+
+    generation_result
+}

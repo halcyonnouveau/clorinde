@@ -1,8 +1,10 @@
-use clap::{Parser, Subcommand};
 use std::io::Write;
 use std::path::PathBuf;
 
-use crate::{config::Config, conn, container, error::Error, gen_live, gen_managed};
+use clap::{Parser, Subcommand};
+use rand::{Rng, distr::Alphanumeric};
+
+use crate::{config::Config, conn, container, error::Error, gen_fresh, gen_live, gen_managed};
 
 /// Command line interface to interact with Clorinde SQL.
 #[derive(Parser, Debug)]
@@ -40,6 +42,34 @@ enum Action {
         #[clap(long)]
         container_wait: Option<u64>,
 
+        /// Use `podman` instead of `docker`
+        #[clap(short, long)]
+        podman: Option<bool>,
+
+        #[clap(flatten)]
+        args: CommonArgs,
+    },
+    /// Generate your modules against schema files using a fresh database on an existing server
+    Fresh {
+        /// SQL files containing the database schema
+        schema_files: Vec<PathBuf>,
+
+        #[clap(long, short, env = "DATABASE_URL")]
+        /// Postgres server url (without database name)
+        url: Option<String>,
+
+        #[clap(long)]
+        /// Postgres search path to use for the queries
+        search_path: Option<String>,
+
+        #[clap(long)]
+        /// Name for the temporary database (defaults to clorinde_temp_<random>)
+        db_name: Option<String>,
+
+        #[clap(long)]
+        /// Keep the temporary database after generation (don't cleanup)
+        keep_db: bool,
+
         #[clap(flatten)]
         args: CommonArgs,
     },
@@ -50,6 +80,7 @@ impl Action {
         match self {
             Self::Live { args, .. } => args,
             Self::Schema { args, .. } => args,
+            Self::Fresh { args, .. } => args,
         }
         .clone()
     }
@@ -60,9 +91,6 @@ struct CommonArgs {
     /// Config file path
     #[clap(short, long, default_value = "clorinde.toml")]
     config: PathBuf,
-    /// Use `podman` instead of `docker`
-    #[clap(short, long)]
-    podman: Option<bool>,
     /// Folder containing the queries
     #[clap(short, long)]
     queries_path: Option<PathBuf>,
@@ -89,7 +117,6 @@ pub fn run() -> Result<(), Error> {
     let Args { action } = Args::parse();
     let CommonArgs {
         config,
-        podman,
         queries_path,
         destination,
         sync,
@@ -103,15 +130,12 @@ pub fn run() -> Result<(), Error> {
         false => Config::default(),
     };
 
-    cfg.podman = podman.unwrap_or(cfg.podman);
     cfg.queries = queries_path.unwrap_or(cfg.queries);
     cfg.destination = destination.unwrap_or(cfg.destination);
     cfg.sync = sync.unwrap_or(cfg.sync);
     cfg.r#async = r#async.unwrap_or(false) || !cfg.sync;
     cfg.serialize = serialize.unwrap_or(cfg.serialize);
     cfg.ignore_underscore_files = ignore_underscore_files.unwrap_or(cfg.ignore_underscore_files);
-
-    let podman = cfg.podman;
 
     // Prevent wrong directory being accidentally deleted
     if !cfg.destination.ends_with("clorinde")
@@ -150,16 +174,45 @@ pub fn run() -> Result<(), Error> {
             schema_files,
             container_image,
             container_wait,
+            podman,
             ..
         } => {
+            cfg.podman = podman.unwrap_or(cfg.podman);
             cfg.container_image = container_image.unwrap_or(cfg.container_image);
             cfg.container_wait = container_wait.unwrap_or(cfg.container_wait);
 
             // Run the generate command. If the command is unsuccessful, cleanup Clorinde's container
-            if let Err(e) = gen_managed(&schema_files, cfg) {
-                container::cleanup(podman).ok();
+            if let Err(e) = gen_managed(&schema_files, cfg.clone()) {
+                container::cleanup(cfg.podman).ok();
                 return Err(e);
             }
+        }
+        Action::Fresh {
+            url,
+            schema_files,
+            search_path,
+            db_name,
+            keep_db,
+            ..
+        } => {
+            // Generate random database name if not provided
+            let final_db_name = db_name.unwrap_or_else(|| {
+                let random_suffix: String = rand::rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(8)
+                    .map(char::from)
+                    .collect();
+                format!("clorinde_temp_{}", random_suffix.to_lowercase())
+            });
+
+            gen_fresh(
+                &url.unwrap(),
+                &final_db_name,
+                &schema_files,
+                search_path.as_deref(),
+                keep_db,
+                cfg,
+            )?;
         }
     };
     Ok(())
