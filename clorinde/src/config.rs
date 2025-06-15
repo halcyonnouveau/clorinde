@@ -179,7 +179,7 @@ fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
     package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
     package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
 
-    let manifest = cargo_toml::Manifest {
+    cargo_toml::Manifest {
         package: Some(package),
         workspace: None,
         dependencies: Default::default(),
@@ -197,9 +197,7 @@ fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
         test: vec![],
         example: vec![],
         lints: cargo_toml::Inheritable::default(),
-    };
-
-    manifest
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
