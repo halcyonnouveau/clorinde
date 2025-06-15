@@ -471,7 +471,7 @@ fn struct_tosql(
             let s = p.ty.sql_wrapped(&p.ident.rs);
             if s.contains("::") || s.contains("(") {
                 syn::parse_str::<syn::Expr>(&s)
-                    .unwrap_or_else(|e| panic!("Failed to parse '{}': {}", s, e))
+                    .unwrap_or_else(|e| panic!("Failed to parse '{s}': {e}"))
                     .into_token_stream()
             } else {
                 format_ident!("{}", s).into_token_stream()

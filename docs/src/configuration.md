@@ -1,19 +1,31 @@
 # Configuration
 Clorinde can be configured using a configuration file (`clorinde.toml` by default) in your project. This file allows you to customise generated code behaviour, specify static files, manage dependencies, and override type mappings.
 
-## Package configuration
-The `[package]` section allows you to configure any standard Cargo.toml package field in the generated crate:
+## Manifest configuration
+The `[manifest]` section allows you to configure the entire Cargo.toml for the generated crate:
 
 ```toml
-[package]
+[manifest.package]
 name = "furinapp-queries"
-version = "0.1.0"
+version = "1.0.0"
 description = "Today I wanted to eat a *quaso*."
 license = "MIT"
 edition = "2021"
+
+[manifest.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+my_custom_types = { path = "../types" }
 ```
 
-All fields specified in this section will be directly copied to the `[package]` section of the generated crate's Cargo.toml. This gives you complete control over the package metadata and configuration of the generated crate.
+This gives you complete control over the generated Cargo.toml. Clorinde will automatically merge your configuration with the required PostgreSQL dependencies based on the types found in your SQL queries.
+
+### Dependency merging
+Clorinde automatically adds dependencies based on your PostgreSQL schema:
+- Core dependencies: `postgres-types`, `postgres-protocol`, `postgres`
+- Type-specific dependencies: `chrono`, `uuid`, `serde_json`, etc. (based on column types)
+- Async dependencies: `tokio-postgres`, `futures`, `deadpool-postgres` (when async enabled)
+
+Your custom dependencies in `[manifest.dependencies]` will be preserved and merged with these auto-generated ones.
 
 ## Workspace dependencies
 The `use-workspace-deps` option allows you to integrate the generated crate with your workspace's dependency management:
@@ -32,10 +44,10 @@ When this option is set, Clorinde will:
 3. Fall back to regular dependency declarations for packages not found in the workspace
 
 ## Custom type mappings
-You can configure custom type mappings and their required dependencies using the `types` section:
+You can configure custom type mappings using the `types` section:
 
 ```toml
-[types.crates]
+[manifest.dependencies]
 # Dependencies required for custom type mappings
 ctypes = { path = "../ctypes" }
 postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
@@ -46,7 +58,7 @@ postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 "pg_catalog.tstzrange" = "postgres_range::Range<chrono::DateTime<chrono::FixedOffset>>"
 ```
 
-The `types.crates` table specifies any dependencies needed for your custom type mappings. These will be added to the generated crate's `Cargo.toml`.
+Dependencies needed for your custom type mappings should be specified in `[manifest.dependencies]`.
 
 The `types.mapping` table allows you to map PostgreSQL types to Rust types. You can use this to either override Clorinde's default mappings or add support for PostgreSQL types that aren't supported by default, such as types from extensions.
 

@@ -53,7 +53,7 @@ impl<'a> FromSql<'a> for Element {
             "hydro" => Ok(Element::Hydro),
             "pyro" => Ok(Element::Pyro),
             "physical" => Ok(Element::Physical),
-            _ => Err(format!("Unknown element: {}", s).into()),
+            _ => Err(format!("Unknown element: {s}").into()),
         }
     }
 

@@ -23,8 +23,8 @@ Clorinde is a codegen tool that transforms PostgreSQL queries into type-safe Rus
 * `queries: PathBuf` - Directory containing SQL query files
 * `destination: PathBuf` - Where to write generated code
 * `sync: bool` and `async: bool` - Whether to generate sync/async variants
-* `types: Types` - Custom type mappings and crate dependencies
-* `package: Package` - Cargo.toml metadata for generated crate
+* `types: Types` - Custom type mappings for PostgreSQL types
+* `manifest: cargo_toml::Manifest` - Complete Cargo.toml configuration for generated crate
 
 The `Config` can be created from a TOML file via `Config::from_file()` or built programmatically using `Config::builder()`. Example:
 

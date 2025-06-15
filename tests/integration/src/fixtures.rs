@@ -74,7 +74,9 @@ impl From<&CodegenTest> for Config {
             true => Config::from_file(Path::new("./clorinde.toml")).unwrap(),
             false => {
                 let mut cfg = Config::default();
-                cfg.package.name = codegen_test.destination.to_str().unwrap().to_string();
+                if let Some(package) = &mut cfg.manifest.package {
+                    package.name = codegen_test.destination.to_str().unwrap().to_string();
+                }
                 cfg
             }
         };
