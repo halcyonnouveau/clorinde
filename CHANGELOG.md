@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.16.0...clorinde-v0.17.0) - 2025-06-16
+
+### Added
+
+- *(breaking)* remove time feature flag ([#120](https://github.com/halcyonnouveau/clorinde/pull/120))
+- *(breaking)* allow config to specify entire generated cargo manifest ([#119](https://github.com/halcyonnouveau/clorinde/pull/119))
+- add params-only mode to make bind() private ([#118](https://github.com/halcyonnouveau/clorinde/pull/118))
+- fresh command for temporary databases ([#115](https://github.com/halcyonnouveau/clorinde/pull/115))
+- support nullity composite arrays ([#116](https://github.com/halcyonnouveau/clorinde/pull/116))
+- ability to change container image for schema command
+
+### Fixed
+
+- style config serialize from toml
+
 ## [0.16.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v0.15.2...clorinde-v0.16.0) - 2025-06-05
 
 ### Added
