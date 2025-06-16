@@ -23,6 +23,7 @@ sponge_bob_character = ["serde::Deserialize"]
 
 [manifest.package]
 name = "custom_types_codegen"
+publish = false
 
 [manifest.dependencies]
 ctypes = { path = "../ctypes" }
