@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - *(breaking)* remove time feature flag ([#120](https://github.com/halcyonnouveau/clorinde/pull/120))
+  - Use custom type mapping instead (see docs - migration section updated)
 - *(breaking)* allow config to specify entire generated cargo manifest ([#119](https://github.com/halcyonnouveau/clorinde/pull/119))
+  - Config field change: `package: Package` -> `manifest: cargo_toml::Manifest`
+  - TOML configuration: `[package]` -> `[manifest.package]` and `[manifest.dependencies]`
+  - Removed: `[types.crates]` field (use `[manifest.dependencies]` instead)
 - add params-only mode to make bind() private ([#118](https://github.com/halcyonnouveau/clorinde/pull/118))
 - fresh command for temporary databases ([#115](https://github.com/halcyonnouveau/clorinde/pull/115))
 - support nullity composite arrays ([#116](https://github.com/halcyonnouveau/clorinde/pull/116))
