@@ -3,11 +3,14 @@ CREATE TABLE Author (
     Name varchar(70) NOT NULL,
     Country varchar(100) NOT NULL,
     Dob date NOT NULL,
+    Dob2 timestamp NOT NULL,
     PRIMARY KEY (Id)
 );
 
-INSERT INTO Author (Name, Country, Dob)
-    VALUES ('Agatha Christie', 'United Kingdom', '1999-01-02'), ('John Ronald Reuel Tolkien', 'United Kingdom', '2003-02-1');
+INSERT INTO Author (Name, Country, Dob, Dob2)
+    VALUES
+        ('Agatha Christie', 'United Kingdom', '1999-01-02', '2022-01-01 01:00:00'),
+        ('John Ronald Reuel Tolkien', 'United Kingdom', '2003-02-1', '2022-02-01 02:00:00');
 
 CREATE TABLE Book (
     Id serial NOT NULL,

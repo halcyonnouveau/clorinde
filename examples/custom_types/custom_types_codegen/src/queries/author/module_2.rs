@@ -4,13 +4,14 @@
 pub struct AuthorNameStartingWithParams<T1: crate::StringSql> {
     pub start_str: T1,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Default, Hash)]
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash)]
 pub struct Author {
     pub id: i32,
     pub name: String,
     pub country: String,
     #[allow(dead_code)]
     pub dob: ctypes::date::Date,
+    pub dob2: time::PrimitiveDateTime,
 }
 pub struct AuthorBorrowed<'a> {
     pub id: i32,
@@ -18,6 +19,7 @@ pub struct AuthorBorrowed<'a> {
     pub country: &'a str,
     #[allow(dead_code)]
     pub dob: ctypes::date::Date,
+    pub dob2: time::PrimitiveDateTime,
 }
 impl<'a> From<AuthorBorrowed<'a>> for Author {
     fn from(
@@ -26,6 +28,7 @@ impl<'a> From<AuthorBorrowed<'a>> for Author {
             name,
             country,
             dob,
+            dob2,
         }: AuthorBorrowed<'a>,
     ) -> Self {
         Self {
@@ -33,6 +36,7 @@ impl<'a> From<AuthorBorrowed<'a>> for Author {
             name: name.into(),
             country: country.into(),
             dob,
+            dob2,
         }
     }
 }
@@ -367,6 +371,7 @@ impl AuthorsStmt {
                         name: row.try_get(1)?,
                         country: row.try_get(2)?,
                         dob: row.try_get(3)?,
+                        dob2: row.try_get(4)?,
                     })
                 },
             mapper: |it| Author::from(it),

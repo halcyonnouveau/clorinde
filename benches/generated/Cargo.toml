@@ -27,8 +27,6 @@ features = ["derive"]
 version = "0.7.13"
 
 [features]
-chrono = []
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
 default = ["deadpool"]
-time = []
 wasm-async = ["tokio-postgres/js"]
