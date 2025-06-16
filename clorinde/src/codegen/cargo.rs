@@ -1,8 +1,53 @@
-use std::{collections::HashSet, fmt::Write, fs, path::Path};
+use std::{collections::HashSet, fs, path::Path};
 
+use cargo_toml::{Dependency, DependencyDetail, InheritedDependencyDetail};
 use postgres_types::{Kind, Type};
 
-use crate::config::{Config, CrateDependency, DependencyTable, UseWorkspaceDeps};
+use crate::config::{Config, UseWorkspaceDeps};
+
+#[derive(Debug, Clone)]
+struct DependencyBuilder {
+    version: Option<String>,
+    features: Vec<String>,
+    optional: bool,
+    default_features: bool,
+}
+
+impl DependencyBuilder {
+    fn new(version: &str) -> Self {
+        Self {
+            version: Some(version.to_string()),
+            features: vec![],
+            optional: false,
+            default_features: true,
+        }
+    }
+
+    fn features(mut self, features: Vec<&str>) -> Self {
+        self.features = features.into_iter().map(String::from).collect();
+        self
+    }
+
+    fn optional(mut self) -> Self {
+        self.optional = true;
+        self
+    }
+
+    fn no_default_features(mut self) -> Self {
+        self.default_features = false;
+        self
+    }
+
+    fn into_detail(self) -> DependencyDetail {
+        DependencyDetail {
+            version: self.version,
+            features: self.features,
+            optional: self.optional,
+            default_features: self.default_features,
+            ..Default::default()
+        }
+    }
+}
 
 /// Register use of typed requiring specific dependencies
 #[derive(Debug, Clone, Default)]
@@ -41,268 +86,306 @@ impl DependencyAnalysis {
     }
 }
 
-struct CargoWriter {
-    buf: String,
-    use_workspace_deps: bool,
-    workspace_deps: HashSet<String>,
-    custom_deps: HashSet<String>,
+fn get_workspace_deps(manifest_path: &Path) -> HashSet<String> {
+    let mut deps = HashSet::new();
+    if let Ok(contents) = fs::read_to_string(manifest_path) {
+        if let Ok(manifest) = contents.parse::<toml::Value>() {
+            if let Some(workspace) = manifest
+                .get("workspace")
+                .and_then(|w| w.get("dependencies"))
+            {
+                deps.extend(
+                    workspace
+                        .as_table()
+                        .into_iter()
+                        .flat_map(|t| t.keys())
+                        .map(|s| s.to_string()),
+                );
+            }
+        }
+    }
+    deps
 }
 
-impl CargoWriter {
-    fn get_workspace_deps(manifest_path: &Path) -> HashSet<String> {
-        let mut deps = HashSet::new();
-        if let Ok(contents) = fs::read_to_string(manifest_path) {
-            if let Ok(manifest) = contents.parse::<toml::Value>() {
-                if let Some(workspace) = manifest
-                    .get("workspace")
-                    .and_then(|w| w.get("dependencies"))
-                {
-                    deps.extend(
-                        workspace
-                            .as_table()
-                            .into_iter()
-                            .flat_map(|t| t.keys())
-                            .map(|s| s.to_string()),
-                    );
-                }
-            }
-        }
-        deps
-    }
-
-    fn new(config: &Config) -> Self {
-        let use_workspace_deps = match &config.use_workspace_deps {
-            UseWorkspaceDeps::Bool(enabled) => *enabled,
-            UseWorkspaceDeps::Path(_) => true,
+fn to_cargo_dep(dep: &DependencyDetail, use_workspace: bool) -> Dependency {
+    if use_workspace {
+        // for workspace dependencies, use Inherited variant
+        let mut inherited = InheritedDependencyDetail {
+            workspace: true,
+            ..Default::default()
         };
 
-        let workspace_deps = match &config.use_workspace_deps {
-            UseWorkspaceDeps::Bool(true) => {
-                CargoWriter::get_workspace_deps(Path::new("./Cargo.toml"))
-            }
-            UseWorkspaceDeps::Bool(false) => HashSet::new(),
-            UseWorkspaceDeps::Path(path) => CargoWriter::get_workspace_deps(path),
-        };
+        inherited.features = dep.features.clone();
+        inherited.optional = dep.optional;
 
-        let custom_deps = config.types.crate_info.keys().cloned().collect();
-
-        Self {
-            buf: String::new(),
-            use_workspace_deps,
-            workspace_deps,
-            custom_deps,
-        }
-    }
-
-    fn line(&mut self, line: &str) {
-        writeln!(self.buf, "{}", line).unwrap();
-    }
-
-    fn dep(&mut self, name: &str, dep: DependencyTable) {
-        if self.custom_deps.contains(name) {
-            return;
-        }
-
-        self.add_dep(name, dep);
-    }
-
-    fn add_dep(&mut self, name: &str, mut dep: DependencyTable) {
-        // add `workspace = true` when `use-workspace-deps` option is enabled
-        // and dependency appears in user's Cargo.toml `[workspace.dependencies]`
-        if self.use_workspace_deps && self.workspace_deps.contains(name) {
-            dep.version = None;
-            dep.workspace = Some(true);
-        } else {
-            dep.workspace = None;
-        }
-
-        if dep.is_simple_version() {
-            writeln!(self.buf, "{} = \"{}\"", name, dep.version.unwrap()).unwrap();
-        } else {
-            let dep_str = toml::to_string(&dep)
-                .unwrap()
-                .replace('\n', ", ")
-                .trim_end_matches(", ")
-                .to_string();
-
-            writeln!(self.buf, "{} = {{ {} }}", name, dep_str).unwrap();
-        }
-    }
-
-    fn into_string(self) -> String {
-        self.buf
+        Dependency::Inherited(inherited)
+    } else {
+        Dependency::Detailed(Box::new(dep.clone()))
     }
 }
 
 pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
-    let mut cargo = CargoWriter::new(config);
+    let mut manifest = config.manifest.clone();
 
-    cargo.line("# This file was generated with `clorinde`. Do not modify.");
-    cargo.line(
-        &config
-            .package
-            .to_string()
-            .expect("unable to serialize package"),
-    );
+    let (use_workspace_deps, workspace_deps) = match &config.use_workspace_deps {
+        UseWorkspaceDeps::Bool(true) => (true, get_workspace_deps(Path::new("./Cargo.toml"))),
+        UseWorkspaceDeps::Bool(false) => (false, HashSet::new()),
+        UseWorkspaceDeps::Path(path) => (true, get_workspace_deps(path)),
+    };
 
     if config.r#async {
-        let mut default_features = vec!["\"deadpool\""];
+        let mut default_features = vec!["deadpool".to_string()];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            default_features.push("\"chrono\"");
+            default_features.push("chrono".to_string());
         }
 
-        let mut wasm_features = vec!["\"tokio-postgres/js\""];
+        manifest
+            .features
+            .insert("default".to_string(), default_features);
+
+        manifest.features.insert(
+            "deadpool".to_string(),
+            vec![
+                "dep:deadpool-postgres".to_string(),
+                "tokio-postgres/default".to_string(),
+            ],
+        );
+
+        let mut wasm_features = vec!["tokio-postgres/js".to_string()];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("\"chrono?/wasmbind\"");
-            wasm_features.push("\"time?/wasm-bindgen\"");
+            wasm_features.push("chrono?/wasmbind".to_string());
+            wasm_features.push("time?/wasm-bindgen".to_string());
         }
 
-        cargo.line("[features]");
-        cargo.line(&format!("default = [{}]", default_features.join(", ")));
-        cargo.line("deadpool = [\"dep:deadpool-postgres\", \"tokio-postgres/default\"]");
-        cargo.line(&format!("wasm-async = [{}]", wasm_features.join(", ")));
+        manifest
+            .features
+            .insert("wasm-async".to_string(), wasm_features);
     } else {
+        manifest.features.insert("default".to_string(), vec![]);
         let mut wasm_features = vec![];
+
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("\"chrono?/wasmbind\"");
+            wasm_features.push("chrono?/wasmbind".to_string());
         }
 
-        cargo.line("[features]");
-        cargo.line("default = []");
-        cargo.line(&format!("wasm-sync = [{}]", wasm_features.join(", ")));
+        manifest
+            .features
+            .insert("wasm-sync".to_string(), wasm_features);
     }
 
+    // Add chrono/time features
     if dependency_analysis.chrono {
-        cargo.line("\nchrono = [\"dep:chrono\"]");
-        cargo.line("time = [\"dep:time\"]");
+        manifest
+            .features
+            .insert("chrono".to_string(), vec!["dep:chrono".to_string()]);
+        manifest
+            .features
+            .insert("time".to_string(), vec!["dep:time".to_string()]);
     } else {
-        cargo.line("\nchrono = []");
-        cargo.line("time = []");
+        manifest.features.insert("chrono".to_string(), vec![]);
+        manifest.features.insert("time".to_string(), vec![]);
     }
 
-    cargo.line("\n[dependencies]");
-    cargo.line("## Core dependencies");
-    cargo.line("# Postgres types");
-    cargo.dep(
-        "postgres-types",
-        DependencyTable::new("0.2.9").features(vec!["derive"]),
+    // Core dependencies
+    let postgres_types_dep = DependencyBuilder::new("0.2.9")
+        .features(vec!["derive"])
+        .into_detail();
+
+    manifest.dependencies.insert(
+        "postgres-types".to_string(),
+        to_cargo_dep(
+            &postgres_types_dep,
+            use_workspace_deps && workspace_deps.contains("postgres-types"),
+        ),
     );
 
-    cargo.line("# Postgres interaction");
-    cargo.dep("postgres-protocol", DependencyTable::new("0.6.8"));
+    let postgres_protocol_dep = DependencyBuilder::new("0.6.8").into_detail();
+    manifest.dependencies.insert(
+        "postgres-protocol".to_string(),
+        to_cargo_dep(
+            &postgres_protocol_dep,
+            use_workspace_deps && workspace_deps.contains("postgres-protocol"),
+        ),
+    );
 
     let mut client_features = Vec::new();
 
+    // Type dependencies
     if dependency_analysis.has_dependency() {
-        cargo.line("\n## Types dependencies");
         if dependency_analysis.chrono {
-            cargo.line("# TIME, DATE, TIMESTAMP or TIMESTAMPZ");
-            cargo.dep(
-                "chrono",
-                DependencyTable::new("0.4.40")
-                    .features(if config.serialize || dependency_analysis.json {
-                        vec!["serde"]
-                    } else {
-                        vec![]
-                    })
-                    .optional(),
-            );
-            cargo.dep("time", DependencyTable::new("0.3.41").optional());
+            let chrono_features = if config.serialize || dependency_analysis.json {
+                vec!["serde"]
+            } else {
+                vec![]
+            };
 
-            client_features.push("with-chrono-0_4".to_string());
-            client_features.push("with-time-0_3".to_string());
-        }
-        if dependency_analysis.uuid {
-            cargo.line("# UUID");
-            cargo.dep(
-                "uuid",
-                DependencyTable::new("1.16.0").features(
-                    if config.serialize || dependency_analysis.json {
-                        vec!["serde"]
-                    } else {
-                        vec![]
-                    },
+            let chrono_dep = DependencyBuilder::new("0.4.40")
+                .features(chrono_features)
+                .optional()
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "chrono".to_string(),
+                to_cargo_dep(
+                    &chrono_dep,
+                    use_workspace_deps && workspace_deps.contains("chrono"),
                 ),
             );
-            client_features.push("with-uuid-1".to_string());
+
+            let time_dep = DependencyBuilder::new("0.3.41").optional().into_detail();
+            manifest.dependencies.insert(
+                "time".to_string(),
+                to_cargo_dep(
+                    &time_dep,
+                    use_workspace_deps && workspace_deps.contains("time"),
+                ),
+            );
+
+            client_features.push("with-chrono-0_4");
+            client_features.push("with-time-0_3");
         }
+
+        if dependency_analysis.uuid {
+            let uuid_features = if config.serialize || dependency_analysis.json {
+                vec!["serde"]
+            } else {
+                vec![]
+            };
+
+            let uuid_dep = DependencyBuilder::new("1.16.0")
+                .features(uuid_features)
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "uuid".to_string(),
+                to_cargo_dep(
+                    &uuid_dep,
+                    use_workspace_deps && workspace_deps.contains("uuid"),
+                ),
+            );
+            client_features.push("with-uuid-1");
+        }
+
         if dependency_analysis.mac_addr {
-            cargo.line("# MAC ADDRESS");
-            cargo.dep("eui48", DependencyTable::new("1.1.0").no_default_features());
-            client_features.push("with-eui48-1".to_string());
+            let eui48_dep = DependencyBuilder::new("1.1.0")
+                .no_default_features()
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "eui48".to_string(),
+                to_cargo_dep(
+                    &eui48_dep,
+                    use_workspace_deps && workspace_deps.contains("eui48"),
+                ),
+            );
+            client_features.push("with-eui48-1");
         }
+
         if dependency_analysis.decimal {
-            cargo.line("# DECIMAL");
-            cargo.dep(
-                "rust_decimal",
-                DependencyTable::new("1.37.1").features(vec!["db-postgres"]),
+            let rust_decimal_dep = DependencyBuilder::new("1.37.1")
+                .features(vec!["db-postgres"])
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "rust_decimal".to_string(),
+                to_cargo_dep(
+                    &rust_decimal_dep,
+                    use_workspace_deps && workspace_deps.contains("rust_decimal"),
+                ),
             );
         }
+
         if dependency_analysis.json {
-            cargo.line("# JSON or JSONB");
-            cargo.dep(
-                "serde_json",
-                DependencyTable::new("1.0.140").features(vec!["raw_value"]),
+            let serde_json_dep = DependencyBuilder::new("1.0.140")
+                .features(vec!["raw_value"])
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "serde_json".to_string(),
+                to_cargo_dep(
+                    &serde_json_dep,
+                    use_workspace_deps && workspace_deps.contains("serde_json"),
+                ),
             );
-            cargo.dep(
-                "serde",
-                DependencyTable::new("1.0.219").features(vec!["derive"]),
+
+            let serde_dep = DependencyBuilder::new("1.0.219")
+                .features(vec!["derive"])
+                .into_detail();
+
+            manifest.dependencies.insert(
+                "serde".to_string(),
+                to_cargo_dep(
+                    &serde_dep,
+                    use_workspace_deps && workspace_deps.contains("serde"),
+                ),
             );
-            client_features.push("with-serde_json-1".to_string());
+            client_features.push("with-serde_json-1");
         }
     }
 
-    // add serde if serializing but not using json type
+    // Add serde if serializing but not using json type
     if config.serialize && !dependency_analysis.json {
-        cargo.line("# JSON or JSONB");
-        cargo.dep(
-            "serde",
-            DependencyTable::new("1.0.219").features(vec!["derive"]),
+        let serde_dep = DependencyBuilder::new("1.0.219")
+            .features(vec!["derive"])
+            .into_detail();
+
+        manifest.dependencies.insert(
+            "serde".to_string(),
+            to_cargo_dep(
+                &serde_dep,
+                use_workspace_deps && workspace_deps.contains("serde"),
+            ),
         );
-        client_features.push("with-serde_json-1".to_string());
+        client_features.push("with-serde_json-1");
     }
 
-    cargo.line("\n# Postgres");
-    cargo.dep(
-        "postgres",
-        DependencyTable::new("0.19.10").features(client_features.clone()),
+    // Postgres client
+    let postgres_dep = DependencyBuilder::new("0.19.10")
+        .features(client_features.clone())
+        .into_detail();
+
+    manifest.dependencies.insert(
+        "postgres".to_string(),
+        to_cargo_dep(
+            &postgres_dep,
+            use_workspace_deps && workspace_deps.contains("postgres"),
+        ),
     );
 
+    // Async dependencies
     if config.r#async {
-        cargo.line("\n## Async client dependencies");
-        cargo.line("# Postgres async client");
-        cargo.dep(
-            "tokio-postgres",
-            DependencyTable::new("0.7.13").features(client_features),
+        let tokio_postgres_dep = DependencyBuilder::new("0.7.13")
+            .features(client_features.clone())
+            .into_detail();
+
+        manifest.dependencies.insert(
+            "tokio-postgres".to_string(),
+            to_cargo_dep(
+                &tokio_postgres_dep,
+                use_workspace_deps && workspace_deps.contains("tokio-postgres"),
+            ),
         );
 
-        cargo.line("# Async utils");
-        cargo.dep("futures", DependencyTable::new("0.3.31"));
+        let futures_dep = DependencyBuilder::new("0.3.31").into_detail();
+        manifest.dependencies.insert(
+            "futures".to_string(),
+            to_cargo_dep(
+                &futures_dep,
+                use_workspace_deps && workspace_deps.contains("futures"),
+            ),
+        );
 
-        cargo.line("\n## Async features dependencies");
-        cargo.line("# Async connection pooling");
-        cargo.dep(
-            "deadpool-postgres",
-            DependencyTable::new("0.14.1").optional(),
+        let deadpool_dep = DependencyBuilder::new("0.14.1").optional().into_detail();
+        manifest.dependencies.insert(
+            "deadpool-postgres".to_string(),
+            to_cargo_dep(
+                &deadpool_dep,
+                use_workspace_deps && workspace_deps.contains("deadpool-postgres"),
+            ),
         );
     }
 
-    if !config.types.crate_info.is_empty() {
-        cargo.line("\n## Custom type dependencies");
-        let mut crates: Vec<_> = config.types.crate_info.iter().collect();
-        crates.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
-
-        for (name, dep) in crates {
-            match dep {
-                CrateDependency::Simple(version) => {
-                    cargo.line(&format!("{} = \"{}\"", name, version));
-                }
-                CrateDependency::Detailed(dependency) => {
-                    cargo.add_dep(name, dependency.to_owned());
-                }
-            }
-        }
-    }
-
-    cargo.into_string()
+    let mut output = String::from("# This file was generated with `clorinde`. Do not modify.\n\n");
+    output.push_str(&toml::to_string(&manifest).expect("Failed to serialize manifest"));
+    output
 }

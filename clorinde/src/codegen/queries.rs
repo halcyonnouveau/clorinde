@@ -492,7 +492,7 @@ fn gen_query_fn(
         .join(" ");
 
     let doc_comments = comments.iter().map(|comment| {
-        let comment_with_space = format!(" {}", comment);
+        let comment_with_space = format!(" {comment}");
         quote! { #[doc = #comment_with_space] }
     });
 
@@ -684,7 +684,7 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
             "src/queries".to_string()
         };
 
-        let file_path = format!("{}/{}.rs", dir_path, file_name);
+        let file_path = format!("{dir_path}/{file_name}.rs");
 
         vfs.add(file_path, gen);
     }
@@ -715,7 +715,7 @@ pub(crate) fn gen_queries(vfs: &mut Vfs, preparation: &Preparation, config: &Con
             });
         }
 
-        vfs.add(format!("{}.rs", dir_path), submodule_declarations);
+        vfs.add(format!("{dir_path}.rs"), submodule_declarations);
     }
 
     let root_modules: Vec<_> = preparation
