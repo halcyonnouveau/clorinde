@@ -54,7 +54,12 @@ impl Config {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
         let contents = fs::read_to_string(path)?;
         let mut config: Config = toml::from_str(&contents)?;
-        config.manifest = merge_manifest_with_defaults(config.manifest);
+
+        if let Some(manifest) = &mut config.manifest.package {
+            if manifest.edition == cargo_toml::Inheritable::Set(cargo_toml::Edition::E2015) {
+                manifest.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
+            }
+        }
 
         Ok(config)
     }
@@ -158,24 +163,9 @@ impl TypeMapping {
     }
 }
 
-fn merge_manifest_with_defaults(
-    mut user_manifest: cargo_toml::Manifest<toml::Value>,
-) -> cargo_toml::Manifest<toml::Value> {
-    if let Some(user_package) = &mut user_manifest.package {
-        // Apply better defaults for commonly unspecified fields
-        if user_package.version == cargo_toml::Inheritable::Set("0.0.0".to_string()) {
-            user_package.version = cargo_toml::Inheritable::Set("0.1.0".to_string());
-        }
-        if user_package.edition == cargo_toml::Inheritable::Set(cargo_toml::Edition::E2015) {
-            user_package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
-        }
-    }
-    user_manifest
-}
-
 #[allow(deprecated)]
 fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
-    let mut package = cargo_toml::Package::new("clorinde", "0.1.0");
+    let mut package = cargo_toml::Package::new("clorinde", "0.0.0");
     package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
     package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
 

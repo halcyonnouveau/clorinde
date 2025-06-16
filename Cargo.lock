@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "auto_build_codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "deadpool-postgres",
  "futures",
@@ -229,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "basic_async_codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "chrono",
  "deadpool-postgres",
@@ -242,7 +242,7 @@ dependencies = [
 
 [[package]]
 name = "basic_async_wasm_codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "deadpool-postgres",
  "futures",
@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "basic_sync_codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "postgres",
  "postgres-protocol",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "chrono",
  "deadpool-postgres",
@@ -719,7 +719,7 @@ dependencies = [
 
 [[package]]
 name = "custom_types_codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "chrono",
  "ctypes",
@@ -1121,7 +1121,7 @@ dependencies = [
 
 [[package]]
 name = "generated"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "deadpool-postgres",
  "futures",

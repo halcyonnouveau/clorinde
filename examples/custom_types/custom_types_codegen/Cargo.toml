@@ -2,7 +2,7 @@
 
 [package]
 name = "custom_types_codegen"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 publish = false
 
@@ -41,8 +41,8 @@ version = "1.0.219"
 features = ["derive"]
 
 [dependencies.time]
-version = "0.3.41"
 features = ["serde"]
+workspace = true
 
 [dependencies.tokio-postgres]
 version = "0.7.13"
