@@ -17,7 +17,5 @@ version = "0.2.9"
 features = ["derive"]
 
 [features]
-chrono = []
 default = []
-time = []
 wasm-sync = []

@@ -41,19 +41,17 @@ version = "1.0.219"
 features = ["derive"]
 
 [dependencies.time]
-optional = true
-workspace = true
+version = "0.3.41"
+features = ["serde"]
 
 [dependencies.tokio-postgres]
 version = "0.7.13"
 features = ["with-chrono-0_4", "with-time-0_3", "with-serde_json-1"]
 
 [features]
-chrono = ["dep:chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
 default = ["deadpool", "chrono"]
-time = ["dep:time"]
-wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
+wasm-async = ["tokio-postgres/js", "chrono?/wasmbind"]
 
 [lints.rust]
 dead_code = "allow"

@@ -19,7 +19,7 @@ version = "0.3.31"
 
 [dependencies.postgres]
 version = "0.19.10"
-features = ["with-chrono-0_4", "with-time-0_3"]
+features = ["with-chrono-0_4"]
 
 [dependencies.postgres-protocol]
 version = "0.6.8"
@@ -28,17 +28,11 @@ version = "0.6.8"
 version = "0.2.9"
 features = ["derive"]
 
-[dependencies.time]
-version = "0.3.41"
-optional = true
-
 [dependencies.tokio-postgres]
 version = "0.7.13"
-features = ["with-chrono-0_4", "with-time-0_3"]
+features = ["with-chrono-0_4"]
 
 [features]
-chrono = ["dep:chrono"]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
 default = ["deadpool", "chrono"]
-time = ["dep:time"]
-wasm-async = ["tokio-postgres/js", "chrono?/wasmbind", "time?/wasm-bindgen"]
+wasm-async = ["tokio-postgres/js", "chrono?/wasmbind"]

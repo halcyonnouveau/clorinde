@@ -1,20 +1,34 @@
 // This file was generated with `clorinde`. Do not modify.
 
+#[derive(serde::Serialize, Debug, Clone, PartialEq, Default, Hash)]
+pub struct Book {
+    pub title: String,
+}
+pub struct BookBorrowed<'a> {
+    pub title: &'a str,
+}
+impl<'a> From<BookBorrowed<'a>> for Book {
+    fn from(BookBorrowed { title }: BookBorrowed<'a>) -> Self {
+        Self {
+            title: title.into(),
+        }
+    }
+}
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
-pub struct StringQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+pub struct BookQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
-    extractor: fn(&tokio_postgres::Row) -> Result<&str, tokio_postgres::Error>,
-    mapper: fn(&str) -> T,
+    extractor: fn(&tokio_postgres::Row) -> Result<BookBorrowed, tokio_postgres::Error>,
+    mapper: fn(BookBorrowed) -> T,
 }
-impl<'c, 'a, 's, C, T: 'c, const N: usize> StringQuery<'c, 'a, 's, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> BookQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
-    pub fn map<R>(self, mapper: fn(&str) -> R) -> StringQuery<'c, 'a, 's, C, R, N> {
-        StringQuery {
+    pub fn map<R>(self, mapper: fn(BookBorrowed) -> R) -> BookQuery<'c, 'a, 's, C, R, N> {
+        BookQuery {
             client: self.client,
             params: self.params,
             stmt: self.stmt,
@@ -87,13 +101,17 @@ impl BooksStmt {
     pub fn bind<'c, 'a, 's, C: GenericClient>(
         &'s mut self,
         client: &'c C,
-    ) -> StringQuery<'c, 'a, 's, C, String, 0> {
-        StringQuery {
+    ) -> BookQuery<'c, 'a, 's, C, Book, 0> {
+        BookQuery {
             client,
             params: [],
             stmt: &mut self.0,
-            extractor: |row| Ok(row.try_get(0)?),
-            mapper: |it| it.into(),
+            extractor: |row: &tokio_postgres::Row| -> Result<BookBorrowed, tokio_postgres::Error> {
+                Ok(BookBorrowed {
+                    title: row.try_get(0)?,
+                })
+            },
+            mapper: |it| Book::from(it),
         }
     }
 }

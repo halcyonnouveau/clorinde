@@ -44,10 +44,10 @@ Clorinde also re-exports the dependencies: `postgres`, `tokio-postgres`, and `de
 
 A drawback to crate-based codegen is that `cargo` won't publish crates with path dependencies meaning you either can't publish a crate that depends on Clorinde or you will need to publish the Clorinde crate separately.
 
-If doing the latter, you can use a `clorinde.toml` to specify the `[package]` section of the `Cargo.toml` in the generated crate. For example, a `clorinde.toml` that includes:
+If doing the latter, you can use a `clorinde.toml` to specify the `[manifest.package]` section of the `Cargo.toml` in the generated crate. For example, a `clorinde.toml` that includes:
 
 ```toml
-[package]
+[manifest.package]
 name = "my-clorinde-queries"
 version = "0.1.0"
 license = "MIT"
@@ -59,17 +59,24 @@ publish = true
 Will generate `clorinde/Cargo.toml` with the specified `[package]` where you can then publish the crate as `my-clorinde-queries`.
 
 ## `chrono` instead of `time`
-Clorinde uses the `chrono` crate instead of `time`. If you want to keep using `time` you can add the `time` feature flag to the generated Clorinde crate.
+Clorinde uses the `chrono` crate instead of `time`. If you want to keep using `time`, use ["Custom Type Mappings"](../configuration.html#custom-type-mappings) to map the Postgres types to the `time` crate.
 
 ```toml
-[dependencies]
-# If using `deadpool-postgres`
-clorinde = { path = "clorinde", default-features = false, features = ["deadpool", "time"] }
+[types.mapping]
+"pg_catalog.timestamp" = "time::PrimitiveDateTime"
+"pg_catalog.timestamptz" = "time::OffsetDateTime"
+"pg_catalog.time" = "time::Time"
+"pg_catalog.date" = "time::Date"
 
-# Otherwise use `time` by itself
-clorinde = { path = "clorinde", default-features = false, features = ["time"] }
+[manifest.dependencies]
+time = { version = "0.3", features = ["serde"] }
+# enable the time feature of postgres and tokio-postgres
+postgres = { version = "0.19", features = [
+    "with-time-0_3",
+    "with-serde_json-1",
+] }
+tokio-postgres = { version = "0.7", features = [
+    "with-time-0_3",
+    "with-serde_json-1",
+] }
 ```
-
-~~~admonish warning
-The `time` feature is purely for backwards compatibility with Cornucopia, it will be removed in a future version of Clorinde.
-~~~

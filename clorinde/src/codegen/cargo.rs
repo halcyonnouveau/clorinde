@@ -124,6 +124,21 @@ fn to_cargo_dep(dep: &DependencyDetail, use_workspace: bool) -> Dependency {
     }
 }
 
+fn add_dep(
+    manifest: &mut cargo_toml::Manifest<toml::Value>,
+    name: &str,
+    dep: &DependencyDetail,
+    use_workspace: bool,
+    workspace_deps: &HashSet<String>,
+) {
+    if !manifest.dependencies.contains_key(name) {
+        manifest.dependencies.insert(
+            name.to_string(),
+            to_cargo_dep(dep, use_workspace && workspace_deps.contains(name)),
+        );
+    }
+}
+
 pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
     let mut manifest = config.manifest.clone();
 
@@ -154,7 +169,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         let mut wasm_features = vec!["tokio-postgres/js".to_string()];
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
             wasm_features.push("chrono?/wasmbind".to_string());
-            wasm_features.push("time?/wasm-bindgen".to_string());
         }
 
         manifest
@@ -173,39 +187,26 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             .insert("wasm-sync".to_string(), wasm_features);
     }
 
-    // Add chrono/time features
-    if dependency_analysis.chrono {
-        manifest
-            .features
-            .insert("chrono".to_string(), vec!["dep:chrono".to_string()]);
-        manifest
-            .features
-            .insert("time".to_string(), vec!["dep:time".to_string()]);
-    } else {
-        manifest.features.insert("chrono".to_string(), vec![]);
-        manifest.features.insert("time".to_string(), vec![]);
-    }
-
     // Core dependencies
     let postgres_types_dep = DependencyBuilder::new("0.2.9")
         .features(vec!["derive"])
         .into_detail();
 
-    manifest.dependencies.insert(
-        "postgres-types".to_string(),
-        to_cargo_dep(
-            &postgres_types_dep,
-            use_workspace_deps && workspace_deps.contains("postgres-types"),
-        ),
+    add_dep(
+        &mut manifest,
+        "postgres-types",
+        &postgres_types_dep,
+        use_workspace_deps,
+        &workspace_deps,
     );
 
     let postgres_protocol_dep = DependencyBuilder::new("0.6.8").into_detail();
-    manifest.dependencies.insert(
-        "postgres-protocol".to_string(),
-        to_cargo_dep(
-            &postgres_protocol_dep,
-            use_workspace_deps && workspace_deps.contains("postgres-protocol"),
-        ),
+    add_dep(
+        &mut manifest,
+        "postgres-protocol",
+        &postgres_protocol_dep,
+        use_workspace_deps,
+        &workspace_deps,
     );
 
     let mut client_features = Vec::new();
@@ -224,25 +225,15 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 .optional()
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "chrono".to_string(),
-                to_cargo_dep(
-                    &chrono_dep,
-                    use_workspace_deps && workspace_deps.contains("chrono"),
-                ),
-            );
-
-            let time_dep = DependencyBuilder::new("0.3.41").optional().into_detail();
-            manifest.dependencies.insert(
-                "time".to_string(),
-                to_cargo_dep(
-                    &time_dep,
-                    use_workspace_deps && workspace_deps.contains("time"),
-                ),
+            add_dep(
+                &mut manifest,
+                "chrono",
+                &chrono_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
 
             client_features.push("with-chrono-0_4");
-            client_features.push("with-time-0_3");
         }
 
         if dependency_analysis.uuid {
@@ -256,12 +247,12 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 .features(uuid_features)
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "uuid".to_string(),
-                to_cargo_dep(
-                    &uuid_dep,
-                    use_workspace_deps && workspace_deps.contains("uuid"),
-                ),
+            add_dep(
+                &mut manifest,
+                "uuid",
+                &uuid_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
             client_features.push("with-uuid-1");
         }
@@ -271,12 +262,12 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 .no_default_features()
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "eui48".to_string(),
-                to_cargo_dep(
-                    &eui48_dep,
-                    use_workspace_deps && workspace_deps.contains("eui48"),
-                ),
+            add_dep(
+                &mut manifest,
+                "eui48",
+                &eui48_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
             client_features.push("with-eui48-1");
         }
@@ -286,12 +277,12 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 .features(vec!["db-postgres"])
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "rust_decimal".to_string(),
-                to_cargo_dep(
-                    &rust_decimal_dep,
-                    use_workspace_deps && workspace_deps.contains("rust_decimal"),
-                ),
+            add_dep(
+                &mut manifest,
+                "rust_decimal",
+                &rust_decimal_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
         }
 
@@ -300,24 +291,24 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 .features(vec!["raw_value"])
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "serde_json".to_string(),
-                to_cargo_dep(
-                    &serde_json_dep,
-                    use_workspace_deps && workspace_deps.contains("serde_json"),
-                ),
+            add_dep(
+                &mut manifest,
+                "serde_json",
+                &serde_json_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
 
             let serde_dep = DependencyBuilder::new("1.0.219")
                 .features(vec!["derive"])
                 .into_detail();
 
-            manifest.dependencies.insert(
-                "serde".to_string(),
-                to_cargo_dep(
-                    &serde_dep,
-                    use_workspace_deps && workspace_deps.contains("serde"),
-                ),
+            add_dep(
+                &mut manifest,
+                "serde",
+                &serde_dep,
+                use_workspace_deps,
+                &workspace_deps,
             );
             client_features.push("with-serde_json-1");
         }
@@ -329,12 +320,12 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             .features(vec!["derive"])
             .into_detail();
 
-        manifest.dependencies.insert(
-            "serde".to_string(),
-            to_cargo_dep(
-                &serde_dep,
-                use_workspace_deps && workspace_deps.contains("serde"),
-            ),
+        add_dep(
+            &mut manifest,
+            "serde",
+            &serde_dep,
+            use_workspace_deps,
+            &workspace_deps,
         );
         client_features.push("with-serde_json-1");
     }
@@ -344,12 +335,12 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         .features(client_features.clone())
         .into_detail();
 
-    manifest.dependencies.insert(
-        "postgres".to_string(),
-        to_cargo_dep(
-            &postgres_dep,
-            use_workspace_deps && workspace_deps.contains("postgres"),
-        ),
+    add_dep(
+        &mut manifest,
+        "postgres",
+        &postgres_dep,
+        use_workspace_deps,
+        &workspace_deps,
     );
 
     // Async dependencies
@@ -358,30 +349,30 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             .features(client_features.clone())
             .into_detail();
 
-        manifest.dependencies.insert(
-            "tokio-postgres".to_string(),
-            to_cargo_dep(
-                &tokio_postgres_dep,
-                use_workspace_deps && workspace_deps.contains("tokio-postgres"),
-            ),
+        add_dep(
+            &mut manifest,
+            "tokio-postgres",
+            &tokio_postgres_dep,
+            use_workspace_deps,
+            &workspace_deps,
         );
 
         let futures_dep = DependencyBuilder::new("0.3.31").into_detail();
-        manifest.dependencies.insert(
-            "futures".to_string(),
-            to_cargo_dep(
-                &futures_dep,
-                use_workspace_deps && workspace_deps.contains("futures"),
-            ),
+        add_dep(
+            &mut manifest,
+            "futures",
+            &futures_dep,
+            use_workspace_deps,
+            &workspace_deps,
         );
 
         let deadpool_dep = DependencyBuilder::new("0.14.1").optional().into_detail();
-        manifest.dependencies.insert(
-            "deadpool-postgres".to_string(),
-            to_cargo_dep(
-                &deadpool_dep,
-                use_workspace_deps && workspace_deps.contains("deadpool-postgres"),
-            ),
+        add_dep(
+            &mut manifest,
+            "deadpool-postgres",
+            &deadpool_dep,
+            use_workspace_deps,
+            &workspace_deps,
         );
     }
 

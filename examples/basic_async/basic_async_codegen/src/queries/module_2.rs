@@ -9,13 +9,13 @@ pub struct Authors {
     pub id: i32,
     pub name: String,
     pub country: String,
-    pub dob: crate::types::time::Date,
+    pub dob: chrono::NaiveDate,
 }
 pub struct AuthorsBorrowed<'a> {
     pub id: i32,
     pub name: &'a str,
     pub country: &'a str,
-    pub dob: crate::types::time::Date,
+    pub dob: chrono::NaiveDate,
 }
 impl<'a> From<AuthorsBorrowed<'a>> for Authors {
     fn from(
