@@ -13,7 +13,7 @@ fn bench(c: &mut Criterion) {
     let mut cfg = Config::default();
 
     cfg.queries = PathBuf::from_str("tests/codegen/queries").unwrap();
-    cfg.destination = tmp.into_path();
+    cfg.destination = tmp.keep();
     cfg.sync = true;
     cfg.r#async = false;
     cfg.types.derive_traits = vec!["serde::Serialize".to_string()];

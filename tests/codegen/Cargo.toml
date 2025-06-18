@@ -7,13 +7,8 @@ publish = false
 [dependencies]
 # Clorinde
 codegen = { path = "codegen" }
-# async
-futures = "0.3.31"
 # rust-postgres interaction
 postgres = "0.19.9"
-tokio-postgres = "0.7.12"
-# serde
-serde = { version = "1.0.217", features = ["derive"] }
 # extra types
 serde_json = { version = "1.0.135", features = ["raw_value"] }
 chrono = { version = "0.4.39", features = ["serde"] }

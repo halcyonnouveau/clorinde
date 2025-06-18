@@ -17,7 +17,7 @@ pub(crate) fn run_errors_test(
     let original_pwd = std::env::current_dir()?;
     let fixtures_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/errors");
     let test_suites = TestSuite::<ErrorTest>::read(fixtures_path);
-    let tmp = tempfile::tempdir()?.into_path();
+    let tmp = tempfile::tempdir()?.keep();
 
     for mut suite in test_suites {
         println!("{} {}", "[error]".magenta(), suite.name.magenta());

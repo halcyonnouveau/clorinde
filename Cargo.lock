@@ -208,7 +208,6 @@ name = "basic-async"
 version = "0.1.0"
 dependencies = [
  "basic_async_codegen",
- "futures",
  "tokio",
 ]
 
@@ -218,7 +217,6 @@ version = "0.1.0"
 dependencies = [
  "basic_async_wasm_codegen",
  "console_error_panic_hook",
- "futures",
  "getrandom 0.3.3",
  "tokio",
  "wasm-bindgen",
@@ -694,7 +692,6 @@ dependencies = [
  "postgres-protocol",
  "postgres-types",
  "serde",
- "time",
 ]
 
 [[package]]
@@ -703,7 +700,6 @@ version = "0.1.0"
 dependencies = [
  "ctypes",
  "custom_types_codegen",
- "futures",
  "tokio",
 ]
 
@@ -859,15 +855,6 @@ dependencies = [
  "const-oid",
  "crypto-common",
  "subtle",
-]
-
-[[package]]
-name = "dir-diff"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7ad16bf5f84253b50d6557681c58c3ab67c47c77d39fed9aeb56e947290bd10"
-dependencies = [
- "walkdir",
 ]
 
 [[package]]
@@ -2818,12 +2805,9 @@ dependencies = [
  "chrono",
  "codegen",
  "eui48",
- "futures",
  "postgres",
  "rust_decimal",
- "serde",
  "serde_json",
- "tokio-postgres",
  "uuid",
 ]
 
@@ -2833,7 +2817,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "clorinde",
- "dir-diff",
  "owo-colors",
  "postgres",
  "serde",
