@@ -10,7 +10,7 @@ fn is_installed(tool: &str) -> bool {
         .stderr(std::process::Stdio::null())
         .status();
 
-    status.is_ok() && status.unwrap().success()
+    status.is_ok_and(|s| s.success())
 }
 
 /// Starts Clorinde's database container and wait until it reports healthy.

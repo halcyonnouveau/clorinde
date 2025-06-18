@@ -32,11 +32,15 @@ impl Error {
     #[must_use]
     pub fn report(self) -> String {
         let mut buff = String::new();
-        GraphicalReportHandler::new()
+        if GraphicalReportHandler::new()
             .with_theme(GraphicalTheme::unicode_nocolor())
             .render_report(&mut buff, &self)
-            .unwrap();
-        buff
+            .is_err()
+        {
+            format!("Error: {self}")
+        } else {
+            buff
+        }
     }
 }
 

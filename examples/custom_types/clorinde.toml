@@ -2,8 +2,8 @@ serialize = true
 destination = "custom_types_codegen"
 static = ["kafstel.txt"]
 use-workspace-deps = "../../Cargo.toml"
-container-image = "timescale/timescaledb-ha:pg17"
-container-wait = 1000
+# container-image = "timescale/timescaledb-ha:pg17"
+# container-wait = 1000
 
 [style]
 enum-variant-camel-case = true
