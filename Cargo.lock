@@ -269,23 +269,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "benches"
-version = "0.1.0"
-dependencies = [
- "clorinde",
- "criterion",
- "diesel",
- "futures",
- "generated",
- "postgres",
- "postgres-types",
- "sqlx",
- "tempfile",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
 name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -518,6 +501,10 @@ dependencies = [
  "cargo_toml",
  "chumsky",
  "clap",
+ "criterion",
+ "diesel",
+ "futures",
+ "generated",
  "heck",
  "indexmap",
  "miette",
@@ -528,9 +515,12 @@ dependencies = [
  "quote",
  "rand 0.9.0",
  "serde",
+ "sqlx",
  "syn 2.0.101",
  "tempfile",
  "thiserror 2.0.12",
+ "tokio",
+ "tokio-postgres",
  "toml",
 ]
 
