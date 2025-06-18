@@ -59,7 +59,7 @@ postgres = "0.19.9"
 tokio-postgres = "0.7.12"
 postgres-types = "0.2.8"
 diesel = { version = "2.2.10", features = ["postgres"] }
-sqlx = { version = "0.8.5", features = ["runtime-tokio", "postgres"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres"] }
 tempfile = "3.20.0"
 generated = { path = "benches/generated" }
 
