@@ -1,1 +1,0 @@
-{"group_id":"bench_insert","function_id":"tokio_postgres","value_str":"1000","throughput":null,"full_id":"bench_insert/tokio_postgres/1000","directory_name":"bench_insert/tokio_postgres/1000","title":"bench_insert/tokio_postgres/1000"}
