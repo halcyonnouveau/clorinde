@@ -1,6 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq, Hash)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq, serde::Serialize, Hash)]
 #[postgres(name = "voiceactor")]
 pub struct Voiceactor {
     #[postgres(name = "name")]
@@ -110,7 +110,7 @@ impl<'a> postgres_types::ToSql for VoiceactorBorrowed<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, Hash, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum SpongeBobCharacter {
     Bob,

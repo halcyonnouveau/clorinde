@@ -14,7 +14,7 @@ pub struct InsertNightmareDomainParams<
     pub arr: T4,
     pub composite: Option<crate::types::DomainCompositeParams<'a>>,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectNightmareDomain {
     pub txt: String,
     pub json: serde_json::Value,
@@ -41,7 +41,7 @@ impl<'a> From<SelectNightmareDomainBorrowed<'a>> for SelectNightmareDomain {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectNightmareDomainNull {
     pub txt: Option<String>,
     pub json: Option<serde_json::Value>,

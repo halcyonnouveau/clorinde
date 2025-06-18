@@ -1,4 +1,3 @@
-serialize = true
 destination = "custom_types_codegen"
 static = ["kafstel.txt"]
 use-workspace-deps = "../../Cargo.toml"
@@ -9,7 +8,7 @@ use-workspace-deps = "../../Cargo.toml"
 enum-variant-camel-case = true
 
 [types]
-derive-traits = ["Hash"]
+derive-traits = ["serde::Serialize", "Hash"]
 
 [types.type-traits-mapping]
 sponge_bob_character = ["serde::Deserialize"]

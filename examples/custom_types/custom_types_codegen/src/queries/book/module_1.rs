@@ -1,6 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Default, Hash)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, Hash)]
 pub struct Book {
     pub title: String,
 }

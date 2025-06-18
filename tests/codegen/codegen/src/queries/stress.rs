@@ -118,7 +118,7 @@ pub struct EverythingArrayParams<
     pub macaddr_: T36,
     pub numeric_: T37,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Everything {
     pub bool_: bool,
     pub boolean_: bool,
@@ -276,7 +276,7 @@ impl<'a> From<EverythingBorrowed<'a>> for Everything {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EverythingNull {
     pub bool_: Option<bool>,
     pub boolean_: Option<bool>,
@@ -434,7 +434,7 @@ impl<'a> From<EverythingNullBorrowed<'a>> for EverythingNull {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EverythingArray {
     pub bool_: Vec<bool>,
     pub boolean_: Vec<bool>,
@@ -572,7 +572,7 @@ impl<'a> From<EverythingArrayBorrowed<'a>> for EverythingArray {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EverythingArrayNull {
     pub bool_: Option<Vec<bool>>,
     pub boolean_: Option<Vec<bool>>,

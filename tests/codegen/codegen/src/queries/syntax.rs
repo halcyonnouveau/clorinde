@@ -70,15 +70,15 @@ pub struct TrickySql10Params {
     pub r#async: crate::types::SyntaxComposite,
     pub r#enum: crate::types::SyntaxEnum,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Row {
     pub id: i32,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct RowSpace {
     pub id: i32,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Typeof {
     pub trick_y: String,
     pub r#async: crate::types::SyntaxComposite,
@@ -104,7 +104,7 @@ impl<'a> From<TypeofBorrowed<'a>> for Typeof {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectComment {
     pub trick_y: String,
     pub r#async: crate::types::SyntaxComposite,
@@ -130,7 +130,7 @@ impl<'a> From<SelectCommentBorrowed<'a>> for SelectComment {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectInlineComment {
     pub c1: String,
     pub c2: String,

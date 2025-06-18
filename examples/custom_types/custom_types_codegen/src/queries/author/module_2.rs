@@ -4,7 +4,7 @@
 pub struct AuthorNameStartingWithParams<T1: crate::StringSql> {
     pub start_str: T1,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct Author {
     pub id: i32,
     pub name: String,
@@ -40,7 +40,7 @@ impl<'a> From<AuthorBorrowed<'a>> for Author {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct AuthorNameStartingWith {
     pub authorid: i32,
     pub name: String,
@@ -70,7 +70,7 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct SelectVoiceActorByElement {
     pub voice_actor: crate::types::Voiceactor,
     pub element: ctypes::element::Element,

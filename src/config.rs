@@ -22,6 +22,10 @@ pub struct Config {
     /// Generate asynchronous rust code
     pub r#async: bool,
     /// Derive serde's `Serialize` trait for generated types
+    #[deprecated(
+        since = "1.0.0",
+        note = "please use the `types.derive-traits` configuration instead"
+    )]
     pub serialize: bool,
     /// Ignore query files prefixed with underscore
     #[serde(rename = "ignore-underscore-files")]
@@ -85,6 +89,7 @@ impl Default for Config {
             destination: PathBuf::from_str("clorinde").unwrap(),
             sync: false,
             r#async: true,
+            #[allow(deprecated)]
             serialize: false,
             ignore_underscore_files: false,
             params_only: false,
@@ -260,6 +265,11 @@ impl ConfigBuilder {
     }
 
     /// Derive serde's `Serialize` trait for generated types
+    #[deprecated(
+        since = "1.0.0",
+        note = "please use the `types.derive-traits` configuration instead"
+    )]
+    #[allow(deprecated)]
     pub fn serialize(mut self, serialize: bool) -> Self {
         self.config.serialize = serialize;
         self

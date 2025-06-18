@@ -57,8 +57,6 @@ pub(crate) struct CodegenTest {
     #[serde(default)]
     pub(crate) r#async: bool,
     #[serde(default)]
-    pub(crate) derive_ser: bool,
-    #[serde(default)]
     pub(crate) run: bool,
     #[serde(default)]
     pub(crate) config: bool,
@@ -86,7 +84,6 @@ impl From<&CodegenTest> for Config {
 
         cfg.r#async = codegen_test.r#async;
         cfg.sync = codegen_test.sync;
-        cfg.serialize = codegen_test.derive_ser;
 
         cfg
     }
@@ -106,6 +103,7 @@ impl From<&ErrorTest> for Config {
         Config {
             r#async: false,
             sync: true,
+            #[allow(deprecated)]
             serialize: false,
             ..Default::default()
         }

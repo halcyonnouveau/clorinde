@@ -18,6 +18,7 @@ pub(crate) fn gen_type_modules(
 
     for (schema, types) in prepared {
         if schema == "public" {
+            #[allow(deprecated)]
             let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
             {
                 for ty in types {
@@ -25,6 +26,7 @@ pub(crate) fn gen_type_modules(
                 }
             }
         } else {
+            #[allow(deprecated)]
             let ctx = GenCtx::new(ModCtx::SchemaTypes, config.r#async, config.serialize);
             {
                 let mut p_tokens = quote!();

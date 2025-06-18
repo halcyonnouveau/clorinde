@@ -88,10 +88,14 @@ You can specify `#[derive]` traits for generated structs using this field.
 
 ```toml
 [types]
-derive-traits = ["Default", "serde::Deserialize"]
+derive-traits = ["serde::Serialize", "serde::Deserialize", "Hash"]
 ```
 
-This will add the `Default` and `serde::Deserialize` traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](./writing_queries/type_annotations.html#derive-traits).
+This will add the the traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](./writing_queries/type_annotations.html#derive-traits).
+
+~~~admonish note
+Adding any `serde` trait will automatically add `serde` as a dependency in the package manifest. This is for backwards compatibility with the deprecated `serialize` config value.
+~~~
 
 ### Custom PostgreSQL type derive traits
 For more granular control in addition to traits in type annotations, you can specify traits that should only be derived for particular [custom PostgreSQL types](./introduction/types.html#custom-postgresql-types):

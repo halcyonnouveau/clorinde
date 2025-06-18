@@ -10,7 +10,7 @@ pub struct ParamsOrderParams {
     pub c: i32,
     pub a: i32,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectBook {
     pub name: String,
     pub author: Option<String>,
@@ -27,7 +27,7 @@ impl<'a> From<SelectBookBorrowed<'a>> for SelectBook {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FindBooks {
     pub name: String,
     pub author: Option<String>,

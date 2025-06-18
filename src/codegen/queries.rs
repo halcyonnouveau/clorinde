@@ -597,6 +597,7 @@ fn gen_query_fn(
 
 fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::TokenStream {
     let mut tokens = quote!();
+    #[allow(deprecated)]
     let ctx = GenCtx::new(ModCtx::Queries, config.r#async, config.serialize);
 
     for params in module.params.values() {
@@ -642,6 +643,7 @@ fn gen_specific(
     hierarchy: ModCtx,
     is_async: bool,
 ) -> proc_macro2::TokenStream {
+    #[allow(deprecated)]
     let ctx = GenCtx::new(hierarchy, is_async, config.serialize);
 
     let imports = if is_async {

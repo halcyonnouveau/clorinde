@@ -41,8 +41,19 @@ clorinde fresh schema.sql --url postgresql://user:pass@localhost \
 ### `sync`
 By default, Clorinde will generate asynchronous code, but it can also generate synchronous code using the `--sync` flag.
 
-### `serialize`
+### `serialize` (DEPRECATED)
 If you need to serialize the rows returned by your queries, you can use the `--serialize` flag, which will derive `Serialize` on your row types.
+
+~~~admonish warning
+This flag is deprecated and may be removed in a future version of Clorinde. Please use the `types.derive-traits` configuration value. For example, a  `clorinde.toml` that includes this will be functionally equivalent as using the flag.
+
+```toml
+[types]
+derive-traits = ["serde::Serialize"]
+```
+
+This will also add `serde` to the manifest dependencies.
+~~~
 
 ### `podman`
 You can use `podman` as a container manager by passing the `-p` or `--podman` flag.

@@ -18,12 +18,12 @@ struct Args {
 enum Action {
     /// Generate your modules against your own db
     Live {
-        #[clap(env = "DATABASE_URL")]
         /// Postgres url to the database
+        #[clap(env = "DATABASE_URL")]
         url: String,
 
-        #[clap(long)]
         /// Postgres search path to use for the queries
+        #[clap(long)]
         search_path: Option<String>,
 
         #[clap(flatten)]
@@ -56,20 +56,20 @@ enum Action {
         #[clap(required = true, value_parser = validate_path_exists)]
         schema_files: Vec<PathBuf>,
 
-        #[clap(long, short, env = "DATABASE_URL")]
         /// Postgres server url (without database name)
+        #[clap(long, short, env = "DATABASE_URL")]
         url: Option<String>,
 
-        #[clap(long)]
         /// Postgres search path to use for the queries
+        #[clap(long)]
         search_path: Option<String>,
 
-        #[clap(long)]
         /// Name for the temporary database (defaults to clorinde_temp_<random>)
+        #[clap(long)]
         db_name: Option<String>,
 
-        #[clap(long)]
         /// Keep the temporary database after generation (don't cleanup)
+        #[clap(long)]
         keep_db: bool,
 
         #[clap(flatten)]
@@ -93,27 +93,37 @@ struct CommonArgs {
     /// Config file path
     #[clap(short, long, default_value = "clorinde.toml", value_parser = validate_path_exists)]
     config: PathBuf,
+
     /// Folder containing the queries
     #[clap(short, long, value_parser = validate_path_exists)]
     queries_path: Option<PathBuf>,
+
     /// Destination folder for generated modules
     #[clap(short, long)]
     destination: Option<PathBuf>,
+
     /// Generate synchronous rust code
     #[clap(long)]
     sync: Option<bool>,
+
     /// Generate asynchronous rust code
     #[clap(long)]
     r#async: Option<bool>,
-    /// Derive serde's `Serialize` trait for generated types.
+
+    /// (DEPRECATED) Derive serde's `Serialize` trait for generated types.
     #[clap(long)]
+    #[deprecated(
+        since = "1.0.0",
+        note = "please use the `types.derive-traits` configuration instead"
+    )]
     serialize: Option<bool>,
+
     /// Ignore query files prefixed with underscore
     #[clap(long)]
     ignore_underscore_files: Option<bool>,
 }
 
-#[allow(clippy::result_large_err)]
+#[allow(clippy::result_large_err, deprecated)]
 // Main entrypoint of the CLI. Parses the args and calls the appropriate routines.
 pub fn run() -> Result<(), Error> {
     let Args { action } = Args::parse();
@@ -137,6 +147,13 @@ pub fn run() -> Result<(), Error> {
     cfg.sync = sync.unwrap_or(cfg.sync);
     cfg.r#async = r#async.unwrap_or(false) || !cfg.sync;
     cfg.serialize = serialize.unwrap_or(cfg.serialize);
+
+    if serialize.is_some() {
+        eprintln!(
+            "Warning: --serialize is deprecated since 1.0.0, please use the `types.derive-traits` configuration instead"
+        );
+    }
+
     cfg.ignore_underscore_files = ignore_underscore_files.unwrap_or(cfg.ignore_underscore_files);
 
     // Prevent wrong directory being accidentally deleted

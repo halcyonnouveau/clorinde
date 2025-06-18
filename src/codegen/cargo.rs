@@ -237,10 +237,18 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
     let mut client_features = Vec::new();
 
+    #[allow(deprecated)]
+    let needs_serde = config.serialize
+        || config
+            .types
+            .derive_traits
+            .iter()
+            .any(|t| t.contains("serde"));
+
     // Type dependencies
     if dependency_analysis.has_dependency() {
         if dependency_analysis.chrono {
-            let chrono_features = if config.serialize || dependency_analysis.json {
+            let chrono_features = if needs_serde || dependency_analysis.json {
                 vec!["serde"]
             } else {
                 vec![]
@@ -258,7 +266,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         }
 
         if dependency_analysis.uuid {
-            let uuid_features = if config.serialize || dependency_analysis.json {
+            let uuid_features = if needs_serde || dependency_analysis.json {
                 vec!["serde"]
             } else {
                 vec![]
@@ -314,7 +322,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     }
 
     // Add serde if serializing but not using json type
-    if config.serialize && !dependency_analysis.json {
+    if needs_serde && !dependency_analysis.json {
         deps.add(
             "serde",
             &DependencyBuilder::new(versions::SERDE)

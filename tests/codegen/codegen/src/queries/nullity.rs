@@ -11,7 +11,7 @@ pub struct NullityParams<
     pub name: T3,
     pub composite: Option<crate::types::NullityCompositeParams<'a>>,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Nullity {
     pub texts: Vec<Option<String>>,
     pub name: String,
@@ -37,7 +37,7 @@ impl<'a> From<NullityBorrowed<'a>> for Nullity {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TestNestedComposite {
     pub composite: crate::types::NullityComposite,
 }
@@ -51,7 +51,7 @@ impl<'a> From<TestNestedCompositeBorrowed<'a>> for TestNestedComposite {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TestDirectComposite {
     pub composite: Option<crate::types::NullityComposite>,
 }

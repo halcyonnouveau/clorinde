@@ -16,7 +16,7 @@ fn bench(c: &mut Criterion) {
     cfg.destination = tmp.into_path();
     cfg.sync = true;
     cfg.r#async = false;
-    cfg.serialize = true;
+    cfg.types.derive_traits = vec!["serde::Serialize".to_string()];
 
     c.bench_function("codegen_sync", |b| {
         b.iter(|| clorinde::gen_live(client, cfg.clone()).unwrap())

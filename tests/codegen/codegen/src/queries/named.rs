@@ -10,11 +10,11 @@ pub struct NamedComplexParams<'a> {
     pub named: crate::types::NamedCompositeBorrowed<'a>,
     pub named_with_dot: Option<crate::types::NamedCompositeWithDot>,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub struct Id {
     pub id: i32,
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Named {
     pub id: i32,
     pub name: String,
@@ -44,7 +44,7 @@ impl<'a> From<NamedBorrowed<'a>> for Named {
         }
     }
 }
-#[derive(serde::Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NamedComplex {
     pub named: crate::types::NamedComposite,
     pub named_with_dot: Option<crate::types::NamedCompositeWithDot>,

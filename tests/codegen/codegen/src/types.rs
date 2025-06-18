@@ -1,6 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "clone_composite")]
 pub struct CloneComposite {
     #[postgres(name = "first")]
@@ -110,7 +110,7 @@ impl<'a> postgres_types::ToSql for CloneCompositeBorrowed<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
 #[postgres(name = "copy_composite")]
 pub struct CopyComposite {
     #[postgres(name = "first")]
@@ -179,7 +179,7 @@ impl<'a> postgres_types::ToSql for CopyComposite {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "domain_composite")]
 pub struct DomainComposite {
     #[postgres(name = "txt")]
@@ -339,7 +339,7 @@ impl<'a> postgres_types::ToSql for DomainCompositeParams<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "named_composite")]
 pub struct NamedComposite {
     #[postgres(name = "wow")]
@@ -449,7 +449,7 @@ impl<'a> postgres_types::ToSql for NamedCompositeBorrowed<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum EnumWithDot {
     variant_with_dot,
@@ -519,7 +519,7 @@ impl<'a> postgres_types::FromSql<'a> for EnumWithDot {
         }
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
 #[postgres(name = "named_composite.with_dot")]
 pub struct NamedCompositeWithDot {
     #[postgres(name = "this.is.inconceivable")]
@@ -590,7 +590,7 @@ impl<'a> postgres_types::ToSql for NamedCompositeWithDot {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "nullity_composite")]
 pub struct NullityComposite {
     #[postgres(name = "jsons")]
@@ -714,7 +714,7 @@ impl<'a> postgres_types::ToSql for NullityCompositeParams<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum SpongebobCharacter {
     Bob,
@@ -794,7 +794,7 @@ impl<'a> postgres_types::FromSql<'a> for SpongebobCharacter {
         }
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "custom_composite")]
 pub struct CustomComposite {
     #[postgres(name = "wow")]
@@ -926,7 +926,7 @@ impl<'a> postgres_types::ToSql for CustomCompositeBorrowed<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
 #[postgres(name = "nightmare_composite")]
 pub struct NightmareComposite {
     #[postgres(name = "custom")]
@@ -1074,7 +1074,7 @@ impl<'a> postgres_types::ToSql for NightmareCompositeParams<'a> {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
+#[derive(Debug, postgres_types::FromSql, Copy, Clone, PartialEq)]
 #[postgres(name = "syntax_composite")]
 pub struct SyntaxComposite {
     #[postgres(name = "async")]
@@ -1139,7 +1139,7 @@ impl<'a> postgres_types::ToSql for SyntaxComposite {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum SyntaxEnum {
     r#async,
@@ -1220,7 +1220,7 @@ impl<'a> postgres_types::FromSql<'a> for SyntaxEnum {
     }
 }
 pub mod schema {
-    #[derive(serde::Serialize, Debug, postgres_types::FromSql, Clone, PartialEq)]
+    #[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
     #[postgres(name = "nightmare_composite")]
     pub struct NightmareComposite {
         #[postgres(name = "custom")]
