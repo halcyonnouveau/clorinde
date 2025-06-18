@@ -9,6 +9,7 @@ repository = "https://github.com/halcyonnouveau/clorinde"
 readme = "README.md"
 categories = ["database"]
 keywords = ["postgresql", "query", "generator", "sql", "tokio-postgres"]
+include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE-*"]
 publish = true
 
 [dependencies]
