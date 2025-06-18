@@ -10,7 +10,7 @@ clorinde = { path = "basic_async_wasm_codegen", package = "basic_async_wasm_code
     "wasm-async",
 ] }
 
-tokio = { version = "1.44.2", default-features = false, features = [
+tokio = { version = "1.45.1", default-features = false, features = [
     "macros",
     "rt",
 ] }

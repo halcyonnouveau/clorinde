@@ -52,7 +52,7 @@ cargo_toml = "0.22"
 [dev-dependencies]
 # Benchmarking
 criterion = { version = "0.6.0", features = ["html_reports"] }
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3.31"
 postgres = "0.19.9"
 tokio-postgres = "0.7.12"

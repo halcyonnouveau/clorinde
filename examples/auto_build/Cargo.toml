@@ -9,7 +9,7 @@ publish = false
 codegen = { path = "auto_build_codegen", package = "auto_build_codegen" }
 
 # Async
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3.31"
 
 [build-dependencies]
