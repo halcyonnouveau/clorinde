@@ -157,7 +157,7 @@ fn bench(c: &mut Criterion) {
             .unwrap()
     });
 
-    clorinde::load_schema(client, &["schema.sql"]).unwrap();
+    clorinde::load_schema(client, &["benches/schema.sql"]).unwrap();
     {
         let mut group = c.benchmark_group("bench_trivial_query");
         for size in QUERY_SIZE {

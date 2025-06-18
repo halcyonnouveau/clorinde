@@ -7,9 +7,9 @@ edition = "2021"
 publish = false
 
 [dependencies.chrono]
+version = "0.4.41"
 features = ["serde"]
 optional = true
-workspace = true
 
 [dependencies.ctypes]
 path = "../ctypes"
@@ -41,8 +41,8 @@ version = "1.0.219"
 features = ["derive"]
 
 [dependencies.time]
+version = "0.3"
 features = ["serde"]
-workspace = true
 
 [dependencies.tokio-postgres]
 version = "0.7.13"

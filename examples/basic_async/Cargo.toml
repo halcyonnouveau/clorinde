@@ -8,5 +8,5 @@ publish = false
 # Clorinde
 clorinde = { path = "basic_async_codegen", package = "basic_async_codegen" }
 # Async
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3.31"

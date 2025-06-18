@@ -10,5 +10,5 @@ clorinde = { path = "custom_types_codegen", package = "custom_types_codegen" }
 # Custom types
 ctypes = { path = "ctypes", package = "ctypes" }
 # Async
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3.31"

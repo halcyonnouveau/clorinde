@@ -8,11 +8,11 @@ fn bench(c: &mut Criterion) {
     clorinde::container::setup(false, "docker.io/library/postgres:latest", 250).unwrap();
     let client = &mut clorinde_conn().unwrap();
     let tmp = tempfile::tempdir().unwrap();
-    clorinde::load_schema(client, &["../tests/codegen/schema.sql"]).unwrap();
+    clorinde::load_schema(client, &["tests/codegen/schema.sql"]).unwrap();
 
     let mut cfg = Config::default();
 
-    cfg.queries = PathBuf::from_str("../tests/codegen/queries").unwrap();
+    cfg.queries = PathBuf::from_str("tests/codegen/queries").unwrap();
     cfg.destination = tmp.into_path();
     cfg.sync = true;
     cfg.r#async = false;
@@ -28,6 +28,7 @@ fn bench(c: &mut Criterion) {
     c.bench_function("codegen_async", |b| {
         b.iter(|| clorinde::gen_live(client, cfg.clone()).unwrap())
     });
+
     clorinde::container::cleanup(false).unwrap();
 }
 criterion::criterion_group!(benches, bench);
