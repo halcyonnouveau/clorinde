@@ -219,7 +219,7 @@ dependencies = [
  "basic_async_wasm_codegen",
  "console_error_panic_hook",
  "futures",
- "getrandom 0.3.2",
+ "getrandom 0.3.3",
  "tokio",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -1146,9 +1146,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73fea8450eea4bac3940448fb7ae50d91f034f941199fcd9d909a5a07aa455f0"
+checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -1905,7 +1905,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "fallible-iterator",
- "getrandom 0.3.2",
+ "getrandom 0.3.3",
  "hmac",
  "md-5",
  "memchr",
@@ -2101,7 +2101,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b08f3c9802962f7e1b25113931d94f43ed9725bebc59db9d0c3e9a23b67e15ff"
 dependencies = [
- "getrandom 0.3.2",
+ "getrandom 0.3.3",
  "zerocopy 0.8.17",
 ]
 
@@ -2796,7 +2796,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8a64e3985349f2441a1a9ef0b853f869006c3855f2cda6862a94d26ebb9d6a1"
 dependencies = [
  "fastrand",
- "getrandom 0.3.2",
+ "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.3",
  "windows-sys 0.59.0",
