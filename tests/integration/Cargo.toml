@@ -20,7 +20,7 @@ dir-diff = "0.3.3"
 owo-colors = "4.2.1"
 
 # CLI handling
-clap = { version = "4.5.24", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 
 # Postgres interaction
 postgres = "0.19.9"
