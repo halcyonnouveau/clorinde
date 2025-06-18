@@ -32,6 +32,7 @@ enum Action {
     /// Generate your modules against schema files
     Schema {
         /// SQL files containing the database schema
+        #[clap(required = true, value_parser = validate_path_exists)]
         schema_files: Vec<PathBuf>,
 
         /// Container image to use
@@ -52,6 +53,7 @@ enum Action {
     /// Generate your modules against schema files using a fresh database on an existing server
     Fresh {
         /// SQL files containing the database schema
+        #[clap(required = true, value_parser = validate_path_exists)]
         schema_files: Vec<PathBuf>,
 
         #[clap(long, short, env = "DATABASE_URL")]
@@ -89,10 +91,10 @@ impl Action {
 #[derive(Parser, Debug, Clone)]
 struct CommonArgs {
     /// Config file path
-    #[clap(short, long, default_value = "clorinde.toml")]
+    #[clap(short, long, default_value = "clorinde.toml", value_parser = validate_path_exists)]
     config: PathBuf,
     /// Folder containing the queries
-    #[clap(short, long)]
+    #[clap(short, long, value_parser = validate_path_exists)]
     queries_path: Option<PathBuf>,
     /// Destination folder for generated modules
     #[clap(short, long)]
@@ -216,4 +218,13 @@ pub fn run() -> Result<(), Error> {
         }
     };
     Ok(())
+}
+
+fn validate_path_exists(s: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(s);
+    if path.exists() {
+        Ok(path)
+    } else {
+        Err(format!("invalid path '{}'", path.display()))
+    }
 }
