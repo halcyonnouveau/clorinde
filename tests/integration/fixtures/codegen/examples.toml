@@ -29,7 +29,6 @@ run = true
 [[test]]
 name = "Custom types"
 base_path = "examples/custom_types"
-destination = "custom_types_codegen"
-async = true
+destination = "db/custom_types_codegen"
 run = true
 config = true

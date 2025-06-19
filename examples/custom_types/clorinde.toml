@@ -1,4 +1,4 @@
-destination = "custom_types_codegen"
+destination = "db/custom_types_codegen"
 static = ["kafstel.txt"]
 use-workspace-deps = "../../Cargo.toml"
 # container-image = "timescale/timescaledb-ha:pg17"
@@ -14,11 +14,11 @@ derive-traits = ["serde::Serialize", "Hash"]
 sponge_bob_character = ["serde::Deserialize"]
 
 [types.mapping]
-"public.element" = "ctypes::element::Element"
+"public.element" = "db_types::element::Element"
 "pg_catalog.timestamp" = "time::PrimitiveDateTime"
 "pg_catalog.timestamptz" = "time::OffsetDateTime"
 "pg_catalog.time" = "time::Time"
-"pg_catalog.date" = { rust-type = "ctypes::date::Date", attributes = [
+"pg_catalog.date" = { rust-type = "db_types::date::Date", attributes = [
     'allow(dead_code)',
 ] }
 "pg_catalog.tstzrange" = "postgres_range::Range<chrono::DateTime<chrono::FixedOffset>>"
@@ -28,7 +28,7 @@ name = "custom_types_codegen"
 publish = false
 
 [manifest.dependencies]
-ctypes = { path = "../ctypes" }
+db_types = { path = "../db_types" }
 time = { version = "0.3", features = ["serde"] }
 postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 tokio-postgres = { version = "0.7.13", features = [

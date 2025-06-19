@@ -686,21 +686,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctypes"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "postgres-protocol",
- "postgres-types",
- "serde",
-]
-
-[[package]]
 name = "custom-types"
 version = "0.1.0"
 dependencies = [
- "ctypes",
  "custom_types_codegen",
+ "db_types",
  "tokio",
 ]
 
@@ -709,7 +699,7 @@ name = "custom_types_codegen"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "ctypes",
+ "db_types",
  "deadpool-postgres",
  "futures",
  "postgres",
@@ -754,6 +744,16 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 2.0.103",
+]
+
+[[package]]
+name = "db_types"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "postgres-protocol",
+ "postgres-types",
+ "serde",
 ]
 
 [[package]]

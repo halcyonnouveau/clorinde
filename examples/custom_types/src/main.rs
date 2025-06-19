@@ -1,6 +1,6 @@
 // Take a look at the generated `clorinde` crate if you want to
 // see what it looks like under the hood.
-use clorinde::queries::author::module_2::{authors, select_voice_actor_by_element};
+use clorinde::queries::module_2::{authors, select_voice_actor_by_element};
 
 #[tokio::main]
 pub async fn main() {
@@ -14,7 +14,7 @@ pub async fn main() {
     dbg!(&authors[0].dob);
 
     let voice_actor = select_voice_actor_by_element()
-        .bind(&client, &ctypes::element::Element::Hydro)
+        .bind(&client, &db_types::element::Element::Hydro)
         .one()
         .await
         .unwrap();

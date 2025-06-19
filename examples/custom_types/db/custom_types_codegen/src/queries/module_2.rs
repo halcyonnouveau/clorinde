@@ -10,7 +10,7 @@ pub struct Author {
     pub name: String,
     pub country: String,
     #[allow(dead_code)]
-    pub dob: ctypes::date::Date,
+    pub dob: db_types::date::Date,
     pub dob2: time::PrimitiveDateTime,
 }
 pub struct AuthorBorrowed<'a> {
@@ -18,7 +18,7 @@ pub struct AuthorBorrowed<'a> {
     pub name: &'a str,
     pub country: &'a str,
     #[allow(dead_code)]
-    pub dob: ctypes::date::Date,
+    pub dob: db_types::date::Date,
     pub dob2: time::PrimitiveDateTime,
 }
 impl<'a> From<AuthorBorrowed<'a>> for Author {
@@ -73,12 +73,12 @@ impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct SelectVoiceActorByElement {
     pub voice_actor: crate::types::Voiceactor,
-    pub element: ctypes::element::Element,
+    pub element: db_types::element::Element,
     pub character: crate::types::SpongeBobCharacter,
 }
 pub struct SelectVoiceActorByElementBorrowed<'a> {
     pub voice_actor: crate::types::VoiceactorBorrowed<'a>,
-    pub element: ctypes::element::Element,
+    pub element: db_types::element::Element,
     pub character: crate::types::SpongeBobCharacter,
 }
 impl<'a> From<SelectVoiceActorByElementBorrowed<'a>> for SelectVoiceActorByElement {
@@ -457,7 +457,7 @@ impl SelectVoiceActorByElementStmt {
     pub fn bind<'c, 'a, 's, C: GenericClient>(
         &'s mut self,
         client: &'c C,
-        element: &'a ctypes::element::Element,
+        element: &'a db_types::element::Element,
     ) -> SelectVoiceActorByElementQuery<'c, 'a, 's, C, SelectVoiceActorByElement, 1> {
         SelectVoiceActorByElementQuery {
             client,

@@ -78,7 +78,7 @@ impl FromSql for CustomType {
 }
 ```
 
-See the [custom_types](https://github.com/halcyonnouveau/clorinde/blob/main/examples/custom_types/ctypes/src/date.rs) example for a reference implementation.
+See the [custom_types](https://github.com/halcyonnouveau/clorinde/blob/main/examples/custom_types) example for a reference implementation.
 
 This ensures that your types can be properly serialized to and deserialized from PostgreSQL's wire format.
 ~~~
@@ -91,7 +91,7 @@ You can specify `#[derive]` traits for generated structs using this field.
 derive-traits = ["serde::Serialize", "serde::Deserialize", "Hash"]
 ```
 
-This will add the the traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](./writing_queries/type_annotations.html#derive-traits).
+This will add the traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](./writing_queries/type_annotations.html#derive-traits).
 
 ~~~admonish note
 Adding any `serde` trait will automatically add `serde` as a dependency in the package manifest. This is for backwards compatibility with the deprecated `serialize` config value.

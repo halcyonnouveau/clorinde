@@ -68,18 +68,16 @@ fn default_queries_path() -> PathBuf {
 
 impl From<&CodegenTest> for Config {
     fn from(codegen_test: &CodegenTest) -> Self {
-        let builder = match codegen_test.config {
-            true => Config::builder_from_file(Path::new("./clorinde.toml")).unwrap(),
-            false => Config::builder(),
-        };
-
-        builder
-            .name(codegen_test.destination.to_str().unwrap())
-            .queries(codegen_test.queries_path.clone())
-            .destination(codegen_test.destination.clone())
-            .r#async(codegen_test.r#async)
-            .sync(codegen_test.sync)
-            .build()
+        match codegen_test.config {
+            true => Config::from_file(Path::new("./clorinde.toml")).unwrap(),
+            false => Config::builder()
+                .name(codegen_test.destination.to_str().unwrap())
+                .destination(codegen_test.destination.clone())
+                .queries(codegen_test.queries_path.clone())
+                .r#async(codegen_test.r#async)
+                .sync(codegen_test.sync)
+                .build(),
+        }
     }
 }
 
