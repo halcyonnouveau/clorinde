@@ -7,19 +7,22 @@
 ![license](https://img.shields.io/badge/License-APACHE--2.0%2FMIT-blue)
 [![dependency status](https://deps.rs/repo/github/halcyonnouveau/clorinde/status.svg)](https://deps.rs/repo/github/halcyonnouveau/clorinde)
 
-Clorinde generates type-checked Rust interfaces from PostgreSQL queries, with an emphasis on compile-time safety and high performance. It is a fork of [Cornucopia](https://github.com/cornucopia-rs/cornucopia) that enhances the original with an improved architecture and expanded capabilities.
+Clorinde generates type-checked Rust interfaces from PostgreSQL queries, with an emphasis on compile-time safety and high performance. It is a fork of [Cornucopia](https://github.com/cornucopia-rs/cornucopia) that enhances the original with an improved architecture and expanded capabilities. Clorinde works by preparing your queries against an actual database and then running an extensive validation suite on them. Rust code is then generated into a separate crate, which can be imported and used in your project.
+
+The basic premise is thus to:
+
+1. Write your PostgreSQL queries.
+2. Use Clorinde to generate a crate with type-safe interfaces to those queries.
+3. Import and use the generated code in your project.
 
 ## Key Features
 
-* SQL-first approach with powerful query validation
-* Sync and async driver support with optional connection pooling
-* Non-allocating row mapping
-* Available as both a library and CLI tool
-* Close to native `rust-postgres` performance
-* Complete support for custom PostgreSQL types (composites, domains, and enums)
-* Custom Rust type mapping
-* One-dimensional array handling for all supported types
-* Granular type nullity control
+- **Type Safety** - Catch SQL errors at compile time and get catch errors before runtime with powerful diagnostics.
+- **SQL-First** - Write plain SQL queries, get generated Rust code. No ORMs or query builders, just the SQL you know and love.
+- **Fast** - Performance close to hand-written `rust-postgres` code.
+- **Flexible** - Works with sync/async code and connection pools.
+- **PostgreSQL Native** - Full support for custom types, enums, and arrays. Leverage PostgreSQL's advanced features without compromise.
+- **Custom Types** - Map database types to your own Rust structs.
 
 ## Installation
 
