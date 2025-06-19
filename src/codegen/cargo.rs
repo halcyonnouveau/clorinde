@@ -30,6 +30,8 @@ mod versions {
     pub const FUTURES: &str = "0.3.31";
     // https://crates.io/crates/deadpool-postgres
     pub const DEADPOOL_POSTGRES: &str = "0.14.1";
+    // https://crates.io/crates/fallible-iterator
+    pub const FALLIBLE_ITERATOR: &str = "0.2.0";
 }
 
 /// Register use of typed requiring specific dependencies
@@ -171,6 +173,12 @@ fn get_workspace_deps(manifest_path: &Path) -> HashSet<String> {
 pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config) -> String {
     let mut manifest = config.manifest.clone();
 
+    let mut default_features = if manifest.dependencies.contains_key("postgres") {
+        vec![]
+    } else {
+        vec!["dep:postgres".to_string()]
+    };
+
     let (use_workspace_deps, workspace_deps) = match &config.use_workspace_deps {
         UseWorkspaceDeps::Bool(true) => (true, get_workspace_deps(Path::new("./Cargo.toml"))),
         UseWorkspaceDeps::Bool(false) => (false, HashSet::new()),
@@ -178,7 +186,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     };
 
     if config.r#async {
-        let mut default_features = vec!["deadpool".to_string()];
+        default_features.push("deadpool".to_string());
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
             default_features.push("chrono".to_string());
         }
@@ -204,7 +212,9 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             .features
             .insert("wasm-async".to_string(), wasm_features);
     } else {
-        manifest.features.insert("default".to_string(), vec![]);
+        manifest
+            .features
+            .insert("default".to_string(), default_features);
         let mut wasm_features = vec![];
 
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
@@ -233,6 +243,11 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     deps.add(
         "postgres-protocol",
         &DependencyBuilder::new(versions::POSTGRES_PROTOCOL).into_detail(),
+    );
+
+    deps.add(
+        "fallible-iterator",
+        &DependencyBuilder::new(versions::FALLIBLE_ITERATOR).into_detail(),
     );
 
     let mut client_features = Vec::new();
@@ -338,6 +353,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         "postgres",
         &DependencyBuilder::new(versions::POSTGRES)
             .features(client_features.clone())
+            .optional()
             .into_detail(),
     );
 

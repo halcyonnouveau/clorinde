@@ -6,8 +6,12 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[dependencies.fallible-iterator]
+version = "0.2.0"
+
 [dependencies.postgres]
 version = "0.19.10"
+optional = true
 
 [dependencies.postgres-protocol]
 version = "0.6.8"
@@ -17,5 +21,5 @@ version = "0.2.9"
 features = ["derive"]
 
 [features]
-default = []
+default = ["dep:postgres"]
 wasm-sync = []

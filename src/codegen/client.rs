@@ -245,7 +245,7 @@ pub fn core_domain() -> proc_macro2::TokenStream {
 
 pub fn core_array() -> proc_macro2::TokenStream {
     quote! {
-        use postgres::fallible_iterator::FallibleIterator;
+        use fallible_iterator::FallibleIterator;
         use postgres_protocol::types::{array_from_sql, ArrayValues};
         use postgres_types::{FromSql, Kind, Type};
         use std::fmt::Debug;
