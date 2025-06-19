@@ -117,10 +117,6 @@ struct CommonArgs {
         note = "please use the `types.derive-traits` configuration instead"
     )]
     serialize: Option<bool>,
-
-    /// Ignore query files prefixed with underscore
-    #[clap(long)]
-    ignore_underscore_files: Option<bool>,
 }
 
 #[allow(clippy::result_large_err, deprecated)]
@@ -134,7 +130,6 @@ pub fn run() -> Result<(), Error> {
         sync,
         r#async,
         serialize,
-        ignore_underscore_files,
     } = action.args();
 
     let mut cfg = match config.is_file() {
@@ -150,11 +145,9 @@ pub fn run() -> Result<(), Error> {
 
     if serialize.is_some() {
         eprintln!(
-            "Warning: --serialize is deprecated since 1.0.0, please use the `types.derive-traits` configuration instead"
+            "Warning: --serialize is deprecated (since 1.0.0), please use the `types.derive-traits` configuration instead"
         );
     }
-
-    cfg.ignore_underscore_files = ignore_underscore_files.unwrap_or(cfg.ignore_underscore_files);
 
     // Prevent wrong directory being accidentally deleted
     if !cfg.destination.ends_with("clorinde")
