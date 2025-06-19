@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.2](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.1...clorinde-v1.0.0-beta.2) - 2025-06-19
+
+### Added
+
+- [**breaking**] remove ignore_underscore_files from cli args
+- [**breaking**] make Config #[non_exhaustive]
+
 ## [1.0.0-beta.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.0...clorinde-v1.0.0-beta.1) - 2025-06-18
 
 ### Added
