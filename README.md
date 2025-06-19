@@ -7,13 +7,18 @@
 ![license](https://img.shields.io/badge/License-APACHE--2.0%2FMIT-blue)
 [![dependency status](https://deps.rs/repo/github/halcyonnouveau/clorinde/status.svg)](https://deps.rs/repo/github/halcyonnouveau/clorinde)
 
-Clorinde generates type-checked Rust interfaces from PostgreSQL queries, with an emphasis on compile-time safety and high performance. It is a fork of [Cornucopia](https://github.com/cornucopia-rs/cornucopia) that enhances the original with an improved architecture and expanded capabilities. Clorinde works by preparing your queries against an actual database and then running an extensive validation suite on them. Rust code is then generated into a separate crate, which can be imported and used in your project.
+Clorinde generates type-checked Rust interfaces from PostgreSQL queries, with an emphasis on compile-time safety and high performance. It works by preparing your queries against an actual database and then running an extensive validation suite on them. Rust code is then generated into a separate crate, which can be imported and used in your project.
 
 The basic premise is thus to:
 
 1. Write your PostgreSQL queries.
 2. Use Clorinde to generate a crate with type-safe interfaces to those queries.
 3. Import and use the generated code in your project.
+
+You can learn more about using Clorinde by reading our [book](https://halcyonnouveau.github.io/clorinde/), or you can get a quickstart by looking at our [examples](https://halcyonnouveau.github.io/clorinde/examples.html).
+
+> [!NOTE]
+> Clorinde is a fork of [Cornucopia](https://github.com/cornucopia-rs/cornucopia) that enhances the original with an improved architecture and expanded capabilities. Visit the [migration guide](https://halcyonnouveau.github.io/clorinde/introduction/migration_from_cornucopia.html) if you are moving over an existing codebase with Cornucopia.
 
 ## Key Features
 

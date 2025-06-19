@@ -2,7 +2,7 @@
 Clorinde is a fork of [Cornucopia](https://github.com/cornucopia-rs/cornucopia) which includes a few breaking changes if you want to migrate over.
 
 ## Crate-based code generation
-Clorinde generates a *crate* instead of a single file which allows Clorinde to automatically generate a `Cargo.toml` file customised to support all the necessary dependencies and features required by your queries, without polluting your manifest. For example, Cornucopia's ["Full dependencies"](https://cornucopia-rs.netlify.app/book/introduction/dependencies#full-dependencies) example:
+Clorinde generates a *crate* instead of a single file which allows it to automatically generate a `Cargo.toml` file customised to support all the necessary dependencies and features required by your queries, without polluting your manifest. For example, Cornucopia's ["Full dependencies"](https://cornucopia-rs.netlify.app/book/introduction/dependencies#full-dependencies) example:
 
 ```toml
 [dependencies]
