@@ -29,6 +29,7 @@ features = ["derive"]
 
 [dependencies.tokio-postgres]
 version = "0.7.13"
+default-features = false
 
 [features]
 deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]

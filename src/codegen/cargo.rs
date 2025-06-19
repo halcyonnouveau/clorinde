@@ -121,7 +121,7 @@ struct DependencyContext<'a> {
     workspace_deps: &'a HashSet<String>,
 }
 
-impl<'a> DependencyContext<'a> {
+impl DependencyContext<'_> {
     fn to_cargo_dep(&self, dep: &DependencyDetail, use_workspace: bool) -> Dependency {
         if use_workspace {
             // for workspace dependencies, use Inherited variant
@@ -363,6 +363,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
             "tokio-postgres",
             &DependencyBuilder::new(versions::TOKIO_POSTGRES)
                 .features(client_features.clone())
+                .no_default_features()
                 .into_detail(),
         );
 
