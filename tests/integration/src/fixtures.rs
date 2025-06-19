@@ -68,24 +68,18 @@ fn default_queries_path() -> PathBuf {
 
 impl From<&CodegenTest> for Config {
     fn from(codegen_test: &CodegenTest) -> Self {
-        let mut cfg = match codegen_test.config {
-            true => Config::from_file(Path::new("./clorinde.toml")).unwrap(),
-            false => {
-                let mut cfg = Config::default();
-                if let Some(package) = &mut cfg.manifest.package {
-                    package.name = codegen_test.destination.to_str().unwrap().to_string();
-                }
-                cfg
-            }
+        let builder = match codegen_test.config {
+            true => Config::builder_from_file(Path::new("./clorinde.toml")).unwrap(),
+            false => Config::builder(),
         };
 
-        cfg.queries = codegen_test.queries_path.clone();
-        cfg.destination = codegen_test.destination.clone();
-
-        cfg.r#async = codegen_test.r#async;
-        cfg.sync = codegen_test.sync;
-
-        cfg
+        builder
+            .name(codegen_test.destination.to_str().unwrap())
+            .queries(codegen_test.queries_path.clone())
+            .destination(codegen_test.destination.clone())
+            .r#async(codegen_test.r#async)
+            .sync(codegen_test.sync)
+            .build()
     }
 }
 
@@ -100,12 +94,10 @@ pub(crate) struct ErrorTest {
 
 impl From<&ErrorTest> for Config {
     fn from(_error_test: &ErrorTest) -> Self {
-        Config {
-            r#async: false,
-            sync: true,
-            #[allow(deprecated)]
-            serialize: false,
-            ..Default::default()
-        }
+        Config::builder()
+            .r#async(false)
+            .sync(true)
+            .derive_traits(vec!["serde::Serialize".to_string()])
+            .build()
     }
 }

@@ -42,14 +42,15 @@ pub(crate) fn run_codegen_test(
                 let tmp_path = tmp_dir
                     .path()
                     .join(test.destination.file_name().unwrap_or("clorinde".as_ref()));
+
                 std::fs::create_dir(&tmp_path)?;
 
                 let mut cfg = Config::from(&test);
                 cfg.destination = tmp_path.clone();
 
-                // Generate
                 clorinde::gen_live(client, cfg).map_err(Error::report)?;
             }
+
             println!("(generate) {} {}", test.name, "OK".green());
 
             if test.run {

@@ -10,6 +10,7 @@ use std::{
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default, deny_unknown_fields)]
+#[non_exhaustive]
 pub struct Config {
     /// Use `podman` instead of `docker`
     pub podman: bool,
@@ -66,6 +67,12 @@ impl Config {
         }
 
         Ok(config)
+    }
+
+    pub fn builder_from_file<P: AsRef<Path>>(path: P) -> Result<ConfigBuilder, ConfigError> {
+        Ok(ConfigBuilder {
+            config: Config::from_file(path)?,
+        })
     }
 
     /// Create a new builder with default values
@@ -132,6 +139,7 @@ impl Default for UseWorkspaceDeps {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 #[serde(default, deny_unknown_fields)]
+#[non_exhaustive]
 pub struct Types {
     /// Mapping for postgres to rust types
     pub mapping: HashMap<String, TypeMapping>,
@@ -145,6 +153,7 @@ pub struct Types {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum TypeMapping {
     Simple(String),
     Detailed {
@@ -197,6 +206,7 @@ fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(default, deny_unknown_fields)]
+#[non_exhaustive]
 pub struct Style {
     /// Enforces all enum variants to use CamelCase, leaving postgres value in-tact
     #[serde(rename = "enum-variant-camel-case")]
@@ -380,6 +390,7 @@ impl ConfigBuilder {
 }
 
 #[derive(Debug, thiserror::Error, Diagnostic)]
+#[non_exhaustive]
 pub enum ConfigError {
     #[error("Failed to read config file: {0}")]
     Io(#[from] std::io::Error),
