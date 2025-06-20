@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.3...clorinde-v1.0.0-beta.4) - 2025-06-20
+
+### Added
+
+- [**breaking**] split custom field attributes into `attributes` and `attributes-borrowed`
+- optimise codegen with async client and pipelining
+
 ## [1.0.0-beta.3](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.2...clorinde-v1.0.0-beta.3) - 2025-06-20
 
 ### Fixed
