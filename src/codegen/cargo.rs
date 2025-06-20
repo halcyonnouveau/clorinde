@@ -31,6 +31,10 @@ mod versions {
     // https://crates.io/crates/deadpool-postgres
     pub const DEADPOOL_POSTGRES: &str = "0.14.1";
     // https://crates.io/crates/fallible-iterator
+    // newest version is 0.3, but we want to keep 0.2 as that is what
+    // rust-postgres uses
+    // if https://github.com/sfackler/rust-postgres/pull/1248 is ever
+    // merged we can remove this and re-export from rust-postgres
     pub const FALLIBLE_ITERATOR: &str = "0.2.0";
 }
 
