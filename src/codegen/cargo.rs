@@ -204,6 +204,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         );
 
         let mut wasm_features = vec!["tokio-postgres/js".to_string()];
+
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
             wasm_features.push("chrono?/wasmbind".to_string());
         }

@@ -76,6 +76,7 @@ path = "benches/codegen.rs"
 [workspace]
 resolver = "2"
 members = ["examples/*", "tests/*"]
+exclude = ["examples/basic_async_wasm"]
 
 [profile.release]
 codegen-units = 1
