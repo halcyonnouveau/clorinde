@@ -10,7 +10,7 @@ use tempfile::tempdir;
 
 // Run codegen test, return true if all test are successful
 pub(crate) fn run_codegen_test(
-    client: &mut postgres::Client,
+    client: &tokio_postgres::Client,
     apply: bool,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let mut successful = true;

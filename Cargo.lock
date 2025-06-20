@@ -2681,10 +2681,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "clorinde",
+ "futures",
  "owo-colors",
- "postgres",
  "serde",
  "tempfile",
+ "tokio",
+ "tokio-postgres",
  "toml",
 ]
 

@@ -1,9 +1,10 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
+use futures::{StreamExt, stream::FuturesUnordered};
 use heck::ToUpperCamelCase;
 use indexmap::{IndexMap, map::Entry};
-use postgres::Client;
 use postgres_types::{Kind, Type};
+use tokio_postgres::{Client, Statement};
 
 use crate::{
     codegen::{DependencyAnalysis, GenCtx, ModCtx},
@@ -283,10 +284,11 @@ impl PreparedModule {
 #[allow(clippy::result_large_err)]
 /// Prepares all modules
 pub(crate) fn prepare(
-    client: &mut Client,
+    client: &Client,
     modules: Vec<Module>,
     config: &Config,
 ) -> Result<Preparation, Error> {
+    let stmts = prepare_sql(client, &modules);
     let mut registrar = TypeRegistrar::new(config.clone());
     let mut prepared_types: IndexMap<String, Vec<PreparedType>> = IndexMap::new();
     let mut prepared_modules = Vec::new();
@@ -303,7 +305,7 @@ pub(crate) fn prepare(
 
     for module in modules {
         let (prepared_module, module_nested_specs) =
-            prepare_module(client, module, &mut registrar)?;
+            prepare_module(&stmts, module, &mut registrar)?;
 
         prepared_modules.push(prepared_module);
 
@@ -429,9 +431,26 @@ fn prepare_type(
 }
 
 #[allow(clippy::result_large_err)]
+fn prepare_sql(
+    client: &Client,
+    modules: &[Module],
+) -> HashMap<String, Result<Statement, tokio_postgres::Error>> {
+    let queries: FuturesUnordered<_> = modules
+        .iter()
+        .flat_map(|m| m.queries.iter().map(|q| q.sql_str.clone()))
+        .map(|query| async move {
+            let stmt = client.prepare(&query).await;
+            (query, stmt)
+        })
+        .collect();
+    let results: HashMap<_, _> = futures::executor::block_on(queries.collect());
+    results
+}
+
+#[allow(clippy::result_large_err)]
 /// Prepares all queries in this module and collects nested nullability specifications
 fn prepare_module(
-    client: &mut Client,
+    stmts: &HashMap<String, Result<Statement, tokio_postgres::Error>>,
     module: Module,
     registrar: &mut TypeRegistrar,
 ) -> Result<(PreparedModule, ModuleNestedSpecs), Error> {
@@ -451,7 +470,7 @@ fn prepare_module(
 
     for query in module.queries {
         let query_nested_specs = prepare_query(
-            client,
+            stmts,
             &mut tmp_prepared_module,
             registrar,
             &module.types,
@@ -476,7 +495,7 @@ fn prepare_module(
 #[allow(clippy::result_large_err)]
 /// Prepares a query
 fn prepare_query(
-    client: &mut Client,
+    stmts: &HashMap<String, Result<Statement, tokio_postgres::Error>>,
     module: &mut PreparedModule,
     registrar: &mut TypeRegistrar,
     types: &[TypeAnnotation],
@@ -497,9 +516,9 @@ fn prepare_query(
     > = std::collections::HashMap::new();
 
     // Prepare the statement
-    let stmt = client
-        .prepare(&sql_str)
-        .map_err(|e| Error::new_db_err(&e, module_info, &sql_span, &name))?;
+    let stmt = stmts[&sql_str]
+        .as_ref()
+        .map_err(|e| Error::new_db_err(e, module_info, &sql_span, &name))?;
 
     let (nullable_params_fields, _, params_name) =
         param.name_and_fields(types, &name, Some("Params"));
@@ -674,7 +693,7 @@ pub(crate) mod error {
 
     impl Error {
         pub(crate) fn new_db_err(
-            err: &postgres::Error,
+            err: &tokio_postgres::Error,
             module_info: &ModuleInfo,
             query_span: &SourceSpan,
             query_name: &Span<String>,

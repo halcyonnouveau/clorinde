@@ -3,7 +3,7 @@ use std::fmt::Write;
 use clorinde::conn::clorinde_conn;
 use criterion::{BenchmarkId, Criterion};
 use diesel::{Connection, PgConnection};
-use postgres::{Client, NoTls, fallible_iterator::FallibleIterator};
+use postgres::{Client, fallible_iterator::FallibleIterator};
 use sqlx::postgres::PgPoolOptions;
 use tokio::runtime::Runtime;
 
@@ -131,13 +131,19 @@ fn bench(c: &mut Criterion) {
     clorinde::container::cleanup(false).ok();
     clorinde::container::setup(false, "docker.io/library/postgres:latest", 250).unwrap();
 
-    let client = &mut clorinde_conn().unwrap();
+    let clorinde_client = &mut clorinde_conn().unwrap();
     let rt: &'static Runtime = Box::leak(Box::new(Runtime::new().unwrap()));
+
+    let sync_client = &mut postgres::Client::connect(
+        "postgresql://postgres:postgres@127.0.0.1:5435/postgres",
+        postgres::NoTls,
+    )
+    .unwrap();
 
     let async_client = &mut rt.block_on(async {
         let (client, conn) = tokio_postgres::connect(
             "postgresql://postgres:postgres@127.0.0.1:5435/postgres",
-            NoTls,
+            tokio_postgres::NoTls,
         )
         .await
         .unwrap();
@@ -157,11 +163,12 @@ fn bench(c: &mut Criterion) {
             .unwrap()
     });
 
-    clorinde::load_schema(client, &["benches/schema.sql"]).unwrap();
+    clorinde::load_schema(clorinde_client, &["benches/schema.sql"]).unwrap();
+
     {
         let mut group = c.benchmark_group("bench_trivial_query");
         for size in QUERY_SIZE {
-            prepare_client(*size, client, |_| None);
+            prepare_client(*size, sync_client, |_| None);
             group.bench_function(BenchmarkId::new("diesel", size), |b| {
                 diesel_benches::bench_trivial_query(b, diesel_conn)
             });
@@ -169,16 +176,16 @@ fn bench(c: &mut Criterion) {
                 sqlx_benches::bench_trivial_query(b, sqlx_pool, rt)
             });
             group.bench_function(BenchmarkId::new("postgres", size), |b| {
-                postgres_benches::bench_trivial_query(b, client);
+                postgres_benches::bench_trivial_query(b, sync_client);
             });
             group.bench_function(BenchmarkId::new("tokio_postgres", size), |b| {
                 tokio_postgres_benches::bench_trivial_query(b, async_client);
             });
             group.bench_function(BenchmarkId::new("clorinde", size), |b| {
-                clorinde_benches::sync::bench_trivial_query(b, client);
+                clorinde_benches::sync::bench_trivial_query(b, sync_client);
             });
             group.bench_function(BenchmarkId::new("clorinde_async", size), |b| {
-                clorinde_benches::bench_trivial_query(b, async_client);
+                clorinde_benches::bench_trivial_query(b, clorinde_client);
             });
         }
         group.finish();
@@ -186,7 +193,7 @@ fn bench(c: &mut Criterion) {
     {
         let mut group = c.benchmark_group("bench_medium_complex_query");
         for size in QUERY_SIZE {
-            prepare_client(*size, client, |i| {
+            prepare_client(*size, sync_client, |i| {
                 Some(if i % 2 == 0 { "black" } else { "brown" })
             });
             group.bench_function(BenchmarkId::new("diesel", size), |b| {
@@ -196,23 +203,23 @@ fn bench(c: &mut Criterion) {
                 sqlx_benches::bench_medium_complex_query(b, sqlx_pool, rt)
             });
             group.bench_function(BenchmarkId::new("postgres", size), |b| {
-                postgres_benches::bench_medium_complex_query(b, client);
+                postgres_benches::bench_medium_complex_query(b, sync_client);
             });
             group.bench_function(BenchmarkId::new("tokio_postgres", size), |b| {
                 tokio_postgres_benches::bench_medium_complex_query(b, async_client);
             });
             group.bench_function(BenchmarkId::new("clorinde", size), |b| {
-                clorinde_benches::sync::bench_medium_complex_query(b, client);
+                clorinde_benches::sync::bench_medium_complex_query(b, sync_client);
             });
             group.bench_function(BenchmarkId::new("clorinde_async", size), |b| {
-                clorinde_benches::bench_medium_complex_query(b, async_client);
+                clorinde_benches::bench_medium_complex_query(b, clorinde_client);
             });
         }
         group.finish();
     }
     {
         let mut group = c.benchmark_group("bench_loading_associations_sequentially");
-        prepare_full(client);
+        prepare_full(sync_client);
         group.bench_function("diesel", |b| {
             diesel_benches::loading_associations_sequentially(b, diesel_conn)
         });
@@ -220,16 +227,16 @@ fn bench(c: &mut Criterion) {
             sqlx_benches::loading_associations_sequentially(b, sqlx_pool, rt)
         });
         group.bench_function("postgres", |b| {
-            postgres_benches::loading_associations_sequentially(b, client)
+            postgres_benches::loading_associations_sequentially(b, sync_client)
         });
         group.bench_function("tokio_postgres", |b| {
             tokio_postgres_benches::loading_associations_sequentially(b, async_client);
         });
         group.bench_function("clorinde", |b| {
-            clorinde_benches::sync::loading_associations_sequentially(b, client)
+            clorinde_benches::sync::loading_associations_sequentially(b, sync_client)
         });
         group.bench_function("clorinde_async", |b| {
-            clorinde_benches::loading_associations_sequentially(b, async_client)
+            clorinde_benches::loading_associations_sequentially(b, clorinde_client)
         });
         group.finish();
     }
@@ -237,27 +244,27 @@ fn bench(c: &mut Criterion) {
         let mut group = c.benchmark_group("bench_insert");
         for size in INSERT_SIZE {
             group.bench_with_input(BenchmarkId::new("diesel", size), size, |b, i| {
-                clear(client);
+                clear(sync_client);
                 diesel_benches::bench_insert(b, diesel_conn, *i)
             });
             group.bench_with_input(BenchmarkId::new("sqlx", size), size, |b, i| {
-                clear(client);
+                clear(sync_client);
                 sqlx_benches::bench_insert(b, sqlx_pool, rt, *i)
             });
             group.bench_with_input(BenchmarkId::new("postgres", size), size, |b, i| {
-                clear(client);
-                postgres_benches::bench_insert(b, client, *i);
+                clear(sync_client);
+                postgres_benches::bench_insert(b, sync_client, *i);
             });
             group.bench_with_input(BenchmarkId::new("tokio_postgres", size), size, |b, i| {
                 tokio_postgres_benches::bench_insert(b, async_client, *i);
             });
             group.bench_with_input(BenchmarkId::new("clorinde", size), size, |b, i| {
-                clear(client);
-                clorinde_benches::sync::bench_insert(b, client, *i);
+                clear(sync_client);
+                clorinde_benches::sync::bench_insert(b, sync_client, *i);
             });
             group.bench_with_input(BenchmarkId::new("clorinde_async", size), size, |b, i| {
-                clear(client);
-                clorinde_benches::bench_insert(b, async_client, *i);
+                clear(sync_client);
+                clorinde_benches::bench_insert(b, clorinde_client, *i);
             });
         }
         group.finish();

@@ -44,16 +44,17 @@ fn test(
     container::cleanup(podman).ok();
     container::setup(podman, "docker.io/library/postgres:latest", 250).unwrap();
     let successful = std::panic::catch_unwind(|| {
-        let mut client = clorinde::conn::clorinde_conn().unwrap();
-        display(run_errors_test(&mut client, apply_errors)).unwrap()
-            && display(run_codegen_test(&mut client, apply_codegen)).unwrap()
+        let client = clorinde::conn::clorinde_conn().unwrap();
+        display(run_errors_test(&client, apply_errors)).unwrap()
+            && display(run_codegen_test(&client, apply_codegen)).unwrap()
     });
     container::cleanup(podman).unwrap();
     successful.unwrap()
 }
 
 /// Main entry point
-fn main() -> ExitCode {
+#[tokio::main]
+async fn main() -> ExitCode {
     let args = Args::parse();
     if test(args) {
         ExitCode::SUCCESS

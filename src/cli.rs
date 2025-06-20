@@ -175,12 +175,12 @@ pub fn run() -> Result<(), Error> {
         Action::Live {
             url, search_path, ..
         } => {
-            let mut client = conn::from_url(&url)?;
+            let client = conn::from_url(&url)?;
             if let Some(search_path) = search_path.as_ref() {
-                conn::set_search_path(&mut client, search_path)?;
+                conn::set_search_path(&client, search_path)?;
             }
 
-            gen_live(&mut client, cfg)?;
+            gen_live(&client, cfg)?;
         }
         Action::Schema {
             schema_files,
