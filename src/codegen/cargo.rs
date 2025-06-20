@@ -191,9 +191,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
     if config.r#async {
         default_features.push("deadpool".to_string());
-        if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            default_features.push("chrono".to_string());
-        }
 
         manifest
             .features
@@ -210,7 +207,7 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         let mut wasm_features = vec!["tokio-postgres/js".to_string()];
 
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("chrono?/wasmbind".to_string());
+            wasm_features.push("chrono/wasmbind".to_string());
         }
 
         manifest
@@ -220,10 +217,11 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
         manifest
             .features
             .insert("default".to_string(), default_features);
+
         let mut wasm_features = vec![];
 
         if dependency_analysis.has_dependency() && dependency_analysis.chrono {
-            wasm_features.push("chrono?/wasmbind".to_string());
+            wasm_features.push("chrono/wasmbind".to_string());
         }
 
         manifest
@@ -278,7 +276,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
                 "chrono",
                 &DependencyBuilder::new(versions::CHRONO)
                     .features(chrono_features)
-                    .optional()
                     .into_detail(),
             );
 

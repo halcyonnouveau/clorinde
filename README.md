@@ -43,13 +43,13 @@ Write your PostgreSQL queries with annotations and named parameters:
 -- queries/authors.sql
 
 --! insert_author
-INSERT INTO Author
+INSERT INTO authors
     (first_name, last_name, country)
 VALUES
     (:first_name, :last_name, :country);
 
 --! authors
-SELECT first_name, last_name, country FROM Author;
+SELECT first_name, last_name, country FROM authors;
 ```
 
 Generate the crate with `clorinde`, then you can import it into your project after adding it to your `Cargo.toml`:

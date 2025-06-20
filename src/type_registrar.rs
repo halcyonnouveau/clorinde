@@ -465,9 +465,9 @@ impl TypeRegistrar {
                 TypeMapping::Detailed {
                     rust_type,
                     is_copy,
-                    is_params,
                     attributes: _,
-                } => Some((rust_type.to_string(), *is_copy, *is_params)),
+                    attributes_borrowed: _,
+                } => Some((rust_type.to_string(), *is_copy, true)),
             }
         } else {
             None

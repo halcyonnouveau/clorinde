@@ -7,12 +7,12 @@ To create type annotations, declare them using the `--:` syntax. Type annotation
 --: Author(age?)
 
 --! authors : Author
-SELECT name, age FROM Authors;
+SELECT name, age FROM authors;
 
 --! authors_from_country (country?) : Author
 SELECT name, age
-FROM Authors
-WHERE Authors.nationality = :country;
+FROM authors
+WHERE authors.nationality = :country;
 ```
 
 This will define a struct named `Author` containing typed fields for the `name` and `age` columns (with `age` being nullable). The same struct will be used for the `authors` and `authors_from_country` queries.
@@ -28,7 +28,7 @@ You can specify additional `#[derive]` traits for the generated struct by declar
 --: Author(age?) : Default, serde::Deserialize
 
 --! authors : Author
-SELECT name, age FROM Authors;
+SELECT name, age FROM authors;
 ```
 
 ## Inline types
@@ -37,8 +37,8 @@ You can also define type inline if you don't plan on reusing them across multipl
 ```sql
 --! authors_from_country (country?) : Author()
 SELECT id, name, age
-FROM Authors
-WHERE Authors.nationality = :country;
+FROM authors
+WHERE authors.nationality = :country;
 ```
 
 Notice how inline types **must** have a set of parenthesis describing their nullable columns. This syntax is often more compact for simple cases. It doesn't have any other special meaning otherwise.

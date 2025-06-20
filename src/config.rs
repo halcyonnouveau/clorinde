@@ -157,22 +157,30 @@ pub struct Types {
 pub enum TypeMapping {
     Simple(String),
     Detailed {
+        /// The target Rust type to use in generated code
         #[serde(rename = "rust-type")]
         rust_type: String,
+        /// Whether this type implements the `Copy` trait
         #[serde(default = "default_true", rename = "is-copy")]
         is_copy: bool,
-        #[serde(default = "default_true", rename = "is-params")]
-        is_params: bool,
-        #[serde(default, rename = "attributes")]
+        /// Rust attributes to apply to fields on owned structs
+        #[serde(default)]
         attributes: Vec<String>,
+        /// Rust attributes to apply to fields on borrowed structs
+        #[serde(default, rename = "attributes-borrowed")]
+        attributes_borrowed: Vec<String>,
     },
 }
 
 impl TypeMapping {
-    pub fn get_attributes(&self) -> &[String] {
+    pub fn get_attributes(&self) -> (Vec<String>, Vec<String>) {
         match self {
-            TypeMapping::Simple(_) => &[],
-            TypeMapping::Detailed { attributes, .. } => attributes,
+            TypeMapping::Simple(_) => (Vec::new(), Vec::new()),
+            TypeMapping::Detailed {
+                attributes,
+                attributes_borrowed,
+                ..
+            } => (attributes.to_owned(), attributes_borrowed.to_owned()),
         }
     }
 }

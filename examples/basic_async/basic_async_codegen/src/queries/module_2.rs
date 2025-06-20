@@ -36,30 +36,30 @@ impl<'a> From<AuthorsBorrowed<'a>> for Authors {
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuthorNameStartingWith {
-    pub authorid: i32,
+    pub author_id: i32,
     pub name: String,
-    pub bookid: i32,
+    pub book_id: i32,
     pub title: String,
 }
 pub struct AuthorNameStartingWithBorrowed<'a> {
-    pub authorid: i32,
+    pub author_id: i32,
     pub name: &'a str,
-    pub bookid: i32,
+    pub book_id: i32,
     pub title: &'a str,
 }
 impl<'a> From<AuthorNameStartingWithBorrowed<'a>> for AuthorNameStartingWith {
     fn from(
         AuthorNameStartingWithBorrowed {
-            authorid,
+            author_id,
             name,
-            bookid,
+            book_id,
             title,
         }: AuthorNameStartingWithBorrowed<'a>,
     ) -> Self {
         Self {
-            authorid,
+            author_id,
             name: name.into(),
-            bookid,
+            book_id,
             title: title.into(),
         }
     }
@@ -275,23 +275,23 @@ where
         Ok(it)
     }
 }
-pub struct VoiceactorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
+pub struct VoiceActorQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
     client: &'c C,
     params: [&'a (dyn postgres_types::ToSql + Sync); N],
     stmt: &'s mut crate::client::async_::Stmt,
     extractor:
-        fn(&tokio_postgres::Row) -> Result<crate::types::VoiceactorBorrowed, tokio_postgres::Error>,
-    mapper: fn(crate::types::VoiceactorBorrowed) -> T,
+        fn(&tokio_postgres::Row) -> Result<crate::types::VoiceActorBorrowed, tokio_postgres::Error>,
+    mapper: fn(crate::types::VoiceActorBorrowed) -> T,
 }
-impl<'c, 'a, 's, C, T: 'c, const N: usize> VoiceactorQuery<'c, 'a, 's, C, T, N>
+impl<'c, 'a, 's, C, T: 'c, const N: usize> VoiceActorQuery<'c, 'a, 's, C, T, N>
 where
     C: GenericClient,
 {
     pub fn map<R>(
         self,
-        mapper: fn(crate::types::VoiceactorBorrowed) -> R,
-    ) -> VoiceactorQuery<'c, 'a, 's, C, R, N> {
-        VoiceactorQuery {
+        mapper: fn(crate::types::VoiceActorBorrowed) -> R,
+    ) -> VoiceActorQuery<'c, 'a, 's, C, R, N> {
+        VoiceActorQuery {
             client: self.client,
             params: self.params,
             stmt: self.stmt,
@@ -406,7 +406,7 @@ where
     }
 }
 pub fn authors() -> AuthorsStmt {
-    AuthorsStmt(crate::client::async_::Stmt::new("SELECT * FROM Author"))
+    AuthorsStmt(crate::client::async_::Stmt::new("SELECT * FROM authors"))
 }
 pub struct AuthorsStmt(crate::client::async_::Stmt);
 impl AuthorsStmt {
@@ -432,7 +432,7 @@ impl AuthorsStmt {
     }
 }
 pub fn books() -> BooksStmt {
-    BooksStmt(crate::client::async_::Stmt::new("SELECT Title FROM Book"))
+    BooksStmt(crate::client::async_::Stmt::new("SELECT title FROM books"))
 }
 pub struct BooksStmt(crate::client::async_::Stmt);
 impl BooksStmt {
@@ -451,7 +451,7 @@ impl BooksStmt {
 }
 pub fn author_name_by_id() -> AuthorNameByIdStmt {
     AuthorNameByIdStmt(crate::client::async_::Stmt::new(
-        "SELECT Author.Name FROM Author WHERE Author.Id = $1",
+        "SELECT authors.name FROM authors WHERE authors.id = $1",
     ))
 }
 pub struct AuthorNameByIdStmt(crate::client::async_::Stmt);
@@ -472,7 +472,7 @@ impl AuthorNameByIdStmt {
 }
 pub fn author_name_starting_with() -> AuthorNameStartingWithStmt {
     AuthorNameStartingWithStmt(crate::client::async_::Stmt::new(
-        "SELECT BookAuthor.AuthorId, Author.Name, BookAuthor.BookId, Book.Title FROM BookAuthor INNER JOIN Author ON Author.id = BookAuthor.AuthorId INNER JOIN Book ON Book.Id = BookAuthor.BookId WHERE Author.Name LIKE CONCAT($1::text, '%')",
+        "SELECT book_authors.author_id, authors.name, book_authors.book_id, books.title FROM book_authors INNER JOIN authors ON authors.id = book_authors.author_id INNER JOIN books ON books.id = book_authors.book_id WHERE authors.name LIKE CONCAT($1::text, '%')",
     ))
 }
 pub struct AuthorNameStartingWithStmt(crate::client::async_::Stmt);
@@ -490,9 +490,9 @@ impl AuthorNameStartingWithStmt {
                 row: &tokio_postgres::Row,
             | -> Result<AuthorNameStartingWithBorrowed, tokio_postgres::Error> {
                 Ok(AuthorNameStartingWithBorrowed {
-                    authorid: row.try_get(0)?,
+                    author_id: row.try_get(0)?,
                     name: row.try_get(1)?,
-                    bookid: row.try_get(2)?,
+                    book_id: row.try_get(2)?,
                     title: row.try_get(3)?,
                 })
             },
@@ -520,7 +520,7 @@ impl<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>
 }
 pub fn select_voice_actor_with_character() -> SelectVoiceActorWithCharacterStmt {
     SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt::new(
-        "SELECT voice_actor FROM SpongeBobVoiceActor WHERE character = $1",
+        "SELECT voice_actor FROM spongebob_voice_actors WHERE character = $1",
     ))
 }
 pub struct SelectVoiceActorWithCharacterStmt(crate::client::async_::Stmt);
@@ -528,9 +528,9 @@ impl SelectVoiceActorWithCharacterStmt {
     pub fn bind<'c, 'a, 's, C: GenericClient>(
         &'s mut self,
         client: &'c C,
-        spongebob_character: &'a crate::types::SpongeBobCharacter,
-    ) -> VoiceactorQuery<'c, 'a, 's, C, crate::types::Voiceactor, 1> {
-        VoiceactorQuery {
+        spongebob_character: &'a crate::types::SpongebobCharacter,
+    ) -> VoiceActorQuery<'c, 'a, 's, C, crate::types::VoiceActor, 1> {
+        VoiceActorQuery {
             client,
             params: [spongebob_character],
             stmt: &mut self.0,
@@ -541,7 +541,7 @@ impl SelectVoiceActorWithCharacterStmt {
 }
 pub fn select_translations() -> SelectTranslationsStmt {
     SelectTranslationsStmt(crate::client::async_::Stmt::new(
-        "SELECT Title, Translations FROM Book",
+        "SELECT title, translations FROM books",
     ))
 }
 pub struct SelectTranslationsStmt(crate::client::async_::Stmt);

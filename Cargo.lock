@@ -238,6 +238,7 @@ dependencies = [
 name = "basic_sync_codegen"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "fallible-iterator",
  "postgres",
  "postgres-protocol",
@@ -674,7 +675,6 @@ dependencies = [
  "postgres",
  "postgres-protocol",
  "postgres-types",
- "postgres_range",
  "serde",
  "time",
  "tokio-postgres",
@@ -1810,17 +1810,6 @@ dependencies = [
  "serde_json",
  "time",
  "uuid",
-]
-
-[[package]]
-name = "postgres_range"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6dce28dc5ba143d8eb157b62aac01ae5a1c585c40792158b720e86a87642101"
-dependencies = [
- "chrono",
- "postgres-protocol",
- "postgres-types",
 ]
 
 [[package]]

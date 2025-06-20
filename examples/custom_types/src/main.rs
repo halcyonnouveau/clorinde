@@ -1,6 +1,6 @@
 // Take a look at the generated `clorinde` crate if you want to
 // see what it looks like under the hood.
-use clorinde::queries::module_2::{authors, select_voice_actor_by_element};
+use clorinde::queries::module_1::{characters, select_character_by_element};
 
 #[tokio::main]
 pub async fn main() {
@@ -9,16 +9,16 @@ pub async fn main() {
     let pool = create_pool().await.unwrap();
     let client = pool.get().await.unwrap();
 
-    // The `all` method returns queried rows collected into a `Vec`
-    let authors = authors().bind(&client).all().await.unwrap();
-    dbg!(&authors[0].dob);
+    let characters = characters().bind(&client).all().await.unwrap();
+    dbg!(&characters[0].name);
 
-    let voice_actor = select_voice_actor_by_element()
+    let character = select_character_by_element()
         .bind(&client, &db_types::element::Element::Hydro)
         .one()
         .await
         .unwrap();
-    dbg!(voice_actor);
+
+    dbg!(character);
 }
 
 /// Connection pool configuration.

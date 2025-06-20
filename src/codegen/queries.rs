@@ -142,7 +142,7 @@ fn gen_row_structs(
             .zip(borrowed_fields_ty.iter())
             .map(|((field, name), ty)| {
                 let attrs = field
-                    .attributes
+                    .attributes_borrowed
                     .iter()
                     .map(|attr| {
                         syn::parse_str::<proc_macro2::TokenStream>(attr)

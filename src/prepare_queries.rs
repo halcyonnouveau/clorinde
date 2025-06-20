@@ -72,8 +72,9 @@ pub struct PreparedField {
     pub(crate) ident: Ident,
     pub(crate) ty: Rc<ClorindeType>,
     pub(crate) is_nullable: bool,
-    pub(crate) is_inner_nullable: bool, // Vec only
-    pub(crate) attributes: Vec<String>, // Custom field attributes
+    pub(crate) is_inner_nullable: bool,          // Vec only
+    pub(crate) attributes: Vec<String>,          // Custom field attributes
+    pub(crate) attributes_borrowed: Vec<String>, // Custom field attributes for borrowed structs
     pub(crate) nested_nullability: std::collections::HashMap<String, bool>, // Field name -> nullable
 }
 
@@ -98,12 +99,14 @@ impl PreparedField {
             is_nullable: nullity.is_some_and(|it| it.nullable),
             is_inner_nullable: nullity.is_some_and(|it| it.inner_nullable),
             attributes: Vec::new(),
+            attributes_borrowed: Vec::new(),
             nested_nullability,
         }
     }
 
-    pub(crate) fn with_attributes(mut self, attributes: Vec<String>) -> Self {
-        self.attributes = attributes;
+    pub(crate) fn with_attributes(mut self, attributes: (Vec<String>, Vec<String>)) -> Self {
+        self.attributes = attributes.0;
+        self.attributes_borrowed = attributes.1;
         self
     }
 }
@@ -402,12 +405,11 @@ fn prepare_type(
 
                         let ty = registrar.ref_of(field.type_());
 
-                        // Get any custom attributes for this field based on its type
                         let attributes =
                             if let Some(mapping) = registrar.get_type_mapping(field.type_()) {
-                                mapping.get_attributes().to_vec()
+                                mapping.get_attributes()
                             } else {
-                                Vec::new()
+                                (Vec::new(), Vec::new())
                             };
 
                         PreparedField::new(field.name().to_string(), ty, nullity.as_ref())
@@ -545,16 +547,16 @@ fn prepare_query(
             let nullity = nullable_params_fields
                 .iter()
                 .find(|x| x.name.value == col_name.value);
+
             // Register type
             let ty = registrar
                 .register(&col_name.value, &col_ty, &name, module_info)?
                 .clone();
 
-            // Get any custom attributes for this field based on its type
             let attributes = if let Some(mapping) = registrar.get_type_mapping(&col_ty) {
-                mapping.get_attributes().to_vec()
+                mapping.get_attributes()
             } else {
-                Vec::new()
+                (Vec::new(), Vec::new())
             };
 
             param_fields.push(
@@ -614,11 +616,10 @@ fn prepare_query(
                 .register(&col_name, col_ty, &name, module_info)?
                 .clone();
 
-            // Get any custom attributes for this field based on its type
             let attributes = if let Some(mapping) = registrar.get_type_mapping(col_ty) {
-                mapping.get_attributes().to_vec()
+                mapping.get_attributes()
             } else {
-                Vec::new()
+                (Vec::new(), Vec::new())
             };
 
             row_fields.push(

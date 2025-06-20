@@ -9,7 +9,7 @@ use clorinde::{
             books, select_translations, select_voice_actor_with_character,
         },
     },
-    types::SpongeBobCharacter,
+    types::SpongebobCharacter,
 };
 
 pub fn main() {
@@ -83,7 +83,7 @@ pub fn main() {
     // You can use them as bind parameters (as shown here)
     // or receive them in returned rows.
     let patrick_voice_actor = select_voice_actor_with_character()
-        .bind(&mut client, &SpongeBobCharacter::Patrick)
+        .bind(&mut client, &SpongebobCharacter::Patrick)
         .one()
         .unwrap();
     dbg!(patrick_voice_actor);
