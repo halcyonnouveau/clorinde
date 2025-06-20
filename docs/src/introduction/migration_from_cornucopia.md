@@ -42,7 +42,7 @@ clorinde = { path = "clorinde" }
 
 Clorinde also re-exports the dependencies: `postgres`, `tokio-postgres`, and `deadpool-postgres`.
 
-A drawback to crate-based codegen is that `cargo` won't publish crates with path dependencies meaning you either can't publish a crate that depends on Clorinde or you will need to publish the Clorinde crate separately.
+A drawback to crate-based code generation is that `cargo` won't publish crates with path dependencies meaning you either can't publish a crate that depends on Clorinde or you will need to publish the Clorinde crate separately.
 
 If doing the latter, you can use a `clorinde.toml` to specify the `[manifest.package]` section of the `Cargo.toml` in the generated crate. For example, a `clorinde.toml` that includes:
 

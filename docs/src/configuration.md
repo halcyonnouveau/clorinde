@@ -110,13 +110,10 @@ derive-traits = ["Default"]
 fontaine_region = ["serde::Deserialize"]
 ```
 
-This configuration will add the `Clone` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
+This configuration will add the `Default` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
 
 ~~~admonish note
-PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation.
-This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region`
-in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `derive-traits-mapping`,
-you should use the lowercase form unless the type was explicitly created with quotes.
+PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `derive-traits-mapping`, you should use the lowercase form unless the type was explicitly created with quotes.
 ~~~
 
 You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.

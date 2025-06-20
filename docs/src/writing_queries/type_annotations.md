@@ -1,5 +1,5 @@
 # Type annotations
-Type annotations allow you to customize the structs that Clorinde generates for your rows (and parameters, see [the section below](#parameter-structs)). Furthermore, this allows you to share these types between multiple queries.
+Type annotations allow you to customise the structs that Clorinde generates for your rows (and parameters, see [the section below](#parameter-structs)). Furthermore, this allows you to share these types between multiple queries.
 
 To create type annotations, declare them using the `--:` syntax. Type annotations only need to declare the nullable columns. Here's how it looks:
 
