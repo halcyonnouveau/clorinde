@@ -59,6 +59,9 @@ fn gen_row_structs(
     derive_traits: &[String],
     ctx: &GenCtx,
 ) -> proc_macro2::TokenStream {
+    // Import FieldMeta for use in generated code
+    let field_meta_use = quote!(use crate::types::FieldMeta;);
+
     let PreparedItem {
         name,
         fields,
@@ -182,9 +185,30 @@ fn gen_row_structs(
         quote!()
     };
 
+    // Generate field metadata items
+    let field_meta_items = fields.iter().map(|f| {
+        let name = f.ident.rs.as_str();
+        let ty = f.own_struct(ctx);
+        quote! {
+            FieldMeta { name: #name, data_type: #ty }
+        }
+    });
+    let field_metadata_fn = quote! {
+        impl #name_ident {
+            pub fn field_metadata() -> &'static [FieldMeta] {
+                static META: &[FieldMeta] = &[
+                    #(#field_meta_items),*
+                ];
+                META
+            }
+        }
+    };
+
     quote! {
+        #field_meta_use
         #main_struct
         #borrowed_impl
+        #field_metadata_fn
     }
 }
 

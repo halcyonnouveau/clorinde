@@ -32,7 +32,7 @@ enum Action {
     /// Generate your modules against schema files
     Schema {
         /// SQL files containing the database schema
-        #[clap(required = true, value_parser = validate_path_exists)]
+        #[clap(required = false, value_parser = validate_path_exists)]
         schema_files: Vec<PathBuf>,
 
         /// Container image to use
@@ -91,7 +91,7 @@ impl Action {
 #[derive(Parser, Debug, Clone)]
 struct CommonArgs {
     /// Config file path
-    #[clap(short, long, default_value = "clorinde.toml", value_parser = validate_path_exists)]
+    #[clap(short, long, default_value = "clorinde.toml")]
     config: PathBuf,
 
     /// Folder containing the queries
