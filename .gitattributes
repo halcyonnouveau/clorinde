@@ -5,4 +5,3 @@ examples/basic_async_wasm/basic_async_wasm_codegen/** linguist-generated=true
 examples/basic_sync/basic_sync_codegen/** linguist-generated=true
 examples/custom_types/custom_types_codegen/** linguist-generated=true
 tests/codegen/codegen/** linguist-generated=true
-docs/src/benchmarks/** linguist-generated=true
