@@ -66,11 +66,13 @@ impl<'a> From<TestDirectCompositeBorrowed<'a>> for TestDirectComposite {
     }
 }
 pub mod sync {
-    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
+    use crate::client::sync::GenericClient;
+    use postgres::fallible_iterator::FallibleIterator;
     pub struct NullityQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(&postgres::Row) -> Result<super::NullityBorrowed, postgres::Error>,
         mapper: fn(super::NullityBorrowed) -> T,
     }
@@ -85,24 +87,23 @@ pub mod sync {
             NullityQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -113,24 +114,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct NullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor:
             fn(&postgres::Row) -> Result<crate::types::NullityCompositeBorrowed, postgres::Error>,
         mapper: fn(crate::types::NullityCompositeBorrowed) -> T,
@@ -146,24 +149,23 @@ pub mod sync {
             NullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -174,24 +176,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct VecNullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(
             &postgres::Row,
         ) -> Result<
@@ -211,24 +215,23 @@ pub mod sync {
             VecNullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -239,24 +242,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct TestNestedCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor:
             fn(&postgres::Row) -> Result<super::TestNestedCompositeBorrowed, postgres::Error>,
         mapper: fn(super::TestNestedCompositeBorrowed) -> T,
@@ -272,24 +277,23 @@ pub mod sync {
             TestNestedCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -300,24 +304,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct OptionNullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(
             &postgres::Row,
         )
@@ -335,24 +341,23 @@ pub mod sync {
             OptionNullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -363,24 +368,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct TestDirectCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor:
             fn(&postgres::Row) -> Result<super::TestDirectCompositeBorrowed, postgres::Error>,
         mapper: fn(super::TestDirectCompositeBorrowed) -> T,
@@ -396,24 +403,23 @@ pub mod sync {
             TestDirectCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -424,27 +430,36 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
+    pub struct NewNullityStmt(&'static str, Option<postgres::Statement>);
     pub fn new_nullity() -> NewNullityStmt {
-        NewNullityStmt(crate::client::sync::Stmt::new(
+        NewNullityStmt(
             "INSERT INTO nullity(texts, name, composite) VALUES ($1, $2, $3)",
-        ))
+            None,
+        )
     }
-    pub struct NewNullityStmt(crate::client::sync::Stmt);
     impl NewNullityStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<
             'c,
             'a,
@@ -454,14 +469,13 @@ pub mod sync {
             T2: crate::ArraySql<Item = Option<T1>>,
             T3: crate::StringSql,
         >(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             texts: &'a T2,
             name: &'a T3,
             composite: &'a Option<crate::types::NullityCompositeParams<'a>>,
         ) -> Result<u64, postgres::Error> {
-            let stmt = self.0.prepare(client)?;
-            client.execute(stmt, &[texts, name, composite])
+            client.execute(self.0, &[texts, name, composite])
         }
     }
     impl<
@@ -483,26 +497,34 @@ pub mod sync {
         > for NewNullityStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             params: &'a super::NullityParams<'a, T1, T2, T3>,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.texts, &params.name, &params.composite)
         }
     }
+    pub struct NullityStmt(&'static str, Option<postgres::Statement>);
     pub fn nullity() -> NullityStmt {
-        NullityStmt(crate::client::sync::Stmt::new("SELECT * FROM nullity"))
+        NullityStmt("SELECT * FROM nullity", None)
     }
-    pub struct NullityStmt(crate::client::sync::Stmt);
     impl NullityStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> NullityQuery<'c, 'a, 's, C, super::Nullity, 0> {
             NullityQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor:
                     |row: &postgres::Row| -> Result<super::NullityBorrowed, postgres::Error> {
                         Ok(super::NullityBorrowed {
@@ -515,82 +537,118 @@ pub mod sync {
             }
         }
     }
+    pub struct TestNestedNullityStmt(&'static str, Option<postgres::Statement>);
     pub fn test_nested_nullity() -> TestNestedNullityStmt {
-        TestNestedNullityStmt(crate::client::sync::Stmt::new(
+        TestNestedNullityStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL",
-        ))
+            None,
+        )
     }
-    pub struct TestNestedNullityStmt(crate::client::sync::Stmt);
     impl TestNestedNullityStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
             NullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.into(),
             }
         }
     }
+    pub struct TestSingleNestedStmt(&'static str, Option<postgres::Statement>);
     pub fn test_single_nested() -> TestSingleNestedStmt {
-        TestSingleNestedStmt(crate::client::sync::Stmt::new(
+        TestSingleNestedStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestSingleNestedStmt(crate::client::sync::Stmt);
     impl TestSingleNestedStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
             NullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.into(),
             }
         }
     }
+    pub struct TestNestedArrayStmt(&'static str, Option<postgres::Statement>);
     pub fn test_nested_array() -> TestNestedArrayStmt {
-        TestNestedArrayStmt(crate::client::sync::Stmt::new(
+        TestNestedArrayStmt(
             "SELECT ARRAY[composite, composite] as composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNestedArrayStmt(crate::client::sync::Stmt);
     impl TestNestedArrayStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> VecNullityCompositeQuery<'c, 'a, 's, C, Vec<crate::types::NullityComposite>, 0>
         {
             VecNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()).collect(),
             }
         }
     }
+    pub struct TestNamedNestedStmt(&'static str, Option<postgres::Statement>);
     pub fn test_named_nested() -> TestNamedNestedStmt {
-        TestNamedNestedStmt(crate::client::sync::Stmt::new(
+        TestNamedNestedStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNamedNestedStmt(crate::client::sync::Stmt);
     impl TestNamedNestedStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> TestNestedCompositeQuery<'c, 'a, 's, C, super::TestNestedComposite, 0> {
             TestNestedCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &postgres::Row,
                 | -> Result<super::TestNestedCompositeBorrowed, postgres::Error> {
@@ -602,63 +660,90 @@ pub mod sync {
             }
         }
     }
+    pub struct TestDirectNullityStmt(&'static str, Option<postgres::Statement>);
     pub fn test_direct_nullity() -> TestDirectNullityStmt {
-        TestDirectNullityStmt(crate::client::sync::Stmt::new(
+        TestDirectNullityStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestDirectNullityStmt(crate::client::sync::Stmt);
     impl TestDirectNullityStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
         {
             OptionNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()),
             }
         }
     }
+    pub struct TestSingleDirectStmt(&'static str, Option<postgres::Statement>);
     pub fn test_single_direct() -> TestSingleDirectStmt {
-        TestSingleDirectStmt(crate::client::sync::Stmt::new(
+        TestSingleDirectStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestSingleDirectStmt(crate::client::sync::Stmt);
     impl TestSingleDirectStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
         {
             OptionNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()),
             }
         }
     }
+    pub struct TestNamedDirectStmt(&'static str, Option<postgres::Statement>);
     pub fn test_named_direct() -> TestNamedDirectStmt {
-        TestNamedDirectStmt(crate::client::sync::Stmt::new(
+        TestNamedDirectStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNamedDirectStmt(crate::client::sync::Stmt);
     impl TestNamedDirectStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> TestDirectCompositeQuery<'c, 'a, 's, C, super::TestDirectComposite, 0> {
             TestDirectCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &postgres::Row,
                 | -> Result<super::TestDirectCompositeBorrowed, postgres::Error> {
@@ -677,7 +762,8 @@ pub mod async_ {
     pub struct NullityQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor:
             fn(&tokio_postgres::Row) -> Result<super::NullityBorrowed, tokio_postgres::Error>,
         mapper: fn(super::NullityBorrowed) -> T,
@@ -693,25 +779,26 @@ pub mod async_ {
             NullityQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -724,11 +811,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -736,13 +826,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct NullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         )
@@ -760,25 +851,26 @@ pub mod async_ {
             NullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -791,11 +883,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -803,13 +898,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct VecNullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         ) -> Result<
@@ -829,25 +925,26 @@ pub mod async_ {
             VecNullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -860,11 +957,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -872,13 +972,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct TestNestedCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         ) -> Result<super::TestNestedCompositeBorrowed, tokio_postgres::Error>,
@@ -895,25 +996,26 @@ pub mod async_ {
             TestNestedCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -926,11 +1028,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -938,13 +1043,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct OptionNullityCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor:
             fn(
                 &tokio_postgres::Row,
@@ -963,25 +1069,26 @@ pub mod async_ {
             OptionNullityCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -994,11 +1101,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -1006,13 +1116,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct TestDirectCompositeQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         ) -> Result<super::TestDirectCompositeBorrowed, tokio_postgres::Error>,
@@ -1029,25 +1140,26 @@ pub mod async_ {
             TestDirectCompositeQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -1060,11 +1172,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -1072,16 +1187,24 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
+    pub struct NewNullityStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn new_nullity() -> NewNullityStmt {
-        NewNullityStmt(crate::client::async_::Stmt::new(
+        NewNullityStmt(
             "INSERT INTO nullity(texts, name, composite) VALUES ($1, $2, $3)",
-        ))
+            None,
+        )
     }
-    pub struct NewNullityStmt(crate::client::async_::Stmt);
     impl NewNullityStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub async fn bind<
             'c,
             'a,
@@ -1091,14 +1214,13 @@ pub mod async_ {
             T2: crate::ArraySql<Item = Option<T1>>,
             T3: crate::StringSql,
         >(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             texts: &'a T2,
             name: &'a T3,
             composite: &'a Option<crate::types::NullityCompositeParams<'a>>,
         ) -> Result<u64, tokio_postgres::Error> {
-            let stmt = self.0.prepare(client).await?;
-            client.execute(stmt, &[texts, name, composite]).await
+            client.execute(self.0, &[texts, name, composite]).await
         }
     }
     impl<
@@ -1120,7 +1242,7 @@ pub mod async_ {
         > for NewNullityStmt
     {
         fn params(
-            &'a mut self,
+            &'a self,
             client: &'a C,
             params: &'a super::NullityParams<'a, T1, T2, T3>,
         ) -> std::pin::Pin<
@@ -1129,19 +1251,27 @@ pub mod async_ {
             Box::pin(self.bind(client, &params.texts, &params.name, &params.composite))
         }
     }
+    pub struct NullityStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn nullity() -> NullityStmt {
-        NullityStmt(crate::client::async_::Stmt::new("SELECT * FROM nullity"))
+        NullityStmt("SELECT * FROM nullity", None)
     }
-    pub struct NullityStmt(crate::client::async_::Stmt);
     impl NullityStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> NullityQuery<'c, 'a, 's, C, super::Nullity, 0> {
             NullityQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &tokio_postgres::Row,
                 | -> Result<super::NullityBorrowed, tokio_postgres::Error> {
@@ -1155,82 +1285,118 @@ pub mod async_ {
             }
         }
     }
+    pub struct TestNestedNullityStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_nested_nullity() -> TestNestedNullityStmt {
-        TestNestedNullityStmt(crate::client::async_::Stmt::new(
+        TestNestedNullityStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL",
-        ))
+            None,
+        )
     }
-    pub struct TestNestedNullityStmt(crate::client::async_::Stmt);
     impl TestNestedNullityStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
             NullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.into(),
             }
         }
     }
+    pub struct TestSingleNestedStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_single_nested() -> TestSingleNestedStmt {
-        TestSingleNestedStmt(crate::client::async_::Stmt::new(
+        TestSingleNestedStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestSingleNestedStmt(crate::client::async_::Stmt);
     impl TestSingleNestedStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> NullityCompositeQuery<'c, 'a, 's, C, crate::types::NullityComposite, 0> {
             NullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.into(),
             }
         }
     }
+    pub struct TestNestedArrayStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_nested_array() -> TestNestedArrayStmt {
-        TestNestedArrayStmt(crate::client::async_::Stmt::new(
+        TestNestedArrayStmt(
             "SELECT ARRAY[composite, composite] as composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNestedArrayStmt(crate::client::async_::Stmt);
     impl TestNestedArrayStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> VecNullityCompositeQuery<'c, 'a, 's, C, Vec<crate::types::NullityComposite>, 0>
         {
             VecNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()).collect(),
             }
         }
     }
+    pub struct TestNamedNestedStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_named_nested() -> TestNamedNestedStmt {
-        TestNamedNestedStmt(crate::client::async_::Stmt::new(
+        TestNamedNestedStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNamedNestedStmt(crate::client::async_::Stmt);
     impl TestNamedNestedStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> TestNestedCompositeQuery<'c, 'a, 's, C, super::TestNestedComposite, 0> {
             TestNestedCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<
                     super::TestNestedCompositeBorrowed,
                     tokio_postgres::Error,
@@ -1243,63 +1409,90 @@ pub mod async_ {
             }
         }
     }
+    pub struct TestDirectNullityStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_direct_nullity() -> TestDirectNullityStmt {
-        TestDirectNullityStmt(crate::client::async_::Stmt::new(
+        TestDirectNullityStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestDirectNullityStmt(crate::client::async_::Stmt);
     impl TestDirectNullityStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
         {
             OptionNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()),
             }
         }
     }
+    pub struct TestSingleDirectStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_single_direct() -> TestSingleDirectStmt {
-        TestSingleDirectStmt(crate::client::async_::Stmt::new(
+        TestSingleDirectStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestSingleDirectStmt(crate::client::async_::Stmt);
     impl TestSingleDirectStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> OptionNullityCompositeQuery<'c, 'a, 's, C, Option<crate::types::NullityComposite>, 0>
         {
             OptionNullityCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row| Ok(row.try_get(0)?),
                 mapper: |it| it.map(|v| v.into()),
             }
         }
     }
+    pub struct TestNamedDirectStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn test_named_direct() -> TestNamedDirectStmt {
-        TestNamedDirectStmt(crate::client::async_::Stmt::new(
+        TestNamedDirectStmt(
             "SELECT composite FROM nullity WHERE composite IS NOT NULL LIMIT 1",
-        ))
+            None,
+        )
     }
-    pub struct TestNamedDirectStmt(crate::client::async_::Stmt);
     impl TestNamedDirectStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> TestDirectCompositeQuery<'c, 'a, 's, C, super::TestDirectComposite, 0> {
             TestDirectCompositeQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<
                     super::TestDirectCompositeBorrowed,
                     tokio_postgres::Error,

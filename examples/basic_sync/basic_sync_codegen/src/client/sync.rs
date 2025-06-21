@@ -1,33 +1,63 @@
 // This file was generated with `clorinde`. Do not modify.
 
-use postgres::Statement;
+pub use generic_client::GenericClient;
+mod generic_client;
+use postgres::{
+    Error, Row, RowIter, Statement,
+    types::{BorrowToSql, ToSql},
+};
 /// This trait allows you to bind parameters to a query using a single
 /// struct, rather than passing each bind parameter as a function parameter.
 pub trait Params<'c, 'a, 's, P, O, C> {
-    fn params(&'s mut self, client: &'c mut C, params: &'a P) -> O;
+    fn params(&'s self, client: &'c mut C, params: &'a P) -> O;
 }
-/// Cached statement
-#[doc(hidden)]
-pub(crate) struct Stmt {
-    query: &'static str,
-    cached: Option<Statement>,
-}
-impl Stmt {
-    #[must_use]
-    pub fn new(query: &'static str) -> Self {
-        Self {
-            query,
-            cached: None,
-        }
+pub fn one<C: GenericClient>(
+    client: &mut C,
+    query: &str,
+    params: &[&(dyn ToSql + Sync)],
+    cached: Option<&Statement>,
+) -> Result<Row, Error> {
+    if let Some(cached) = cached {
+        client.query_one(cached, params)
+    } else if C::stmt_cache() {
+        let cached = client.prepare(query)?;
+        client.query_one(&cached, params)
+    } else {
+        client.query_one(query, params)
     }
-    pub fn prepare<'a, C: postgres::GenericClient>(
-        &'a mut self,
-        client: &mut C,
-    ) -> Result<&'a Statement, postgres::Error> {
-        if self.cached.is_none() {
-            let stmt = client.prepare(self.query)?;
-            self.cached = Some(stmt);
-        }
-        Ok(unsafe { self.cached.as_ref().unwrap_unchecked() })
+}
+pub fn opt<C: GenericClient>(
+    client: &mut C,
+    query: &str,
+    params: &[&(dyn ToSql + Sync)],
+    cached: Option<&Statement>,
+) -> Result<Option<Row>, Error> {
+    if let Some(cached) = cached {
+        client.query_opt(cached, params)
+    } else if C::stmt_cache() {
+        let cached = client.prepare(query)?;
+        client.query_opt(&cached, params)
+    } else {
+        client.query_opt(query, params)
+    }
+}
+pub fn raw<'a, C: GenericClient, P, I>(
+    client: &'a mut C,
+    query: &str,
+    params: I,
+    cached: Option<&Statement>,
+) -> Result<RowIter<'a>, Error>
+where
+    P: BorrowToSql,
+    I: IntoIterator<Item = P>,
+    I::IntoIter: ExactSizeIterator,
+{
+    if let Some(cached) = cached {
+        client.query_raw(cached, params)
+    } else if C::stmt_cache() {
+        let cached = client.prepare(query)?;
+        client.query_raw(&cached, params)
+    } else {
+        client.query_raw(query, params)
     }
 }

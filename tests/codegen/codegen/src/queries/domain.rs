@@ -81,11 +81,13 @@ impl<'a> From<SelectNightmareDomainNullBorrowed<'a>> for SelectNightmareDomainNu
     }
 }
 pub mod sync {
-    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
+    use crate::client::sync::GenericClient;
+    use postgres::fallible_iterator::FallibleIterator;
     pub struct SelectNightmareDomainQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor:
             fn(&postgres::Row) -> Result<super::SelectNightmareDomainBorrowed, postgres::Error>,
         mapper: fn(super::SelectNightmareDomainBorrowed) -> T,
@@ -101,24 +103,23 @@ pub mod sync {
             SelectNightmareDomainQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -129,24 +130,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct SelectNightmareDomainNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor:
             fn(&postgres::Row) -> Result<super::SelectNightmareDomainNullBorrowed, postgres::Error>,
         mapper: fn(super::SelectNightmareDomainNullBorrowed) -> T,
@@ -162,24 +165,23 @@ pub mod sync {
             SelectNightmareDomainNullQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -190,35 +192,42 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
+    pub struct SelectNightmareDomainStmt(&'static str, Option<postgres::Statement>);
     pub fn select_nightmare_domain() -> SelectNightmareDomainStmt {
-        SelectNightmareDomainStmt(crate::client::sync::Stmt::new(
-            "SELECT txt, json, nb, arr FROM nightmare_domain",
-        ))
+        SelectNightmareDomainStmt("SELECT txt, json, nb, arr FROM nightmare_domain", None)
     }
-    pub struct SelectNightmareDomainStmt(crate::client::sync::Stmt);
     impl SelectNightmareDomainStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, super::SelectNightmareDomain, 0> {
             SelectNightmareDomainQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &postgres::Row,
                 | -> Result<super::SelectNightmareDomainBorrowed, postgres::Error> {
@@ -233,13 +242,21 @@ pub mod sync {
             }
         }
     }
+    pub struct InsertNightmareDomainStmt(&'static str, Option<postgres::Statement>);
     pub fn insert_nightmare_domain() -> InsertNightmareDomainStmt {
-        InsertNightmareDomainStmt(crate::client::sync::Stmt::new(
+        InsertNightmareDomainStmt(
             "INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)",
-        ))
+            None,
+        )
     }
-    pub struct InsertNightmareDomainStmt(crate::client::sync::Stmt);
     impl InsertNightmareDomainStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<
             'c,
             'a,
@@ -250,7 +267,7 @@ pub mod sync {
             T3: crate::JsonSql,
             T4: crate::ArraySql<Item = T3>,
         >(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             txt: &'a T1,
             json: &'a T2,
@@ -258,9 +275,8 @@ pub mod sync {
             arr: &'a T4,
             composite: &'a Option<crate::types::DomainCompositeParams<'a>>,
         ) -> Result<u64, postgres::Error> {
-            let stmt = self.0.prepare(client)?;
             client.execute(
-                stmt,
+                self.0,
                 &[
                     &crate::Domain(txt),
                     &crate::Domain(json),
@@ -291,7 +307,7 @@ pub mod sync {
         > for InsertNightmareDomainStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             params: &'a super::InsertNightmareDomainParams<'a, T1, T2, T3, T4>,
         ) -> Result<u64, postgres::Error> {
@@ -305,22 +321,28 @@ pub mod sync {
             )
         }
     }
+    pub struct SelectNightmareDomainNullStmt(&'static str, Option<postgres::Statement>);
     pub fn select_nightmare_domain_null() -> SelectNightmareDomainNullStmt {
-        SelectNightmareDomainNullStmt(crate::client::sync::Stmt::new(
-            "SELECT * FROM nightmare_domain",
-        ))
+        SelectNightmareDomainNullStmt("SELECT * FROM nightmare_domain", None)
     }
-    pub struct SelectNightmareDomainNullStmt(crate::client::sync::Stmt);
     impl SelectNightmareDomainNullStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, super::SelectNightmareDomainNull, 0>
         {
             SelectNightmareDomainNullQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &postgres::Row| -> Result<
                     super::SelectNightmareDomainNullBorrowed,
                     postgres::Error,
@@ -344,7 +366,8 @@ pub mod async_ {
     pub struct SelectNightmareDomainQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         )
@@ -362,25 +385,26 @@ pub mod async_ {
             SelectNightmareDomainQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -393,11 +417,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -405,13 +432,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct SelectNightmareDomainNullQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(
             &tokio_postgres::Row,
         )
@@ -429,25 +457,26 @@ pub mod async_ {
             SelectNightmareDomainNullQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -460,11 +489,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -472,24 +504,30 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
+    pub struct SelectNightmareDomainStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn select_nightmare_domain() -> SelectNightmareDomainStmt {
-        SelectNightmareDomainStmt(crate::client::async_::Stmt::new(
-            "SELECT txt, json, nb, arr FROM nightmare_domain",
-        ))
+        SelectNightmareDomainStmt("SELECT txt, json, nb, arr FROM nightmare_domain", None)
     }
-    pub struct SelectNightmareDomainStmt(crate::client::async_::Stmt);
     impl SelectNightmareDomainStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> SelectNightmareDomainQuery<'c, 'a, 's, C, super::SelectNightmareDomain, 0> {
             SelectNightmareDomainQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<
                     super::SelectNightmareDomainBorrowed,
                     tokio_postgres::Error,
@@ -505,13 +543,21 @@ pub mod async_ {
             }
         }
     }
+    pub struct InsertNightmareDomainStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn insert_nightmare_domain() -> InsertNightmareDomainStmt {
-        InsertNightmareDomainStmt(crate::client::async_::Stmt::new(
+        InsertNightmareDomainStmt(
             "INSERT INTO nightmare_domain (txt, json, nb, arr, composite) VALUES ($1, $2, $3, $4, $5)",
-        ))
+            None,
+        )
     }
-    pub struct InsertNightmareDomainStmt(crate::client::async_::Stmt);
     impl InsertNightmareDomainStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub async fn bind<
             'c,
             'a,
@@ -522,7 +568,7 @@ pub mod async_ {
             T3: crate::JsonSql,
             T4: crate::ArraySql<Item = T3>,
         >(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             txt: &'a T1,
             json: &'a T2,
@@ -530,10 +576,9 @@ pub mod async_ {
             arr: &'a T4,
             composite: &'a Option<crate::types::DomainCompositeParams<'a>>,
         ) -> Result<u64, tokio_postgres::Error> {
-            let stmt = self.0.prepare(client).await?;
             client
                 .execute(
-                    stmt,
+                    self.0,
                     &[
                         &crate::Domain(txt),
                         &crate::Domain(json),
@@ -565,7 +610,7 @@ pub mod async_ {
         > for InsertNightmareDomainStmt
     {
         fn params(
-            &'a mut self,
+            &'a self,
             client: &'a C,
             params: &'a super::InsertNightmareDomainParams<'a, T1, T2, T3, T4>,
         ) -> std::pin::Pin<
@@ -581,22 +626,28 @@ pub mod async_ {
             ))
         }
     }
+    pub struct SelectNightmareDomainNullStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn select_nightmare_domain_null() -> SelectNightmareDomainNullStmt {
-        SelectNightmareDomainNullStmt(crate::client::async_::Stmt::new(
-            "SELECT * FROM nightmare_domain",
-        ))
+        SelectNightmareDomainNullStmt("SELECT * FROM nightmare_domain", None)
     }
-    pub struct SelectNightmareDomainNullStmt(crate::client::async_::Stmt);
     impl SelectNightmareDomainNullStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> SelectNightmareDomainNullQuery<'c, 'a, 's, C, super::SelectNightmareDomainNull, 0>
         {
             SelectNightmareDomainNullQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<
                     super::SelectNightmareDomainNullBorrowed,
                     tokio_postgres::Error,

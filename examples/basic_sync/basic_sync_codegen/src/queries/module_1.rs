@@ -1,19 +1,24 @@
 // This file was generated with `clorinde`. Do not modify.
 
-use postgres::{GenericClient, fallible_iterator::FallibleIterator};
+use crate::client::sync::GenericClient;
+use postgres::fallible_iterator::FallibleIterator;
+pub struct InsertBookStmt(&'static str, Option<postgres::Statement>);
 pub fn insert_book() -> InsertBookStmt {
-    InsertBookStmt(crate::client::sync::Stmt::new(
-        "INSERT INTO books (title) VALUES ($1)",
-    ))
+    InsertBookStmt("INSERT INTO books (title) VALUES ($1)", None)
 }
-pub struct InsertBookStmt(crate::client::sync::Stmt);
 impl InsertBookStmt {
+    pub fn prepare<'a, C: GenericClient>(
+        mut self,
+        client: &'a mut C,
+    ) -> Result<Self, postgres::Error> {
+        self.1 = Some(client.prepare(self.0)?);
+        Ok(self)
+    }
     pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-        &'s mut self,
+        &'s self,
         client: &'c mut C,
         title: &'a T1,
     ) -> Result<u64, postgres::Error> {
-        let stmt = self.0.prepare(client)?;
-        client.execute(stmt, &[title])
+        client.execute(self.0, &[title])
     }
 }

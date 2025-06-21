@@ -238,7 +238,8 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
         pub struct #name_ident<'c, 'a, 's, C: GenericClient, T, const N: usize> {
             client: &'c #client_mut C,
             params: [&'a (dyn postgres_types::ToSql + Sync); N],
-            stmt: &'s mut #client::Stmt,
+            query: &'static str,
+            cached: Option<&'s #backend::Statement>,
             extractor: fn(&#backend::Row) -> Result<#row_struct, #backend::Error>,
             mapper: fn(#row_struct) -> T,
         }
@@ -251,15 +252,15 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
                 #name_ident {
                     client: self.client,
                     params: self.params,
-                    stmt: self.stmt,
+                    query: self.query,
+                    cached: self.cached,
                     extractor: self.extractor,
                     mapper,
                 }
             }
 
             pub #fn_async fn one(self) -> Result<T, #backend::Error> {
-                let stmt = self.stmt.prepare(self.client)#fn_await?;
-                let row = self.client.query_one(stmt, &self.params)#fn_await?;
+                let row = #client::one(self.client, self.query, &self.params, self.cached)#fn_await?;
                 Ok((self.mapper)((self.extractor)(&row)?))
             }
 
@@ -268,11 +269,8 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
             }
 
             pub #fn_async fn opt(self) -> Result<Option<T>, #backend::Error> {
-                let stmt = self.stmt.prepare(self.client)#fn_await?;
-                Ok(self
-                    .client
-                    .query_opt(stmt, &self.params)
-                    #fn_await?
+                let opt_row = #client::opt(self.client, self.query, &self.params, self.cached)#fn_await?;
+                Ok(opt_row
                     .map(|row| {
                         let extracted = (self.extractor)(&row)?;
                         Ok((self.mapper)(extracted))
@@ -283,11 +281,8 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
             pub #fn_async fn iter(
                 self,
             ) -> Result<impl #raw_type<Item = Result<T, #backend::Error>> + 'c, #backend::Error> {
-                let stmt = self.stmt.prepare(self.client)#fn_await?;
-                let it = self
-                    .client
-                    .query_raw(stmt, crate::slice_iter(&self.params))
-                    #fn_await?
+                let stream = #client::raw(self.client, self.query, crate::slice_iter(&self.params), self.cached)#fn_await?;
+                let mapped = stream
                     #raw_pre
                     .map(move |res|
                         res.and_then(|row| {
@@ -296,7 +291,7 @@ fn gen_row_query(row: &PreparedItem, ctx: &GenCtx) -> proc_macro2::TokenStream {
                         })
                     )
                     #raw_post;
-                Ok(it)
+                Ok(mapped)
             }
         }
     }
@@ -362,6 +357,12 @@ fn gen_query_fn(
         .map(|i| format_ident!("{}", idx_char(i)))
         .collect();
 
+    let bind_visibility = if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
+        quote! {}
+    } else {
+        quote! { pub }
+    };
+
     let impl_tokens = if let Some((idx, index)) = row {
         let item = module.rows.get_index(*idx).unwrap().1;
         let PreparedItem {
@@ -406,23 +407,17 @@ fn gen_query_fn(
                 |it| #path::from(it)
             };
 
-            let bind_visibility =
-                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
-                    quote! {} // No visibility modifier means private
-                } else {
-                    quote! { pub }
-                };
-
             quote! {
                 #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                    &'s mut self,
+                    &'s self,
                     client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
                 ) -> #row_name_query_ident<'c, 'a, 's, C, #path, #nb_params> {
                     #row_name_query_ident {
                         client,
                         params: [#(#params_name,)*],
-                        stmt: &mut self.0,
+                        query: self.0,
+                        cached: self.1.as_ref(),
                         extractor: #extractor,
                         mapper: #mapper,
                     }
@@ -433,23 +428,17 @@ fn gen_query_fn(
             let field_type = syn::parse_str::<syn::Type>(&field.own_struct(ctx)).unwrap();
             let owning_call = syn::parse_str::<syn::Expr>(&field.owning_call(Some("it"))).unwrap();
 
-            let bind_visibility =
-                if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
-                    quote! {} // No visibility modifier means private
-                } else {
-                    quote! { pub }
-                };
-
             quote! {
                 #bind_visibility fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                    &'s mut self,
+                    &'s self,
                     client: &'c #client_mut C,
                     #(#params_name: &'a #params_ty,)*
                 ) -> #row_name_query_ident<'c, 'a, 's, C, #field_type, #nb_params> {
                     #row_name_query_ident {
                         client,
                         params: [#(#params_name,)*],
-                        stmt: &mut self.0,
+                        query: self.0,
+                        cached: self.1.as_ref(),
                         extractor: |row| Ok(row.try_get(0)?),
                         mapper: |it| #owning_call,
                     }
@@ -465,20 +454,13 @@ fn gen_query_fn(
             })
             .collect();
 
-        let bind_visibility = if config.params_only && param.as_ref().is_some_and(|p| p.is_named) {
-            quote! {} // No visibility modifier means private
-        } else {
-            quote! { pub }
-        };
-
         quote! {
             #bind_visibility #fn_async fn bind<'c, 'a, 's, C: GenericClient, #(#traits_idents: #traits_bounds,)*>(
-                &'s mut self,
+                &'s self,
                 client: &'c #client_mut C,
                 #(#params_name: &'a #params_ty,)*
             ) -> Result<u64, #backend::Error> {
-                let stmt = self.0.prepare(client)#fn_await?;
-                client.execute(stmt, &[#(#params_wrap,)*])#fn_await
+                client.execute(self.0, &[#(#params_wrap,)*])#fn_await
             }
         }
     };
@@ -497,14 +479,19 @@ fn gen_query_fn(
     });
 
     let struct_tokens = quote! {
+        pub struct #stmt_ident(&'static str, Option<#backend::Statement>);
+
         #(#doc_comments)*
         pub fn #name() -> #stmt_ident {
-            #stmt_ident(#client::Stmt::new(#sql))
+            #stmt_ident(#sql, None)
         }
 
-        pub struct #stmt_ident(#client::Stmt);
-
         impl #stmt_ident {
+            pub #fn_async fn prepare<'a, C: GenericClient>(mut self, client: &'a #client_mut C) -> Result<Self, #backend::Error> {
+                self.1 = Some(client.prepare(self.0)#fn_await?);
+                Ok(self)
+            }
+
             #impl_tokens
         }
     };
@@ -541,7 +528,7 @@ fn gen_query_fn(
                         for #stmt_ident
                     {
                         fn params(
-                            &'s mut self,
+                            &'s self,
                             client: &'c #client_mut C,
                             params: &'a #param_path<#lifetime #(#traits_idents,)*>
                         ) -> #name<'c, 'a, 's, C, #query_row_struct, #nb_params> {
@@ -557,7 +544,7 @@ fn gen_query_fn(
                         for #stmt_ident
                     {
                         fn params(
-                            &'a mut self,
+                            &'a self,
                             client: &'a C,
                             params: &'a #param_path<#lifetime #(#traits_idents,)*>
                         ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<u64, #backend::Error>> + Send + 'a>> {
@@ -573,8 +560,8 @@ fn gen_query_fn(
                         for #stmt_ident
                     {
                         fn params(
-                            &'s mut self,
-                            client: &'c mut C,
+                            &'s self,
+                            client: &'c #client_mut C,
                             params: &'a #param_path<#lifetime #(#traits_idents,)*>
                         ) -> Result<u64, #backend::Error> {
                             self.bind(client, #(&params.#params_name,)*)
@@ -653,7 +640,8 @@ fn gen_specific(
         }
     } else {
         quote! {
-            use postgres::{fallible_iterator::FallibleIterator, GenericClient};
+            use postgres::{fallible_iterator::FallibleIterator};
+            use crate::client::sync::GenericClient;
         }
     };
 
