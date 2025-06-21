@@ -89,8 +89,10 @@ This crate uses Rust 2021 edition, which requires at least version 1.62.1.
 ## License
 
 Licensed under either of
+
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 - MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
 at your option.
 
 ### Contribution
