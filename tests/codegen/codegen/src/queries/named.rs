@@ -67,11 +67,13 @@ impl<'a> From<NamedComplexBorrowed<'a>> for NamedComplex {
     }
 }
 pub mod sync {
-    use postgres::{GenericClient, fallible_iterator::FallibleIterator};
+    use crate::client::sync::GenericClient;
+    use postgres::fallible_iterator::FallibleIterator;
     pub struct IdQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(&postgres::Row) -> Result<super::Id, postgres::Error>,
         mapper: fn(super::Id) -> T,
     }
@@ -83,24 +85,23 @@ pub mod sync {
             IdQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -111,24 +112,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct NamedQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(&postgres::Row) -> Result<super::NamedBorrowed, postgres::Error>,
         mapper: fn(super::NamedBorrowed) -> T,
     }
@@ -143,24 +146,23 @@ pub mod sync {
             NamedQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -171,24 +173,26 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
     pub struct NamedComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c mut C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::sync::Stmt,
+        query: &'static str,
+        cached: Option<&'s postgres::Statement>,
         extractor: fn(&postgres::Row) -> Result<super::NamedComplexBorrowed, postgres::Error>,
         mapper: fn(super::NamedComplexBorrowed) -> T,
     }
@@ -203,24 +207,23 @@ pub mod sync {
             NamedComplexQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub fn one(self) -> Result<T, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            let row = self.client.query_one(stmt, &self.params)?;
+            let row = crate::client::sync::one(self.client, self.query, &self.params, self.cached)?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub fn all(self) -> Result<Vec<T>, postgres::Error> {
             self.iter()?.collect()
         }
         pub fn opt(self) -> Result<Option<T>, postgres::Error> {
-            let stmt = self.stmt.prepare(self.client)?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)?
+            let opt_row =
+                crate::client::sync::opt(self.client, self.query, &self.params, self.cached)?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -231,29 +234,38 @@ pub mod sync {
             self,
         ) -> Result<impl Iterator<Item = Result<T, postgres::Error>> + 'c, postgres::Error>
         {
-            let stmt = self.stmt.prepare(self.client)?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))?
-                .iterator()
-                .map(move |res| {
-                    res.and_then(|row| {
-                        let extracted = (self.extractor)(&row)?;
-                        Ok((self.mapper)(extracted))
-                    })
-                });
-            Ok(it)
+            let stream = crate::client::sync::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )?;
+            let mapped = stream.iterator().map(move |res| {
+                res.and_then(|row| {
+                    let extracted = (self.extractor)(&row)?;
+                    Ok((self.mapper)(extracted))
+                })
+            });
+            Ok(mapped)
         }
     }
+    pub struct NewNamedVisibleStmt(&'static str, Option<postgres::Statement>);
     pub fn new_named_visible() -> NewNamedVisibleStmt {
-        NewNamedVisibleStmt(crate::client::sync::Stmt::new(
+        NewNamedVisibleStmt(
             "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedVisibleStmt(crate::client::sync::Stmt);
     impl NewNamedVisibleStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             name: &'a T1,
             price: &'a Option<f64>,
@@ -261,7 +273,8 @@ pub mod sync {
             IdQuery {
                 client,
                 params: [name, price],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &postgres::Row| -> Result<super::Id, postgres::Error> {
                     Ok(super::Id {
                         id: row.try_get(0)?,
@@ -282,22 +295,30 @@ pub mod sync {
         > for NewNamedVisibleStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             params: &'a super::NamedParams<T1>,
         ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
+    pub struct NewNamedHiddenStmt(&'static str, Option<postgres::Statement>);
     pub fn new_named_hidden() -> NewNamedHiddenStmt {
-        NewNamedHiddenStmt(crate::client::sync::Stmt::new(
+        NewNamedHiddenStmt(
             "INSERT INTO named (price, name, show) VALUES ($1, $2, false) RETURNING id",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedHiddenStmt(crate::client::sync::Stmt);
     impl NewNamedHiddenStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             price: &'a Option<f64>,
             name: &'a T1,
@@ -305,7 +326,8 @@ pub mod sync {
             IdQuery {
                 client,
                 params: [price, name],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &postgres::Row| -> Result<super::Id, postgres::Error> {
                     Ok(super::Id {
                         id: row.try_get(0)?,
@@ -326,26 +348,34 @@ pub mod sync {
         > for NewNamedHiddenStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             params: &'a super::NamedParams<T1>,
         ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.price, &params.name)
         }
     }
+    pub struct NamedStmt(&'static str, Option<postgres::Statement>);
     pub fn named() -> NamedStmt {
-        NamedStmt(crate::client::sync::Stmt::new("SELECT * FROM named"))
+        NamedStmt("SELECT * FROM named", None)
     }
-    pub struct NamedStmt(crate::client::sync::Stmt);
     impl NamedStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> NamedQuery<'c, 'a, 's, C, super::Named, 0> {
             NamedQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &postgres::Row| -> Result<super::NamedBorrowed, postgres::Error> {
                     Ok(super::NamedBorrowed {
                         id: row.try_get(0)?,
@@ -358,22 +388,28 @@ pub mod sync {
             }
         }
     }
+    pub struct NamedByIdStmt(&'static str, Option<postgres::Statement>);
     pub fn named_by_id() -> NamedByIdStmt {
-        NamedByIdStmt(crate::client::sync::Stmt::new(
-            "SELECT * FROM named WHERE id = $1",
-        ))
+        NamedByIdStmt("SELECT * FROM named WHERE id = $1", None)
     }
-    pub struct NamedByIdStmt(crate::client::sync::Stmt);
     impl NamedByIdStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             id: &'a i32,
         ) -> NamedQuery<'c, 'a, 's, C, super::Named, 1> {
             NamedQuery {
                 client,
                 params: [id],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &postgres::Row| -> Result<super::NamedBorrowed, postgres::Error> {
                     Ok(super::NamedBorrowed {
                         id: row.try_get(0)?,
@@ -386,21 +422,28 @@ pub mod sync {
             }
         }
     }
+    pub struct NewNamedComplexStmt(&'static str, Option<postgres::Statement>);
     pub fn new_named_complex() -> NewNamedComplexStmt {
-        NewNamedComplexStmt(crate::client::sync::Stmt::new(
+        NewNamedComplexStmt(
             "INSERT INTO named_complex (named, \"named.with_dot\") VALUES ($1, $2)",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedComplexStmt(crate::client::sync::Stmt);
     impl NewNamedComplexStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             named: &'a crate::types::NamedCompositeBorrowed<'a>,
             named_with_dot: &'a Option<crate::types::NamedCompositeWithDot>,
         ) -> Result<u64, postgres::Error> {
-            let stmt = self.0.prepare(client)?;
-            client.execute(stmt, &[named, named_with_dot])
+            client.execute(self.0, &[named, named_with_dot])
         }
     }
     impl<'c, 'a, 's, C: GenericClient>
@@ -414,28 +457,34 @@ pub mod sync {
         > for NewNamedComplexStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
             params: &'a super::NamedComplexParams<'a>,
         ) -> Result<u64, postgres::Error> {
             self.bind(client, &params.named, &params.named_with_dot)
         }
     }
+    pub struct NamedComplexStmt(&'static str, Option<postgres::Statement>);
     pub fn named_complex() -> NamedComplexStmt {
-        NamedComplexStmt(crate::client::sync::Stmt::new(
-            "SELECT * FROM named_complex",
-        ))
+        NamedComplexStmt("SELECT * FROM named_complex", None)
     }
-    pub struct NamedComplexStmt(crate::client::sync::Stmt);
     impl NamedComplexStmt {
+        pub fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a mut C,
+        ) -> Result<Self, postgres::Error> {
+            self.1 = Some(client.prepare(self.0)?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c mut C,
         ) -> NamedComplexQuery<'c, 'a, 's, C, super::NamedComplex, 0> {
             NamedComplexQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor:
                     |row: &postgres::Row| -> Result<super::NamedComplexBorrowed, postgres::Error> {
                         Ok(super::NamedComplexBorrowed {
@@ -454,7 +503,8 @@ pub mod async_ {
     pub struct IdQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(&tokio_postgres::Row) -> Result<super::Id, tokio_postgres::Error>,
         mapper: fn(super::Id) -> T,
     }
@@ -466,25 +516,26 @@ pub mod async_ {
             IdQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -497,11 +548,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -509,13 +563,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct NamedQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor: fn(&tokio_postgres::Row) -> Result<super::NamedBorrowed, tokio_postgres::Error>,
         mapper: fn(super::NamedBorrowed) -> T,
     }
@@ -530,25 +585,26 @@ pub mod async_ {
             NamedQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -561,11 +617,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -573,13 +632,14 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
     pub struct NamedComplexQuery<'c, 'a, 's, C: GenericClient, T, const N: usize> {
         client: &'c C,
         params: [&'a (dyn postgres_types::ToSql + Sync); N],
-        stmt: &'s mut crate::client::async_::Stmt,
+        query: &'static str,
+        cached: Option<&'s tokio_postgres::Statement>,
         extractor:
             fn(&tokio_postgres::Row) -> Result<super::NamedComplexBorrowed, tokio_postgres::Error>,
         mapper: fn(super::NamedComplexBorrowed) -> T,
@@ -595,25 +655,26 @@ pub mod async_ {
             NamedComplexQuery {
                 client: self.client,
                 params: self.params,
-                stmt: self.stmt,
+                query: self.query,
+                cached: self.cached,
                 extractor: self.extractor,
                 mapper,
             }
         }
         pub async fn one(self) -> Result<T, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let row = self.client.query_one(stmt, &self.params).await?;
+            let row =
+                crate::client::async_::one(self.client, self.query, &self.params, self.cached)
+                    .await?;
             Ok((self.mapper)((self.extractor)(&row)?))
         }
         pub async fn all(self) -> Result<Vec<T>, tokio_postgres::Error> {
             self.iter().await?.try_collect().await
         }
         pub async fn opt(self) -> Result<Option<T>, tokio_postgres::Error> {
-            let stmt = self.stmt.prepare(self.client).await?;
-            Ok(self
-                .client
-                .query_opt(stmt, &self.params)
-                .await?
+            let opt_row =
+                crate::client::async_::opt(self.client, self.query, &self.params, self.cached)
+                    .await?;
+            Ok(opt_row
                 .map(|row| {
                     let extracted = (self.extractor)(&row)?;
                     Ok((self.mapper)(extracted))
@@ -626,11 +687,14 @@ pub mod async_ {
             impl futures::Stream<Item = Result<T, tokio_postgres::Error>> + 'c,
             tokio_postgres::Error,
         > {
-            let stmt = self.stmt.prepare(self.client).await?;
-            let it = self
-                .client
-                .query_raw(stmt, crate::slice_iter(&self.params))
-                .await?
+            let stream = crate::client::async_::raw(
+                self.client,
+                self.query,
+                crate::slice_iter(&self.params),
+                self.cached,
+            )
+            .await?;
+            let mapped = stream
                 .map(move |res| {
                     res.and_then(|row| {
                         let extracted = (self.extractor)(&row)?;
@@ -638,18 +702,26 @@ pub mod async_ {
                     })
                 })
                 .into_stream();
-            Ok(it)
+            Ok(mapped)
         }
     }
+    pub struct NewNamedVisibleStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn new_named_visible() -> NewNamedVisibleStmt {
-        NewNamedVisibleStmt(crate::client::async_::Stmt::new(
+        NewNamedVisibleStmt(
             "INSERT INTO named (name, price, show) VALUES ($1, $2, true) RETURNING id",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedVisibleStmt(crate::client::async_::Stmt);
     impl NewNamedVisibleStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             name: &'a T1,
             price: &'a Option<f64>,
@@ -657,7 +729,8 @@ pub mod async_ {
             IdQuery {
                 client,
                 params: [name, price],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<super::Id, tokio_postgres::Error> {
                     Ok(super::Id {
                         id: row.try_get(0)?,
@@ -678,22 +751,30 @@ pub mod async_ {
         > for NewNamedVisibleStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             params: &'a super::NamedParams<T1>,
         ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.name, &params.price)
         }
     }
+    pub struct NewNamedHiddenStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn new_named_hidden() -> NewNamedHiddenStmt {
-        NewNamedHiddenStmt(crate::client::async_::Stmt::new(
+        NewNamedHiddenStmt(
             "INSERT INTO named (price, name, show) VALUES ($1, $2, false) RETURNING id",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedHiddenStmt(crate::client::async_::Stmt);
     impl NewNamedHiddenStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             price: &'a Option<f64>,
             name: &'a T1,
@@ -701,7 +782,8 @@ pub mod async_ {
             IdQuery {
                 client,
                 params: [price, name],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |row: &tokio_postgres::Row| -> Result<super::Id, tokio_postgres::Error> {
                     Ok(super::Id {
                         id: row.try_get(0)?,
@@ -722,26 +804,34 @@ pub mod async_ {
         > for NewNamedHiddenStmt
     {
         fn params(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             params: &'a super::NamedParams<T1>,
         ) -> IdQuery<'c, 'a, 's, C, super::Id, 2> {
             self.bind(client, &params.price, &params.name)
         }
     }
+    pub struct NamedStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn named() -> NamedStmt {
-        NamedStmt(crate::client::async_::Stmt::new("SELECT * FROM named"))
+        NamedStmt("SELECT * FROM named", None)
     }
-    pub struct NamedStmt(crate::client::async_::Stmt);
     impl NamedStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> NamedQuery<'c, 'a, 's, C, super::Named, 0> {
             NamedQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &tokio_postgres::Row,
                 | -> Result<super::NamedBorrowed, tokio_postgres::Error> {
@@ -756,22 +846,28 @@ pub mod async_ {
             }
         }
     }
+    pub struct NamedByIdStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn named_by_id() -> NamedByIdStmt {
-        NamedByIdStmt(crate::client::async_::Stmt::new(
-            "SELECT * FROM named WHERE id = $1",
-        ))
+        NamedByIdStmt("SELECT * FROM named WHERE id = $1", None)
     }
-    pub struct NamedByIdStmt(crate::client::async_::Stmt);
     impl NamedByIdStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             id: &'a i32,
         ) -> NamedQuery<'c, 'a, 's, C, super::Named, 1> {
             NamedQuery {
                 client,
                 params: [id],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &tokio_postgres::Row,
                 | -> Result<super::NamedBorrowed, tokio_postgres::Error> {
@@ -786,21 +882,28 @@ pub mod async_ {
             }
         }
     }
+    pub struct NewNamedComplexStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn new_named_complex() -> NewNamedComplexStmt {
-        NewNamedComplexStmt(crate::client::async_::Stmt::new(
+        NewNamedComplexStmt(
             "INSERT INTO named_complex (named, \"named.with_dot\") VALUES ($1, $2)",
-        ))
+            None,
+        )
     }
-    pub struct NewNamedComplexStmt(crate::client::async_::Stmt);
     impl NewNamedComplexStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub async fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
             named: &'a crate::types::NamedCompositeBorrowed<'a>,
             named_with_dot: &'a Option<crate::types::NamedCompositeWithDot>,
         ) -> Result<u64, tokio_postgres::Error> {
-            let stmt = self.0.prepare(client).await?;
-            client.execute(stmt, &[named, named_with_dot]).await
+            client.execute(self.0, &[named, named_with_dot]).await
         }
     }
     impl<'a, C: GenericClient + Send + Sync>
@@ -816,7 +919,7 @@ pub mod async_ {
         > for NewNamedComplexStmt
     {
         fn params(
-            &'a mut self,
+            &'a self,
             client: &'a C,
             params: &'a super::NamedComplexParams<'a>,
         ) -> std::pin::Pin<
@@ -825,21 +928,27 @@ pub mod async_ {
             Box::pin(self.bind(client, &params.named, &params.named_with_dot))
         }
     }
+    pub struct NamedComplexStmt(&'static str, Option<tokio_postgres::Statement>);
     pub fn named_complex() -> NamedComplexStmt {
-        NamedComplexStmt(crate::client::async_::Stmt::new(
-            "SELECT * FROM named_complex",
-        ))
+        NamedComplexStmt("SELECT * FROM named_complex", None)
     }
-    pub struct NamedComplexStmt(crate::client::async_::Stmt);
     impl NamedComplexStmt {
+        pub async fn prepare<'a, C: GenericClient>(
+            mut self,
+            client: &'a C,
+        ) -> Result<Self, tokio_postgres::Error> {
+            self.1 = Some(client.prepare(self.0).await?);
+            Ok(self)
+        }
         pub fn bind<'c, 'a, 's, C: GenericClient>(
-            &'s mut self,
+            &'s self,
             client: &'c C,
         ) -> NamedComplexQuery<'c, 'a, 's, C, super::NamedComplex, 0> {
             NamedComplexQuery {
                 client,
                 params: [],
-                stmt: &mut self.0,
+                query: self.0,
+                cached: self.1.as_ref(),
                 extractor: |
                     row: &tokio_postgres::Row,
                 | -> Result<super::NamedComplexBorrowed, tokio_postgres::Error> {
