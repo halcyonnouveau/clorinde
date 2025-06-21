@@ -77,31 +77,47 @@ impl Vfs {
         // Copy static files to temp directory
         if !static_files.is_empty() {
             for file in static_files {
-                let (path, hard_link) = match file {
-                    StaticFile::Simple(path) => (path, false),
-                    StaticFile::Detailed { path, hard_link } => (path, hard_link),
+                let (source_path, destination_path, hard_link) = match file {
+                    StaticFile::Simple(path) => (path, None, false),
+                    StaticFile::Detailed {
+                        path,
+                        destination,
+                        hard_link,
+                    } => (path, destination, hard_link),
                 };
 
-                if !path.exists() {
-                    return Err(PersistError::wrap(&path)(std::io::Error::new(
+                if !source_path.exists() {
+                    return Err(PersistError::wrap(source_path)(std::io::Error::new(
                         std::io::ErrorKind::NotFound,
                         "Static file not found",
                     )));
                 }
 
-                let file_name = path.file_name().ok_or_else(|| {
-                    PersistError::wrap(&path)(std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        "Invalid file name",
-                    ))
-                })?;
+                let destination_path = if let Some(dest) = destination_path {
+                    dest
+                } else {
+                    // Use original filename in the codegen root if no destination specified
+                    let target = source_path.file_name().ok_or_else(|| {
+                        PersistError::wrap(&source_path)(std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "Invalid file name",
+                        ))
+                    })?;
+                    PathBuf::from(target)
+                };
 
-                let dst = tmp.path().join(file_name);
+                let dst = tmp.path().join(destination_path);
+
+                // Create parent directories if they don't exist
+                if let Some(parent) = dst.parent() {
+                    std::fs::create_dir_all(parent).map_err(PersistError::wrap(parent))?;
+                }
 
                 if hard_link {
-                    std::fs::hard_link(path.clone(), dst).map_err(PersistError::wrap(&path))?;
+                    std::fs::hard_link(&source_path, dst)
+                        .map_err(PersistError::wrap(&source_path))?;
                 } else {
-                    std::fs::copy(path.clone(), dst).map_err(PersistError::wrap(&path))?;
+                    std::fs::copy(&source_path, dst).map_err(PersistError::wrap(&source_path))?;
                 }
             }
         }

@@ -121,6 +121,8 @@ pub enum StaticFile {
         path: PathBuf,
         #[serde(default, rename = "hard-link")]
         hard_link: bool,
+        #[serde(rename = "destination")]
+        destination: Option<PathBuf>,
     },
 }
 
