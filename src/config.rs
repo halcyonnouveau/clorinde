@@ -12,6 +12,9 @@ use std::{
 #[serde(default, deny_unknown_fields)]
 #[non_exhaustive]
 pub struct Config {
+    /// Generate field metadata for queries
+    #[serde(rename = "generate-field-metadata")]
+    pub generate_field_metadata: bool,  
     /// Use `podman` instead of `docker`
     pub podman: bool,
     /// Directory containing the queries
@@ -91,6 +94,7 @@ impl Default for Config {
         Self {
             podman: false,
             container_image: "docker.io/library/postgres:latest".to_string(),
+            generate_field_metadata: false,
             container_wait: 250,
             queries: PathBuf::from_str("queries/").unwrap(),
             destination: PathBuf::from_str("clorinde").unwrap(),
