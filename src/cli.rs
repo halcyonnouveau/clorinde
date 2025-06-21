@@ -91,7 +91,7 @@ impl Action {
 #[derive(Parser, Debug, Clone)]
 struct CommonArgs {
     /// Config file path
-    #[clap(short, long, default_value = "clorinde.toml", value_parser = validate_path_exists)]
+    #[clap(short, long, default_value = "clorinde.toml")]
     config: PathBuf,
 
     /// Folder containing the queries
