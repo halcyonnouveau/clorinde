@@ -62,7 +62,9 @@ fn gen_row_structs(
 ) -> proc_macro2::TokenStream {
     // Import FieldMeta for use in generated code, if enabled
     let field_meta_use = if config.generate_field_metadata {
-        quote!(use crate::types::FieldMeta;)
+        quote!(
+            use crate::types::FieldMeta;
+        )
     } else {
         quote!()
     };

@@ -14,7 +14,6 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> proc_macro2::TokenStream {
-
     /*
      Rust types are not first-class values and cannot be assigned to struct fields directly (unlike strings).
     PhantomData<T> ? std::any::TypeId ? Ditch this idea?
@@ -36,7 +35,6 @@ pub(crate) fn gen_type_modules(
             // This file was generated with `clorinde`. Do not modify.
         }
     };
-
 
     for (schema, types) in prepared {
         if schema == "public" {

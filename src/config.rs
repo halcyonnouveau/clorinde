@@ -14,7 +14,7 @@ use std::{
 pub struct Config {
     /// Generate field metadata for queries
     #[serde(rename = "generate-field-metadata")]
-    pub generate_field_metadata: bool,  
+    pub generate_field_metadata: bool,
     /// Use `podman` instead of `docker`
     pub podman: bool,
     /// Directory containing the queries
