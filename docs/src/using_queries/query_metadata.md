@@ -23,7 +23,6 @@ For example you can get a list of the column names returned by your query via
 
 ```
 
-## BUGS?
+## TODO
 
-I might be holding it wrong, but if I have more than one query in the same file I get build errors with the generated code.
-
+What else should go here? Should this be here or added to an existing file?
