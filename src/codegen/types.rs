@@ -14,30 +14,17 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> proc_macro2::TokenStream {
-    let field_meta_struct = if config.generate_field_metadata {
-        quote! {
-            #[derive(Debug, Clone, Copy)]
-            pub struct FieldMeta {
-                pub name: &'static str,
-                pub data_type: &'static str,
-            }
+    let field_meta_struct = quote! {
+        #[derive(Debug, Clone, Copy)]
+        pub struct FieldMeta {
+            pub name: &'static str,
+            pub data_type: &'static str,
         }
-    } else {
-        quote!()
     };
-    let field_meta_use = if config.generate_field_metadata {
-        quote!(use crate::types::FieldMeta;)
-    } else {
-        quote!()
+    let mut tokens = quote! {
+        // This file was generated with `clorinde`. Do not modify.
+        #field_meta_struct
     };
-    let mut tokens = quote!();
-    if config.generate_field_metadata {
-        tokens.extend(quote! {
-            // This file was generated with `clorinde`. Do not modify.
-            #field_meta_use
-            #field_meta_struct
-        });
-    }
 
     for (schema, types) in prepared {
         if schema == "public" {
