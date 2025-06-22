@@ -6,8 +6,8 @@ At their most basic, they look like this
 ```sql
 --! authors_from_country
 SELECT id, name, age
-FROM Authors
-WHERE Authors.nationality = :country;
+FROM authors
+WHERE authors.nationality = :country;
 ```
 
 The `--!` token indicates a Clorinde query annotation, and `authors_from_country` is the name of the query.
@@ -26,8 +26,8 @@ By default, parameters and returned row columns will all be inferred as non-null
 ```sql
 --! authors_from_country (country?) : (age?)
 SELECT id, name, age
-FROM Authors
-WHERE Authors.nationality = :country;
+FROM authors
+WHERE authors.nationality = :country;
 ```
 
 The `(country?)` and `(age?)` annotations mean that the parameter `country` and returned column `age` will be inferred as nullable (`Option` in Rust).
@@ -55,8 +55,8 @@ You can add documentation to your queries using `---` comments after the query a
 --- Parameters:
 ---   country: The nationality to filter by
 SELECT id, name, age
-FROM Authors
-WHERE Authors.nationality = :country;
+FROM authors
+WHERE authors.nationality = :country;
 ```
 
 This will generate:

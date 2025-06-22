@@ -2,19 +2,23 @@
 
 use crate::client::async_::GenericClient;
 use futures::{self, StreamExt, TryStreamExt};
+pub struct InsertBookStmt(&'static str, Option<tokio_postgres::Statement>);
 pub fn insert_book() -> InsertBookStmt {
-    InsertBookStmt(crate::client::async_::Stmt::new(
-        "INSERT INTO Book (title) VALUES ($1)",
-    ))
+    InsertBookStmt("INSERT INTO books (title) VALUES ($1)", None)
 }
-pub struct InsertBookStmt(crate::client::async_::Stmt);
 impl InsertBookStmt {
+    pub async fn prepare<'a, C: GenericClient>(
+        mut self,
+        client: &'a C,
+    ) -> Result<Self, tokio_postgres::Error> {
+        self.1 = Some(client.prepare(self.0).await?);
+        Ok(self)
+    }
     pub async fn bind<'c, 'a, 's, C: GenericClient, T1: crate::StringSql>(
-        &'s mut self,
+        &'s self,
         client: &'c C,
         title: &'a T1,
     ) -> Result<u64, tokio_postgres::Error> {
-        let stmt = self.0.prepare(client).await?;
-        client.execute(stmt, &[title]).await
+        client.execute(self.0, &[title]).await
     }
 }

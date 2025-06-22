@@ -465,9 +465,9 @@ impl TypeRegistrar {
                 TypeMapping::Detailed {
                     rust_type,
                     is_copy,
-                    is_params,
                     attributes: _,
-                } => Some((rust_type.to_string(), *is_copy, *is_params)),
+                    attributes_borrowed: _,
+                } => Some((rust_type.to_string(), *is_copy, true)),
             }
         } else {
             None
@@ -524,7 +524,7 @@ pub(crate) mod error {
     #[derive(Debug, ThisError, Diagnostic)]
     #[error("Couldn't register SQL type.")]
     pub enum Error {
-        Db(#[from] postgres::Error),
+        Db(#[from] tokio_postgres::Error),
         UnsupportedPostgresType {
             #[source_code]
             src: NamedSource<Arc<String>>,

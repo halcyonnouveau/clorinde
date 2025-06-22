@@ -21,10 +21,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Run tests
         run: |
           cargo run --package test_integration -- --apply-codegen
           cargo test --all
+          cd examples/basic_async_wasm && wasm-pack build
 
   clippy:
     name: Check for common code mistakes

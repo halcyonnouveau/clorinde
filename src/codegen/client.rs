@@ -77,6 +77,7 @@ pub(crate) fn gen_clients(
     vfs.add("src/type_traits.rs", core_type_traits(dependency_analysis));
     if config.sync {
         vfs.add("src/client/sync.rs", sync());
+        vfs.add("src/client/sync/generic_client.rs", sync_generic_client());
     }
     if config.r#async {
         vfs.add("src/client/async_.rs", async_());
@@ -245,7 +246,7 @@ pub fn core_domain() -> proc_macro2::TokenStream {
 
 pub fn core_array() -> proc_macro2::TokenStream {
     quote! {
-        use postgres::fallible_iterator::FallibleIterator;
+        use fallible_iterator::FallibleIterator;
         use postgres_protocol::types::{array_from_sql, ArrayValues};
         use postgres_types::{FromSql, Kind, Type};
         use std::fmt::Debug;
@@ -482,40 +483,70 @@ pub fn core_type_traits(dependency_analysis: &DependencyAnalysis) -> proc_macro2
 
 pub fn sync() -> proc_macro2::TokenStream {
     quote! {
-        use postgres::Statement;
+        pub use generic_client::GenericClient;
+        mod generic_client;
+
+        use postgres::{
+            types::{BorrowToSql, ToSql},
+            Error, Row, RowIter, Statement,
+        };
 
         /// This trait allows you to bind parameters to a query using a single
         /// struct, rather than passing each bind parameter as a function parameter.
         pub trait Params<'c, 'a, 's, P, O, C> {
-            fn params(&'s mut self, client: &'c mut C, params: &'a P) -> O;
+            fn params(&'s self, client: &'c mut C, params: &'a P) -> O;
         }
 
-        /// Cached statement
-        #[doc(hidden)]
-        pub(crate) struct Stmt {
-            query: &'static str,
-            cached: Option<Statement>,
-        }
-
-        impl Stmt {
-            #[must_use]
-            pub fn new(query: &'static str) -> Self {
-                Self {
-                    query,
-                    cached: None,
-                }
+        pub fn one<C: GenericClient>(
+            client: &mut C,
+            query: &str,
+            params: &[&(dyn ToSql + Sync)],
+            cached: Option<&Statement>,
+        ) -> Result<Row, Error> {
+            if let Some(cached) = cached {
+                client.query_one(cached, params)
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query)?;
+                client.query_one(&cached, params)
+            } else {
+                client.query_one(query, params)
             }
+        }
 
-            pub fn prepare<'a, C: postgres::GenericClient>(
-                &'a mut self,
-                client: &mut C,
-            ) -> Result<&'a Statement, postgres::Error> {
-                if self.cached.is_none() {
-                    let stmt = client.prepare(self.query)?;
-                    self.cached = Some(stmt);
-                }
-                // the statement is always prepared at this point
-                Ok(unsafe { self.cached.as_ref().unwrap_unchecked() })
+        pub fn opt<C: GenericClient>(
+            client: &mut C,
+            query: &str,
+            params: &[&(dyn ToSql + Sync)],
+            cached: Option<&Statement>,
+        ) -> Result<Option<Row>, Error> {
+            if let Some(cached) = cached {
+                client.query_opt(cached, params)
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query)?;
+                client.query_opt(&cached, params)
+            } else {
+                client.query_opt(query, params)
+            }
+        }
+
+        pub fn raw<'a, C: GenericClient, P, I>(
+            client: &'a mut C,
+            query: &str,
+            params: I,
+            cached: Option<&Statement>,
+        ) -> Result<RowIter<'a>, Error>
+        where
+            P: BorrowToSql,
+            I: IntoIterator<Item = P>,
+            I::IntoIter: ExactSizeIterator,
+        {
+            if let Some(cached) = cached {
+                client.query_raw(cached, params)
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query)?;
+                client.query_raw(&cached, params)
+            } else {
+                client.query_raw(query, params)
             }
         }
     }
@@ -524,44 +555,214 @@ pub fn sync() -> proc_macro2::TokenStream {
 pub fn async_() -> proc_macro2::TokenStream {
     quote! {
         pub use generic_client::GenericClient;
-        use tokio_postgres::{Error, Statement};
+        mod generic_client;
 
         #[cfg(feature = "deadpool")]
         mod deadpool;
-        mod generic_client;
+
+        use tokio_postgres::{
+            types::{BorrowToSql, ToSql},
+            Error, Row, RowStream, Statement,
+        };
 
         /// This trait allows you to bind parameters to a query using a single
         /// struct, rather than passing each bind parameter as a function parameter.
         pub trait Params<'c, 'a, 's, P, O, C> {
-            fn params(&'s mut self, client: &'c C, params: &'a P) -> O;
+            fn params(&'s self, client: &'c C, params: &'a P) -> O;
         }
 
-        /// Cached statement
-        #[doc(hidden)]
-        pub struct Stmt {
-            query: &'static str,
-            cached: Option<Statement>,
+        pub async fn one<C: GenericClient>(
+            client: &C,
+            query: &str,
+            params: &[&(dyn ToSql + Sync)],
+            cached: Option<&Statement>,
+        ) -> Result<Row, Error> {
+            if let Some(cached) = cached {
+                client.query_one(cached, params).await
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query).await?;
+                client.query_one(&cached, params).await
+            } else {
+                client.query_one(query, params).await
+            }
         }
 
-        impl Stmt {
-            #[must_use]
-            pub fn new(query: &'static str) -> Self {
-                Self {
-                    query,
-                    cached: None,
-                }
+        pub async fn opt<C: GenericClient>(
+            client: &C,
+            query: &str,
+            params: &[&(dyn ToSql + Sync)],
+            cached: Option<&Statement>,
+        ) -> Result<Option<Row>, Error> {
+            if let Some(cached) = cached {
+                client.query_opt(cached, params).await
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query).await?;
+                client.query_opt(&cached, params).await
+            } else {
+                client.query_opt(query, params).await
+            }
+        }
+
+        pub async fn raw<C: GenericClient, P, I>(
+            client: &C,
+            query: &str,
+            params: I,
+            cached: Option<&Statement>,
+        ) -> Result<RowStream, Error>
+        where
+            P: BorrowToSql,
+            I: IntoIterator<Item = P> + Sync + Send,
+            I::IntoIter: ExactSizeIterator,
+        {
+            if let Some(cached) = cached {
+                client.query_raw(cached, params).await
+            } else if C::stmt_cache() {
+                let cached = client.prepare(query).await?;
+                client.query_raw(&cached, params).await
+            } else {
+                client.query_raw(query, params).await
+            }
+        }
+    }
+}
+
+pub fn sync_generic_client() -> proc_macro2::TokenStream {
+    quote! {
+        use postgres::{
+            types::{BorrowToSql, ToSql},
+            Client, Error, Row, RowIter, Statement, ToStatement, Transaction,
+        };
+
+        /// Abstraction over multiple types of synchronous clients.
+        /// This allows you to use postgres clients and transactions interchangeably.
+        pub trait GenericClient {
+            fn stmt_cache() -> bool {
+                false
             }
 
-            pub async fn prepare<'a, C: GenericClient>(
-                &'a mut self,
-                client: &C,
-            ) -> Result<&'a Statement, Error> {
-                if self.cached.is_none() {
-                    let stmt = client.prepare(self.query).await?;
-                    self.cached = Some(stmt);
-                }
-                // the statement is always prepared at this point
-                Ok(unsafe { self.cached.as_ref().unwrap_unchecked() })
+            fn prepare(&mut self, query: &str) -> Result<Statement, Error>;
+
+            fn execute<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<u64, Error>
+            where
+                T: ?Sized + ToStatement;
+
+            fn query_one<T>(&mut self, statement: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Row, Error>
+            where
+                T: ?Sized + ToStatement;
+
+            fn query_opt<T>(
+                &mut self,
+                statement: &T,
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Option<Row>, Error>
+            where
+                T: ?Sized + ToStatement;
+
+            fn query<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Vec<Row>, Error>
+            where
+                T: ?Sized + ToStatement;
+
+            fn query_raw<T, P, I>(&mut self, statement: &T, params: I) -> Result<RowIter<'_>, Error>
+            where
+                T: ?Sized + ToStatement,
+                P: BorrowToSql,
+                I: IntoIterator<Item = P>,
+                I::IntoIter: ExactSizeIterator;
+        }
+
+        impl GenericClient for Transaction<'_> {
+            fn prepare(&mut self, query: &str) -> Result<Statement, Error> {
+                Transaction::prepare(self, query)
+            }
+
+            fn execute<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<u64, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Transaction::execute(self, query, params)
+            }
+
+            fn query_one<T>(&mut self, statement: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Row, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Transaction::query_one(self, statement, params)
+            }
+
+            fn query_opt<T>(
+                &mut self,
+                statement: &T,
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Option<Row>, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Transaction::query_opt(self, statement, params)
+            }
+
+            fn query<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Vec<Row>, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Transaction::query(self, query, params)
+            }
+
+            fn query_raw<T, P, I>(&mut self, statement: &T, params: I) -> Result<RowIter<'_>, Error>
+            where
+                T: ?Sized + ToStatement,
+                P: BorrowToSql,
+                I: IntoIterator<Item = P>,
+                I::IntoIter: ExactSizeIterator,
+            {
+                Transaction::query_raw(self, statement, params)
+            }
+        }
+
+        impl GenericClient for Client {
+            fn prepare(&mut self, query: &str) -> Result<Statement, Error> {
+                Client::prepare(self, query)
+            }
+
+            fn execute<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<u64, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Client::execute(self, query, params)
+            }
+
+            fn query_one<T>(&mut self, statement: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Row, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Client::query_one(self, statement, params)
+            }
+
+            fn query_opt<T>(
+                &mut self,
+                statement: &T,
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Option<Row>, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Client::query_opt(self, statement, params)
+            }
+
+            fn query<T>(&mut self, query: &T, params: &[&(dyn ToSql + Sync)]) -> Result<Vec<Row>, Error>
+            where
+                T: ?Sized + ToStatement,
+            {
+                Client::query(self, query, params)
+            }
+
+            fn query_raw<T, P, I>(&mut self, statement: &T, params: I) -> Result<RowIter<'_>, Error>
+            where
+                T: ?Sized + ToStatement,
+                P: BorrowToSql,
+                I: IntoIterator<Item = P>,
+                I::IntoIter: ExactSizeIterator,
+            {
+                Client::query_raw(self, statement, params)
             }
         }
     }
@@ -571,7 +772,8 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
     quote! {
         use std::future::Future;
         use tokio_postgres::{
-            types::BorrowToSql, Client, Error, RowStream, Statement, ToStatement, Transaction,
+            types::{BorrowToSql, ToSql},
+            Client, Error, Row, RowStream, Statement, ToStatement, Transaction,
         };
 
         /// Abstraction over multiple types of asynchronous clients.
@@ -580,35 +782,43 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
         /// In addition, when the `deadpool` feature is enabled (default), this trait also
         /// abstracts over deadpool clients and transactions
         pub trait GenericClient: Send + Sync {
+            fn stmt_cache() -> bool {
+                false
+            }
+
             fn prepare(&self, query: &str) -> impl Future<Output = Result<Statement, Error>> + Send;
+
             fn execute<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+                params: &[&(dyn ToSql + Sync)],
             ) -> impl Future<Output = Result<u64, Error>> + Send
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
+                T: ?Sized + ToStatement + Sync + Send;
+
             fn query_one<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> impl Future<Output = Result<tokio_postgres::Row, Error>> + Send
+                params: &[&(dyn ToSql + Sync)],
+            ) -> impl Future<Output = Result<Row, Error>> + Send
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
+                T: ?Sized + ToStatement + Sync + Send;
+
             fn query_opt<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> impl Future<Output = Result<Option<tokio_postgres::Row>, Error>> + Send
+                params: &[&(dyn ToSql + Sync)],
+            ) -> impl Future<Output = Result<Option<Row>, Error>> + Send
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
+                T: ?Sized + ToStatement + Sync + Send;
+
             fn query<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> impl Future<Output = Result<Vec<tokio_postgres::Row>, Error>> + Send
+                params: &[&(dyn ToSql + Sync)],
+            ) -> impl Future<Output = Result<Vec<Row>, Error>> + Send
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send;
+                T: ?Sized + ToStatement + Sync + Send;
 
             fn query_raw<T, I>(
                 &self,
@@ -630,10 +840,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn execute<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+                params: &[&(dyn ToSql + Sync)],
             ) -> Result<u64, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Transaction::execute(self, query, params).await
             }
@@ -641,10 +851,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query_one<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<tokio_postgres::Row, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Row, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Transaction::query_one(self, statement, params).await
             }
@@ -652,10 +862,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query_opt<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Option<tokio_postgres::Row>, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Option<Row>, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Transaction::query_opt(self, statement, params).await
             }
@@ -663,10 +873,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Vec<tokio_postgres::Row>, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Vec<Row>, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Transaction::query(self, query, params).await
             }
@@ -690,10 +900,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn execute<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
+                params: &[&(dyn ToSql + Sync)],
             ) -> Result<u64, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Client::execute(self, query, params).await
             }
@@ -701,10 +911,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query_one<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<tokio_postgres::Row, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Row, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Client::query_one(self, statement, params).await
             }
@@ -712,10 +922,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query_opt<T>(
                 &self,
                 statement: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Option<tokio_postgres::Row>, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Option<Row>, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Client::query_opt(self, statement, params).await
             }
@@ -723,10 +933,10 @@ pub fn async_generic_client() -> proc_macro2::TokenStream {
             async fn query<T>(
                 &self,
                 query: &T,
-                params: &[&(dyn tokio_postgres::types::ToSql + Sync)],
-            ) -> Result<Vec<tokio_postgres::Row>, Error>
+                params: &[&(dyn ToSql + Sync)],
+            ) -> Result<Vec<Row>, Error>
             where
-                T: ?Sized + tokio_postgres::ToStatement + Sync + Send,
+                T: ?Sized + ToStatement + Sync + Send,
             {
                 Client::query(self, query, params).await
             }
@@ -757,6 +967,10 @@ pub fn async_deadpool() -> proc_macro2::TokenStream {
         use super::generic_client::GenericClient;
 
         impl GenericClient for DeadpoolClient {
+            fn stmt_cache() -> bool {
+                true
+            }
+
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 ClientWrapper::prepare_cached(self, query).await
             }
@@ -817,6 +1031,10 @@ pub fn async_deadpool() -> proc_macro2::TokenStream {
         }
 
         impl GenericClient for DeadpoolTransaction<'_> {
+            fn stmt_cache() -> bool {
+                false
+            }
+
             async fn prepare(&self, query: &str) -> Result<Statement, Error> {
                 DeadpoolTransaction::prepare_cached(self, query).await
             }

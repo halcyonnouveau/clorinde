@@ -20,7 +20,9 @@ owo-colors = "4.2.1"
 clap = { version = "4.5.40", features = ["derive"] }
 
 # Postgres interaction
-postgres = "0.19.9"
+tokio-postgres = "0.7.12"
+tokio = { version = "1.42.0", features = ["rt", "rt-multi-thread", "macros"] }
+futures = "0.3"
 
 # serde
 ## Test fixtures ser/de

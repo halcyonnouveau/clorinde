@@ -19,7 +19,7 @@ pub mod container;
 pub use cargo_toml;
 use std::path::Path;
 
-use postgres::Client;
+use tokio_postgres::Client;
 
 use config::Config;
 use parser::parse_query_module;
@@ -36,7 +36,7 @@ pub use load_schema::load_schema;
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`,
 /// using a live database managed by you. Code generation settings are
 /// set using the `config` parameter.
-pub fn gen_live(client: &mut Client, config: Config) -> Result<(), Error> {
+pub fn gen_live(client: &Client, config: Config) -> Result<(), Error> {
     // Read
     let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
@@ -73,9 +73,9 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
         config.container_wait,
     )?;
 
-    let mut client = conn::clorinde_conn()?;
-    load_schema(&mut client, schema_files)?;
-    let prepared_modules = prepare(&mut client, modules, &config)?;
+    let client = conn::clorinde_conn()?;
+    load_schema(&client, schema_files)?;
+    let prepared_modules = prepare(&client, modules, &config)?;
     let generated = codegen::gen(prepared_modules, &config);
     container::cleanup(config.podman)?;
 
@@ -105,31 +105,30 @@ pub fn gen_fresh<P: AsRef<Path>>(
         .map(parse_query_module)
         .collect::<Result<_, parser::error::Error>>()?;
 
-    let mut server_client = conn::from_url(url)?;
+    let server_client = conn::from_url(url)?;
 
-    let create_db_query = format!("CREATE DATABASE \"{}\"", db_name);
-    server_client
-        .execute(&create_db_query, &[])
+    let create_db_query = format!("CREATE DATABASE \"{db_name}\"");
+    futures::executor::block_on(server_client.execute(&create_db_query, &[]))
         .map_err(conn::error::Error)?;
 
     let db_url = if url.contains('?') {
-        format!("{}&dbname={}", url, db_name)
+        format!("{url}&dbname={db_name}")
     } else if url.ends_with('/') {
-        format!("{}{}?", url, db_name)
+        format!("{url}{db_name}?")
     } else {
-        format!("{}/{}?", url, db_name)
+        format!("{url}/{db_name}?")
     };
 
     let generation_result = (|| -> Result<(), Error> {
-        let mut db_client = conn::from_url(&db_url)?;
+        let db_client = conn::from_url(&db_url)?;
 
         if let Some(search_path) = search_path {
-            conn::set_search_path(&mut db_client, search_path)?;
+            conn::set_search_path(&db_client, search_path)?;
         }
 
-        load_schema(&mut db_client, schema_files)?;
+        load_schema(&db_client, schema_files)?;
 
-        let prepared_modules = prepare(&mut db_client, modules, &config)?;
+        let prepared_modules = prepare(&db_client, modules, &config)?;
         let generated = codegen::gen(prepared_modules, &config);
 
         generated.persist(config.destination, config.static_files)?;
@@ -138,12 +137,9 @@ pub fn gen_fresh<P: AsRef<Path>>(
     })();
 
     if !keep_db {
-        let drop_db_query = format!("DROP DATABASE \"{}\"", db_name);
-        if let Err(e) = server_client.execute(&drop_db_query, &[]) {
-            eprintln!(
-                "Warning: Failed to drop temporary database '{}': {}",
-                db_name, e
-            );
+        let drop_db_query = format!("DROP DATABASE \"{db_name}\"");
+        if let Err(e) = futures::executor::block_on(server_client.execute(&drop_db_query, &[])) {
+            eprintln!("Warning: Failed to drop temporary database '{db_name}': {e}");
         }
     }
 

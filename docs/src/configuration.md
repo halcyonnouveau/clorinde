@@ -110,13 +110,10 @@ derive-traits = ["Default"]
 fontaine_region = ["serde::Deserialize"]
 ```
 
-This configuration will add the `Clone` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
+This configuration will add the `Default` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
 
 ~~~admonish note
-PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation.
-This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region`
-in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `derive-traits-mapping`,
-you should use the lowercase form unless the type was explicitly created with quotes.
+PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `derive-traits-mapping`, you should use the lowercase form unless the type was explicitly created with quotes.
 ~~~
 
 You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
@@ -124,15 +121,54 @@ You can combine global and type-specific derive traits - the traits will be merg
 ## Static files
 The `static` field allows you to copy or link files into your generated crate directory. This is useful for including files like licenses, build configurations, or other assets that should persist across code generation.
 
+### Simple file copying
 ```toml
-# Simple copy of files
+# Simple copy of files to the root of the generated directory
 static = ["LICENSE.txt", "build.rs"]
+```
 
-# Advanced configuration with hard linking
+### Advanced configuration
+```toml
 static = [
+    # Simple copy (copies to root with original filename)
+    "README.md",
+    
+    # Rename file during copy
+    { path = "config.template.toml", destination = "config.toml" },
+    
+    # Place file in subdirectory
+    { path = "assets/logo.png", destination = "static/images/logo.png" },
+    
+    # Hard link instead of copy (saves disk space for large files)
     { path = "large_asset.bin", hard-link = true },
-    "README.md"  # Mixed with simple paths
+    
+    # Combine renaming with hard linking
+    { path = "data.json", destination = "resources/app_data.json", hard-link = true }
 ]
 ```
 
-When `hard-link = true` is specified, Clorinde will create a hard link instead of copying the file. This is particularly useful for large files to save disk space.
+### Configuration options
+- **`path`**: Source file path (required)
+- **`destination`**: Target path within the generated directory (optional)
+  - If not specified, uses the original filename in the root directory
+  - Can include subdirectories which will be created automatically
+- **`hard-link`**: Create a hard link instead of copying (optional, default: `false`)
+  - Useful for large files to save disk space
+  - Both source and destination must be on the same filesystem
+
+### Examples
+```toml
+static = [
+    # Copy LICENSE to root as-is
+    "LICENSE",
+    
+    # Rename during copy
+    { path = "template.env", destination = ".env.example" },
+    
+    # Organize into subdirectories
+    { path = "docs/api.md", destination = "documentation/api.md" },
+    { path = "scripts/build.sh", destination = "tools/build.sh" }
+]
+```
+
+When using the detailed configuration format, Clorinde will automatically create any necessary parent directories for the destination path.

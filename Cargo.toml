@@ -1,6 +1,6 @@
 [package]
 name = "clorinde"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.4"
 edition = "2021"
 license = "MIT/Apache-2.0"
 description = "Generate type-checked Rust from your PostgreSQL queries."
@@ -20,8 +20,12 @@ syn = { version = "2.0", features = ["full"] }
 proc-macro2 = "1.0"
 
 # Postgres interaction
-postgres = "0.19"
+tokio-postgres = "0.7"
 postgres-types = "0.2"
+
+# Async
+tokio = { version = "1.45", features = ["rt-multi-thread"] }
+futures = "0.3"
 
 # Error handling and reporting
 thiserror = "2.0"
@@ -53,11 +57,7 @@ cargo_toml = "0.22"
 [dev-dependencies]
 # Benchmarking
 criterion = { version = "0.6.0", features = ["html_reports"] }
-tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
-futures = "0.3.31"
 postgres = "0.19.9"
-tokio-postgres = "0.7.12"
-postgres-types = "0.2.8"
 diesel = { version = "2.2.10", features = ["postgres"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres"] }
 tempfile = "3.20.0"
@@ -76,6 +76,7 @@ path = "benches/codegen.rs"
 [workspace]
 resolver = "2"
 members = ["examples/*", "tests/*"]
+exclude = ["examples/basic_async_wasm"]
 
 [profile.release]
 codegen-units = 1

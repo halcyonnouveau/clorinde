@@ -10,7 +10,7 @@ cargo bench
 ```
 
 ## Results
-These results are from benchmarks run locally on `2025-02-15` and may not reflect production environment performance. See the full Criterion report [here](https://beanpuppy.github.io/clorinde-benches/2025-02-15/report).
+These results are from benchmarks run locally on `2025-06-20` and may not reflect production environment performance. See the full Criterion report [here](https://beanpuppy.github.io/clorinde-benches/2025-06-20/report).
 
 ### System
 - CPU: AMD Ryzen 7 9800X3D
@@ -23,29 +23,29 @@ These results are from benchmarks run locally on `2025-02-15` and may not reflec
 - Libraries:
   - postgres: 0.19.9
   - tokio-postgres: 0.7.12
-  - diesel: 2.2.6
-  - sqlx: 0.8.3
-  - clorinde: 0.12.0
+  - diesel: 2.2.10
+  - sqlx: 0.8.6
+  - clorinde: 1.0.0
 
 ### `bench_trivial_query`
 Measures performance of `SELECT * FROM users`.
 
-![Trivial Query Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-02-15/bench_trivial_query/report/lines.svg)
+![Trivial Query Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-06-20/bench_trivial_query/report/lines.svg)
 
 ### `bench_complex_query`
 Measures performance of a LEFT JOIN between users and posts.
 
-![Medium Complex Query Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-02-15/bench_medium_complex_query/report/lines.svg)
+![Medium Complex Query Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-06-20/bench_medium_complex_query/report/lines.svg)
 
 ### `bench_loading_associations_sequentially`
 Measures performance of loading users with their associated posts and comments.
 
-![Loading Associations Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-02-15/bench_loading_associations_sequentially/report/violin.svg)
+![Loading Associations Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-06-20/bench_loading_associations_sequentially/report/violin.svg)
 
 ### `bench_insert`
 Measures performance of inserting multiple rows (1, 100, 1000 rows).
 
-![Batch Insert Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-02-15/bench_insert/report/lines.svg)
+![Batch Insert Benchmark](https://raw.githubusercontent.com/beanpuppy/clorinde-benches/refs/heads/main/2025-06-20/bench_insert/report/lines.svg)
 
 ## Disclaimer
 These benchmarks are meant to provide a rough comparison of different approaches in a local development environment. Real-world performance can vary significantly based on many factors including network latency, concurrent access patterns, and specific use cases.

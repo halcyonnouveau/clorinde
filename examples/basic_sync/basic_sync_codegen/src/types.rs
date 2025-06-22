@@ -2,27 +2,27 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub enum SpongeBobCharacter {
+pub enum SpongebobCharacter {
     Bob,
     Patrick,
     Squidward,
 }
-impl<'a> postgres_types::ToSql for SpongeBobCharacter {
+impl<'a> postgres_types::ToSql for SpongebobCharacter {
     fn to_sql(
         &self,
         ty: &postgres_types::Type,
         buf: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
         let s = match *self {
-            SpongeBobCharacter::Bob => "Bob",
-            SpongeBobCharacter::Patrick => "Patrick",
-            SpongeBobCharacter::Squidward => "Squidward",
+            SpongebobCharacter::Bob => "Bob",
+            SpongebobCharacter::Patrick => "Patrick",
+            SpongebobCharacter::Squidward => "Squidward",
         };
         buf.extend_from_slice(s.as_bytes());
         std::result::Result::Ok(postgres_types::IsNull::No)
     }
     fn accepts(ty: &postgres_types::Type) -> bool {
-        if ty.name() != "sponge_bob_character" {
+        if ty.name() != "spongebob_character" {
             return false;
         }
         match *ty.kind() {
@@ -48,20 +48,20 @@ impl<'a> postgres_types::ToSql for SpongeBobCharacter {
         postgres_types::__to_sql_checked(self, ty, out)
     }
 }
-impl<'a> postgres_types::FromSql<'a> for SpongeBobCharacter {
+impl<'a> postgres_types::FromSql<'a> for SpongebobCharacter {
     fn from_sql(
         ty: &postgres_types::Type,
         buf: &'a [u8],
-    ) -> Result<SpongeBobCharacter, Box<dyn std::error::Error + Sync + Send>> {
+    ) -> Result<SpongebobCharacter, Box<dyn std::error::Error + Sync + Send>> {
         match std::str::from_utf8(buf)? {
-            "Bob" => Ok(SpongeBobCharacter::Bob),
-            "Patrick" => Ok(SpongeBobCharacter::Patrick),
-            "Squidward" => Ok(SpongeBobCharacter::Squidward),
+            "Bob" => Ok(SpongebobCharacter::Bob),
+            "Patrick" => Ok(SpongebobCharacter::Patrick),
+            "Squidward" => Ok(SpongebobCharacter::Squidward),
             s => Result::Err(Into::into(format!("invalid variant `{}`", s))),
         }
     }
     fn accepts(ty: &postgres_types::Type) -> bool {
-        if ty.name() != "sponge_bob_character" {
+        if ty.name() != "spongebob_character" {
             return false;
         }
         match *ty.kind() {
@@ -81,31 +81,31 @@ impl<'a> postgres_types::FromSql<'a> for SpongeBobCharacter {
     }
 }
 #[derive(Debug, postgres_types::FromSql, Clone, PartialEq)]
-#[postgres(name = "voiceactor")]
-pub struct Voiceactor {
+#[postgres(name = "voice_actor")]
+pub struct VoiceActor {
     #[postgres(name = "name")]
     pub name: String,
     #[postgres(name = "age")]
     pub age: i32,
 }
 #[derive(Debug)]
-pub struct VoiceactorBorrowed<'a> {
+pub struct VoiceActorBorrowed<'a> {
     pub name: &'a str,
     pub age: i32,
 }
-impl<'a> From<VoiceactorBorrowed<'a>> for Voiceactor {
-    fn from(VoiceactorBorrowed { name, age }: VoiceactorBorrowed<'a>) -> Self {
+impl<'a> From<VoiceActorBorrowed<'a>> for VoiceActor {
+    fn from(VoiceActorBorrowed { name, age }: VoiceActorBorrowed<'a>) -> Self {
         Self {
             name: name.into(),
             age,
         }
     }
 }
-impl<'a> postgres_types::FromSql<'a> for VoiceactorBorrowed<'a> {
+impl<'a> postgres_types::FromSql<'a> for VoiceActorBorrowed<'a> {
     fn from_sql(
         ty: &postgres_types::Type,
         out: &'a [u8],
-    ) -> Result<VoiceactorBorrowed<'a>, Box<dyn std::error::Error + Sync + Send>> {
+    ) -> Result<VoiceActorBorrowed<'a>, Box<dyn std::error::Error + Sync + Send>> {
         let fields = match *ty.kind() {
             postgres_types::Kind::Composite(ref fields) => fields,
             _ => unreachable!(),
@@ -123,19 +123,19 @@ impl<'a> postgres_types::FromSql<'a> for VoiceactorBorrowed<'a> {
         let name = postgres_types::private::read_value(fields[0].type_(), &mut out)?;
         let _oid = postgres_types::private::read_be_i32(&mut out)?;
         let age = postgres_types::private::read_value(fields[1].type_(), &mut out)?;
-        Ok(VoiceactorBorrowed { name, age })
+        Ok(VoiceActorBorrowed { name, age })
     }
     fn accepts(ty: &postgres_types::Type) -> bool {
-        ty.name() == "voiceactor" && ty.schema() == "public"
+        ty.name() == "voice_actor" && ty.schema() == "public"
     }
 }
-impl<'a> postgres_types::ToSql for VoiceactorBorrowed<'a> {
+impl<'a> postgres_types::ToSql for VoiceActorBorrowed<'a> {
     fn to_sql(
         &self,
         ty: &postgres_types::Type,
         out: &mut postgres_types::private::BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn std::error::Error + Sync + Send>> {
-        let VoiceactorBorrowed { name, age } = self;
+        let VoiceActorBorrowed { name, age } = self;
         let fields = match *ty.kind() {
             postgres_types::Kind::Composite(ref fields) => fields,
             _ => unreachable!(),
@@ -165,7 +165,7 @@ impl<'a> postgres_types::ToSql for VoiceactorBorrowed<'a> {
         Ok(postgres_types::IsNull::No)
     }
     fn accepts(ty: &postgres_types::Type) -> bool {
-        if ty.name() != "voiceactor" {
+        if ty.name() != "voice_actor" {
             return false;
         }
         match *ty.kind() {

@@ -1,11 +1,15 @@
---: Book() : Default
+--: Character(release_date?)
 
---! insert_book
-INSERT INTO Book (title)
-  VALUES (:title);
-
---! books : Book
+--! characters : Character
 SELECT
-    Title
+    *
 FROM
-    Book;
+    characters;
+
+--! select_character_by_element
+SELECT
+    name, element, quality
+FROM
+   characters
+WHERE
+    element = :element;

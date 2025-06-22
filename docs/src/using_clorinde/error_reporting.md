@@ -17,4 +17,4 @@ This helps you catch any malformed query annotation, and will offer helpful hint
 Clorinde's error reporting is quite extensive and covers a lot more than the simple case above. You can take a look at our internal `tests/integration` crate to see our whole error reporting suite.
 
 ## Error type
-Clorinde's library API provides a fully fleshed-out error type that you can use if you need more complex error-handling behavior.
+Clorinde's library API provides a fully fleshed-out error type that you can use if you need more complex error-handling behaviour.
