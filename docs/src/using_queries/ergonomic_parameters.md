@@ -13,7 +13,7 @@ Here's the list of umbrella traits and the concrete types they abstract over.
 The pseudo trait bounds given here are very informal, but they should be easy enough to understand.
 
 If you need to see exactly what the trait bounds are, these traits are generated from the `core_type_traits` function
-of [codegen/client.rs](https://github.com/halcyonnouveau/clorinde/blob/main/clorinde/src/codegen/client.rs) in Clorinde.
+of [codegen/client.rs](https://github.com/halcyonnouveau/clorinde/blob/main/src/codegen/client.rs) in Clorinde.
 ```
 
 ## `StringSql`

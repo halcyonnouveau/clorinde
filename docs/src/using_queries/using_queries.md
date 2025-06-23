@@ -6,7 +6,7 @@ Let's say you have generated your Rust crate into `./clorinde` and added it to y
 use clorinde::queries::authors;
 ```
 
-# Building the query object
+## Building the query object
 Building a query object starts with either the query function:
 ```rust
 authors().bind(&client, Some("Greece"));
@@ -34,7 +34,46 @@ Note that in order to use the `params` method, you need to import the `clorinde:
 Queries that don't have a return value (simple insertions, for example) don't generate a query object. Instead, when calling `bind` or `params` they execute and return the number of rows affected.
 ```
 
-# Row mapping (optional)
+### Query preparation
+
+Clorinde provides two ways to execute queries, optimised for different use cases:
+
+#### Default behaviour with `bind()`
+The standard way to execute a query is to call `bind()` directly:
+
+```rust
+authors().bind(&client, Some("Greece")).all().await?;
+```
+
+This approach intelligently handles statement preparation:
+- If your client supports statement caching (like `deadpool-postgres`), it will automatically cache-prepare the statement
+- If not, it executes without preparation to avoid unnecessary latency for one-off queries
+
+This is the recommended approach for most applications, especially when using connection pools such as `deadpool-postgres`.
+
+#### Explicit preparation with `prepare()`
+For queries that will be executed multiple times with different parameters, you can explicitly prepare the statement:
+
+```rust
+let prepared = authors().prepare(&client).await?;
+
+// Reuse the prepared statement multiple times
+for country in ["Greece", "Italy", "Spain"] {
+    let results = prepared.bind(&client, Some(country)).all().await?;
+    // Process results...
+}
+```
+
+This provides the best performance when:
+- You're executing the same query repeatedly in a loop
+- You're not using a connection pool with built-in statement caching
+- You want to ensure the statement is prepared once and reused
+
+```admonish tip
+When using connection pools like `deadpool-postgres`, the default `bind()` behavior is usually sufficient as the pool handles statement caching automatically. Only use explicit `prepare()` when you need to guarantee statement reuse within a specific scope.
+```
+
+## Row mapping (optional)
 Query objects have a `map` method that allows them to transform the query's returned rows without requiring intermediate allocation. The following example is pretty contrived but illustrates how you can use this feature.
 ```rust
 enum Country {
@@ -76,7 +115,7 @@ authors()
 ```
 The result of a map is another query object.
 
-# Getting rows out of your queries
+## Getting rows out of your queries
 Once the query object has been built, use one of the following methods to select the expected number of rows:
 * `opt`: one or zero rows (error otherwise).
 * `one`: exactly one row (error otherwise).
@@ -89,8 +128,4 @@ author_by_id().bind(&client, &0).opt().await?;
 author_by_id().bind(&client, &0).one().await?; // Error if this author id doesn't exist
 authors().bind(&client).all().await?;
 authors().bind(&client).iter().await?.collect::<Vec<_>>(); // Acts the same as the previous line
-```
-
-```admonish note
-If your queries are sync, you don't need to `.await` them.
 ```
