@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.5](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.4...clorinde-v1.0.0-beta.5) - 2025-06-23
+
+### Added
+
+- [**breaking**] add safer/better use of prepare and immutable bind ([#143](https://github.com/halcyonnouveau/clorinde/pull/143))
+- Allow configuring the output location of static files ([#141](https://github.com/halcyonnouveau/clorinde/pull/141))
+
+### Fixed
+
+- running without config file
+
 ## [1.0.0-beta.4](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.3...clorinde-v1.0.0-beta.4) - 2025-06-20
 
 ### Added
