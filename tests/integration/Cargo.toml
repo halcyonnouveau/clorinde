@@ -14,7 +14,7 @@ clorinde = { path = "../.." }
 tempfile = "3.20.0"
 
 # Colored output
-owo-colors = "4.2.1"
+owo-colors = "4.2.2"
 
 # CLI handling
 clap = { version = "4.5.40", features = ["derive"] }
