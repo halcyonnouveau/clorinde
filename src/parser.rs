@@ -110,7 +110,7 @@ fn space<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Simple<'src, cha
 fn blank<'src>() -> impl Parser<'src, &'src str, (), extra::Err<Simple<'src, char>>> {
     // We want to escape valid SQL comment beginning with -- while not escaping our syntax --: or --!
     let comment = just("--")
-        .then(none_of(":!").rewind())
+        .then(none_of(":!#").rewind())
         .then(none_of('\n').repeated());
 
     any::<&'src str, _>()
@@ -209,6 +209,7 @@ pub struct TypeAnnotation {
     pub name: Span<String>,
     pub fields: Vec<NullableIdent>,
     pub traits: Vec<String>,
+    pub attributes: Vec<String>,
 }
 
 impl TypeAnnotation {
@@ -236,6 +237,17 @@ impl TypeAnnotation {
             })
     }
 
+    fn parse_attributes<'src>()
+    -> impl Parser<'src, &'src str, Vec<String>, extra::Err<Simple<'src, char>>> {
+        just("--#")
+            .ignore_then(space())
+            .ignore_then(none_of('\n').repeated().collect::<String>())
+            .map(|s| s.trim().to_string())
+            .then_ignore(ln())
+            .repeated()
+            .collect()
+    }
+
     fn parser<'src>() -> impl Parser<'src, &'src str, Self, extra::Err<Simple<'src, char>>> {
         let trait_parser = Self::path_ident()
             .map(|s: Span<String>| s.value)
@@ -255,10 +267,14 @@ impl TypeAnnotation {
                     .or_not()
                     .map(|opt| opt.unwrap_or_default()),
             )
-            .map(|((name, fields), traits)| Self {
+            .then_ignore(space())
+            .then_ignore(ln())
+            .then(Self::parse_attributes())
+            .map(|(((name, fields), traits), attributes)| Self {
                 name,
                 fields,
                 traits,
+                attributes,
             })
     }
 }
@@ -272,6 +288,7 @@ pub(crate) struct Query {
     pub(crate) sql_span: SourceSpan,
     pub(crate) sql_str: String,
     pub(crate) bind_params: Vec<Span<String>>,
+    pub(crate) attributes: Vec<String>,
 }
 
 impl Query {
@@ -590,10 +607,14 @@ impl Query {
         Self::parse_query_annotation()
             .then_ignore(space())
             .then_ignore(ln())
+            .then(TypeAnnotation::parse_attributes())
             .then(Self::parse_comments())
             .then(Self::parse_sql_query())
             .map(
-                |(((name, param, row), comments), (sql_str, sql_span, bind_params))| Self {
+                |(
+                    (((name, param, row), attributes), comments),
+                    (sql_str, sql_span, bind_params),
+                )| Self {
                     name,
                     param,
                     comments,
@@ -601,6 +622,7 @@ impl Query {
                     sql_span,
                     sql_str,
                     bind_params,
+                    attributes,
                 },
             )
     }
@@ -631,10 +653,9 @@ impl QueryDataStruct {
         registered_structs: &'a [TypeAnnotation],
         query_name: &Span<String>,
         name_suffix: Option<&str>,
-    ) -> (&'a [NullableIdent], Vec<String>, Span<String>) {
+    ) -> (&'a [NullableIdent], Vec<String>, Span<String>, Vec<String>) {
         if let Some(named) = &self.name {
             let registered = registered_structs.iter().find(|it| it.name == *named);
-
             (
                 self.idents.as_ref().map_or_else(
                     || registered.map(|it| it.fields.as_slice()).unwrap_or(&[]),
@@ -642,6 +663,9 @@ impl QueryDataStruct {
                 ),
                 registered.map(|it| it.traits.clone()).unwrap_or_default(),
                 named.clone(),
+                registered
+                    .map(|it| it.attributes.clone())
+                    .unwrap_or_default(),
             )
         } else {
             (
@@ -654,6 +678,7 @@ impl QueryDataStruct {
                         name_suffix.unwrap_or_default()
                     )
                 }),
+                vec![],
             )
         }
     }

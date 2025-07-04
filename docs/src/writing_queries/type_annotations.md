@@ -31,6 +31,34 @@ You can specify additional `#[derive]` traits for the generated struct by declar
 SELECT name, age FROM authors;
 ```
 
+## Custom attributes
+You can add custom attributes to generated structs using the `--#` syntax. This allows you to add documentation, conditional compilation directives, or any other Rust attributes.
+
+```sql
+--: Author(age?) : Default, serde::Deserialize
+--# doc = "Represents an author in the system"
+--# cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))
+
+--! authors : Author
+SELECT name, age FROM authors;
+```
+
+This will generate:
+
+```rust
+#[derive(Default, serde::Deserialize, Debug, Clone, PartialEq)]
+#[doc = "Represents an author in the system"]
+#[cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))]
+pub struct Author {
+    pub name: String,
+    pub age: Option<i32>,
+}
+```
+
+```admonish note
+Custom attributes are declared with this token: `--#` and must come after the type annotation.
+```
+
 ## Inline types
 You can also define type inline if you don't plan on reusing them across multiple queries:
 

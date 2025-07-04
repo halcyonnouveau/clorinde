@@ -69,3 +69,29 @@ pub fn authors_from_country() -> AuthorsFromCountryStmt {
     // ...
 }
 ```
+
+## Custom attributes
+You can add custom attributes to generated query functions using the `--#` syntax. This allows you to add deprecation warnings, conditional compilation, or any other Rust attributes.
+
+```sql
+--! authors_from_country
+--# deprecated = "Use authors_from_country_v2 instead"
+--# allow(dead_code)
+SELECT id, name, age
+FROM authors
+WHERE authors.nationality = :country;
+```
+
+This will generate:
+
+```rust
+#[deprecated = "Use authors_from_country_v2 instead"]
+#[allow(dead_code)]
+pub fn authors_from_country() -> AuthorsFromCountryStmt {
+    // ...
+}
+```
+
+```admonish note
+Custom attributes are declared with this token: `--#` and must come after the query annotation.
+```
