@@ -2,6 +2,12 @@
 CREATE EXTENSION citext;
 CREATE EXTENSION ltree;
 
+CREATE TABLE book_authors (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    bio TEXT
+);
+
 -- Copy
 
 CREATE DOMAIN clone_domain AS TEXT CHECK (value ~ '^\w{5}$');

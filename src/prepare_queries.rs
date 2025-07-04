@@ -29,6 +29,7 @@ pub(crate) struct PreparedQuery {
     pub(crate) comments: Vec<String>,
     pub(crate) row: Option<(usize, Vec<usize>)>,
     pub(crate) sql: String,
+    pub(crate) attributes: Vec<String>,
 }
 
 /// A normalized ident replacing all non-alphanumeric characters with an underscore (`_`)
@@ -127,6 +128,7 @@ pub(crate) struct PreparedItem {
     pub(crate) is_copy: bool,
     pub(crate) is_named: bool,
     pub(crate) is_ref: bool,
+    pub(crate) attributes: Vec<String>,
 }
 
 impl PreparedItem {
@@ -135,6 +137,7 @@ impl PreparedItem {
         fields: Vec<PreparedField>,
         traits: Vec<String>,
         is_implicit: bool,
+        attributes: Vec<String>,
     ) -> Self {
         Self {
             name,
@@ -143,6 +146,7 @@ impl PreparedItem {
             is_named: !is_implicit || fields.len() > 1,
             fields,
             traits,
+            attributes,
         }
     }
 
@@ -199,6 +203,7 @@ impl PreparedModule {
         fields: Vec<PreparedField>,
         traits: Vec<String>,
         is_implicit: bool,
+        attributes: Vec<String>,
     ) -> Result<(usize, Vec<usize>), Error> {
         assert!(!fields.is_empty());
         match map.entry(name.clone()) {
@@ -224,8 +229,9 @@ impl PreparedModule {
                     fields.clone(),
                     traits.clone(),
                     is_implicit,
+                    attributes.clone(),
                 ));
-                Self::add(info, map, name, fields, traits, is_implicit)
+                Self::add(info, map, name, fields, traits, is_implicit, attributes)
             }
         }
     }
@@ -237,13 +243,22 @@ impl PreparedModule {
         fields: Vec<PreparedField>,
         traits: Vec<String>,
         is_implicit: bool,
+        attributes: Vec<String>,
     ) -> Result<(usize, Vec<usize>), Error> {
         let nom = if fields.len() == 1 && is_implicit {
             name.map(|_| fields[0].unwrapped_name())
         } else {
             name
         };
-        Self::add(&self.info, &mut self.rows, nom, fields, traits, is_implicit)
+        Self::add(
+            &self.info,
+            &mut self.rows,
+            nom,
+            fields,
+            traits,
+            is_implicit,
+            attributes,
+        )
     }
 
     #[allow(clippy::result_large_err)]
@@ -260,6 +275,7 @@ impl PreparedModule {
             fields,
             vec![],
             is_implicit,
+            vec![],
         )
     }
 
@@ -270,6 +286,7 @@ impl PreparedModule {
         param_idx: Option<(usize, Vec<usize>)>,
         row_idx: Option<(usize, Vec<usize>)>,
         sql: String,
+        attributes: Vec<String>,
     ) {
         self.queries.insert(
             name.clone(),
@@ -279,6 +296,7 @@ impl PreparedModule {
                 comments,
                 sql,
                 param: param_idx,
+                attributes,
             },
         );
     }
@@ -509,6 +527,7 @@ fn prepare_query(
         row,
         sql_str,
         sql_span,
+        attributes,
     }: Query,
     module_info: &ModuleInfo,
 ) -> Result<std::collections::HashMap<String, std::collections::HashMap<String, bool>>, Error> {
@@ -522,10 +541,11 @@ fn prepare_query(
         .as_ref()
         .map_err(|e| Error::new_db_err(e, module_info, &sql_span, &name))?;
 
-    let (nullable_params_fields, _, params_name) =
+    let (nullable_params_fields, _, params_name, _) =
         param.name_and_fields(types, &name, Some("Params"));
 
-    let (nullable_row_fields, traits, row_name) = row.name_and_fields(types, &name, None);
+    let (nullable_row_fields, traits, row_name, row_attributes) =
+        row.name_and_fields(types, &name, None);
 
     let params_fields = {
         let stmt_params = stmt.params();
@@ -633,7 +653,13 @@ fn prepare_query(
     let row_idx = if row_fields.is_empty() {
         None
     } else {
-        Some(module.add_row(row_name, row_fields, traits, row.is_implicit())?)
+        Some(module.add_row(
+            row_name,
+            row_fields,
+            traits,
+            row.is_implicit(),
+            row_attributes,
+        )?)
     };
 
     let param_idx = if params_fields.is_empty() {
@@ -642,7 +668,14 @@ fn prepare_query(
         Some(module.add_param(params_name, params_fields, param.is_implicit())?)
     };
 
-    module.add_query(name.clone(), comments, param_idx, row_idx, sql_str);
+    module.add_query(
+        name.clone(),
+        comments,
+        param_idx,
+        row_idx,
+        sql_str,
+        attributes,
+    );
 
     Ok(nested_specs)
 }

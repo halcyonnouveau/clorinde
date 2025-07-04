@@ -64,6 +64,7 @@ fn gen_row_structs(
         fields,
         traits,
         is_copy,
+        attributes,
         ..
     } = row;
 
@@ -118,8 +119,14 @@ fn gen_row_structs(
         })
         .collect::<Vec<_>>();
 
+    let custom_attrs = attributes
+        .iter()
+        .map(|attr| syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!()))
+        .collect::<Vec<_>>();
+
     let main_struct = quote! {
         #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr #(,#trait_attrs)*)]
+        #(#[#custom_attrs])*
         pub struct #name_ident {
             #(#fields_with_attrs,)*
         }
@@ -162,6 +169,7 @@ fn gen_row_structs(
             .collect::<Vec<_>>();
 
         quote! {
+            #(#[#custom_attrs])*
             pub struct #borrowed_name<'a> {
                 #(#borrowed_fields_with_attrs,)*
             }
@@ -309,6 +317,7 @@ fn gen_query_fn(
         comments,
         sql,
         param,
+        attributes,
     } = query;
 
     let stmt_ident = format_ident!("{}Stmt", ident.type_ident());
@@ -478,10 +487,16 @@ fn gen_query_fn(
         quote! { #[doc = #comment_with_space] }
     });
 
+    let custom_attrs = attributes
+        .iter()
+        .map(|attr| syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!()))
+        .collect::<Vec<_>>();
+
     let struct_tokens = quote! {
         pub struct #stmt_ident(&'static str, Option<#backend::Statement>);
 
         #(#doc_comments)*
+        #(#[#custom_attrs])*
         pub fn #name() -> #stmt_ident {
             #stmt_ident(#sql, None)
         }
