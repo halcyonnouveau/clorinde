@@ -1,11 +1,11 @@
 name: Deploy book to GitHub pages
 on:
-  push:
-    tags:
-      - 'clorinde-v[0-9]+.[0-9]+.[0-9]+$'  # Deploy docs only on stable version releases (excludes beta/rc/etc)
+  create:
+  workflow_dispatch:
 
 jobs:
   deploy:
+    if: ${{ startsWith(github.ref, 'refs/tags/clorinde-v') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write # To push a branch
