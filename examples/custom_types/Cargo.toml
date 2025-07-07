@@ -10,4 +10,4 @@ clorinde = { path = "db/custom_types_codegen", package = "custom_types_codegen" 
 # Custom types
 db_types = { path = "db/db_types" }
 # Async
-tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"] }
