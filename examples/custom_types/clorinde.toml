@@ -11,7 +11,7 @@ enum-variant-camel-case = true
 derive-traits = ["serde::Serialize", "Hash"]
 
 [types.type-traits-mapping]
-sponge_bob_character = ["serde::Deserialize"]
+quality = ["serde::Deserialize"]
 
 [types.mapping]
 "public.element" = "db_types::element::Element"

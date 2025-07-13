@@ -2,7 +2,5 @@
 name = "Codegen"
 base_path = "tests/codegen"
 destination = "codegen"
-sync = true
-async = true
-derive_ser = true
 run = true
+config = true
