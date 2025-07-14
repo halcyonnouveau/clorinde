@@ -51,14 +51,14 @@ rand = "0.9"
 
 # Config handling
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.8"
+toml = "0.9"
 cargo_toml = "0.22"
 
 [dev-dependencies]
 # Benchmarking
 criterion = { version = "0.6.0", features = ["html_reports"] }
 postgres = "0.19.9"
-diesel = { version = "2.2.10", features = ["postgres"] }
+diesel = { version = "2.2.12", features = ["postgres"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres"] }
 tempfile = "3.20.0"
 generated = { path = "benches/generated" }

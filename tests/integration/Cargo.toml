@@ -17,7 +17,7 @@ tempfile = "3.20.0"
 owo-colors = "4.2.2"
 
 # CLI handling
-clap = { version = "4.5.40", features = ["derive"] }
+clap = { version = "4.5.41", features = ["derive"] }
 
 # Postgres interaction
 tokio-postgres = "0.7.12"
@@ -28,4 +28,4 @@ futures = "0.3"
 ## Test fixtures ser/de
 serde = { version = "1.0.217", features = ["derive"] }
 ## Read/write fixture files
-toml = "0.8.23"
+toml = "0.9.2"
