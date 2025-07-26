@@ -4,7 +4,7 @@ This acts like a testing harness. It manages the database required for testing, 
 
 Our integration testing not only checks that Clorinde is able to generate the code, but it also tests that the right error messages are reported in case of user errors. It also runs the generated code to ensure its correctness.
 
-The test cases are auto-described using TOML fixtures. These files are deserialized when the integration tests are run and describe what should be generated, where it shoulld be generated, etc.
+The test cases are auto-described using TOML fixtures. These files are deserialized when the integration tests are run and describe what should be generated, where it should be generated, etc.
 
 # How to use
 
