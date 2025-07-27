@@ -320,7 +320,7 @@ impl ConfigBuilder {
     }
 
     /// Set package metadata for the generated `Cargo.toml`
-    pub fn package(mut self, package: cargo_toml::Package) -> Self {
+    pub fn package(mut self, package: cargo_toml::Package<toml::Value>) -> Self {
         self.config.manifest.package = Some(package);
         self
     }
