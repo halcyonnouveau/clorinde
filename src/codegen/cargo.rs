@@ -120,7 +120,7 @@ impl DependencyBuilder {
 }
 
 struct DependencyContext<'a> {
-    manifest: &'a mut cargo_toml::Manifest<toml::Value>,
+    manifest: &'a mut cargo_toml::Manifest,
     use_workspace: bool,
     workspace_deps: &'a HashSet<String>,
 }
@@ -156,7 +156,7 @@ impl DependencyContext<'_> {
 fn get_workspace_deps(manifest_path: &Path) -> HashSet<String> {
     let mut deps = HashSet::new();
     if let Ok(contents) = fs::read_to_string(manifest_path) {
-        if let Ok(manifest) = contents.parse::<toml::Value>() {
+        if let Ok(manifest) = contents.parse::<cargo_toml::Value>() {
             if let Some(workspace) = manifest
                 .get("workspace")
                 .and_then(|w| w.get("dependencies"))
