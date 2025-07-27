@@ -51,7 +51,7 @@ pub struct Config {
     /// Custom type settings
     pub types: Types,
     /// The Cargo.toml manifest configuration
-    pub manifest: cargo_toml::Manifest<toml::Value>,
+    pub manifest: cargo_toml::Manifest,
 }
 
 impl Config {
@@ -188,7 +188,7 @@ impl TypeMapping {
 }
 
 #[allow(deprecated)]
-fn default_manifest() -> cargo_toml::Manifest<toml::Value> {
+fn default_manifest() -> cargo_toml::Manifest {
     let mut package = cargo_toml::Package::new("clorinde", "0.0.0");
     package.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
     package.publish = cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false));
@@ -314,13 +314,13 @@ impl ConfigBuilder {
     }
 
     /// Set the entire Cargo.toml manifest
-    pub fn manifest(mut self, manifest: cargo_toml::Manifest<toml::Value>) -> Self {
+    pub fn manifest(mut self, manifest: cargo_toml::Manifest) -> Self {
         self.config.manifest = manifest;
         self
     }
 
     /// Set package metadata for the generated `Cargo.toml`
-    pub fn package(mut self, package: cargo_toml::Package<toml::Value>) -> Self {
+    pub fn package(mut self, package: cargo_toml::Package) -> Self {
         self.config.manifest.package = Some(package);
         self
     }
