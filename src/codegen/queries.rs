@@ -58,7 +58,17 @@ fn gen_row_structs(
     row: &PreparedItem,
     derive_traits: &[String],
     ctx: &GenCtx,
+    config: &crate::config::Config,
 ) -> proc_macro2::TokenStream {
+    // Import FieldMeta for use in generated code, if enabled
+    let field_meta_use = if config.generate_field_metadata {
+        quote!(
+            use crate::types::FieldMeta;
+        )
+    } else {
+        quote!()
+    };
+
     let PreparedItem {
         name,
         fields,
@@ -190,9 +200,34 @@ fn gen_row_structs(
         quote!()
     };
 
+    // Only generate field metadata if enabled in config
+    let field_metadata_fn = if config.generate_field_metadata {
+        let field_meta_items = fields.iter().map(|f| {
+            let name = f.ident.rs.as_str();
+            let ty = f.own_struct(ctx);
+            quote! {
+                FieldMeta { name: #name, data_type: #ty }
+            }
+        });
+        quote! {
+            impl #name_ident {
+                pub fn field_metadata() -> &'static [FieldMeta] {
+                    static META: &[FieldMeta] = &[
+                        #(#field_meta_items),*
+                    ];
+                    META
+                }
+            }
+        }
+    } else {
+        quote!()
+    };
+
     quote! {
+        #field_meta_use
         #main_struct
         #borrowed_impl
+        #field_metadata_fn
     }
 }
 
@@ -611,7 +646,7 @@ fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::To
 
     for row in module.rows.values() {
         if row.is_named {
-            let row_tokens = gen_row_structs(row, &config.types.derive_traits, &ctx);
+            let row_tokens = gen_row_structs(row, &config.types.derive_traits, &ctx, config);
             tokens.extend(quote!(#row_tokens));
         }
     }
