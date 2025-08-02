@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0...clorinde-v1.0.1) - 2025-08-02
+
+### Fixed
+
+- use default type arg for cargo_toml::Manifest ([#167](https://github.com/halcyonnouveau/clorinde/pull/167))
+- specify concrete type for cargo_toml::Package ([#165](https://github.com/halcyonnouveau/clorinde/pull/165))
+
 ## [1.0.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0-beta.5...clorinde-v1.0.0) - 2025-07-04
 
 ### Added
