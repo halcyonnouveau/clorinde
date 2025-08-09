@@ -118,6 +118,48 @@ PostgreSQL identifiers (including type names) are case-insensitive unless quoted
 
 You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
 
+## Query field metadata
+This is an opt-in feature that generates lightweight metadata about each result-row struct.
+
+### Enable via configuration
+Add the following to your project's `clorinde.toml`:
+
+```toml
+generate-field-metadata = true
+```
+
+### What gets generated
+When enabled, the generated crate will include:
+
+- __`FieldMetadata`__ struct in `crate::types`:
+  - `name: &'static str`
+  - `rust_type: &'static str`
+  - `pg_type: &'static str` (schema-qualified PostgreSQL type, e.g. `pg_catalog.int4`)
+- __Per-row struct method__: each generated row struct implements
+
+```rust
+pub fn field_metadata() -> &'static [FieldMetadata]
+```
+
+For example, a row struct like `queries::lock_info::LockInfo` exposes:
+
+```rust
+let meta: &'static [clorinde::types::FieldMetadata] =
+    clorinde::queries::lock_info::LockInfo::field_metadata();
+```
+
+### Example: derive column names at runtime
+You can map metadata to user-facing headers or diagnostics:
+
+```rust
+let headers: Vec<&str> = clorinde::queries::lock_info::LockInfo::field_metadata()
+    .iter()
+    .map(|m| m.name)
+    .collect();
+```
+
+This avoids hardcoding column labels and keeps UIs resilient to query changes.
+
 ## Static files
 The `static` field allows you to copy or link files into your generated crate directory. This is useful for including files like licenses, build configurations, or other assets that should persist across code generation.
 
