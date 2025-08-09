@@ -288,6 +288,12 @@ impl ConfigBuilder {
         self
     }
 
+    /// Enable or disable generation of field metadata for queries
+    pub fn generate_field_metadata(mut self, generate: bool) -> Self {
+        self.config.generate_field_metadata = generate;
+        self
+    }
+
     /// Derive serde's `Serialize` trait for generated types
     #[deprecated(
         since = "1.0.0",

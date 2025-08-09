@@ -14,16 +14,13 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> proc_macro2::TokenStream {
-    /*
-     Rust types are not first-class values and cannot be assigned to struct fields directly (unlike strings).
-    PhantomData<T> ? std::any::TypeId ? Ditch this idea?
-     */
     let mut tokens = if config.generate_field_metadata {
         let field_meta_struct = quote! {
             #[derive(Debug, Clone, Copy)]
-            pub struct FieldMeta {
+            pub struct FieldMetadata {
                 pub name: &'static str,
-                pub data_type: &'static str,
+                pub rust_type: &'static str,
+                pub pg_type: &'static str,
             }
         };
         quote! {
