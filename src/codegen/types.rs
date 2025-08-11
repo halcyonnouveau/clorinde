@@ -14,7 +14,18 @@ pub(crate) fn gen_type_modules(
     prepared: &IndexMap<String, Vec<PreparedType>>,
     config: &Config,
 ) -> proc_macro2::TokenStream {
-    let mut tokens = quote! {};
+    let mut tokens = proc_macro2::TokenStream::new();
+    if config.generate_field_metadata {
+        let field_meta_struct = quote! {
+            #[derive(Debug, Clone, Copy)]
+            pub struct FieldMetadata {
+                pub name: &'static str,
+                pub rust_type: &'static str,
+                pub pg_type: &'static str,
+            }
+        };
+        tokens.extend(field_meta_struct);
+    }
 
     for (schema, types) in prepared {
         if schema == "public" {
