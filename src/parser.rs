@@ -210,6 +210,7 @@ pub struct TypeAnnotation {
     pub fields: Vec<NullableIdent>,
     pub traits: Vec<String>,
     pub attributes: Vec<String>,
+    pub attributes_borrowed: Vec<String>,
 }
 
 impl TypeAnnotation {
@@ -248,6 +249,17 @@ impl TypeAnnotation {
             .collect()
     }
 
+    fn parse_attributes_borrowed<'src>()
+    -> impl Parser<'src, &'src str, Vec<String>, extra::Err<Simple<'src, char>>> {
+        just("--&")
+            .ignore_then(space())
+            .ignore_then(none_of('\n').repeated().collect::<String>())
+            .map(|s| s.trim().to_string())
+            .then_ignore(ln())
+            .repeated()
+            .collect()
+    }
+
     fn parser<'src>() -> impl Parser<'src, &'src str, Self, extra::Err<Simple<'src, char>>> {
         let trait_parser = Self::path_ident()
             .map(|s: Span<String>| s.value)
@@ -270,12 +282,16 @@ impl TypeAnnotation {
             .then_ignore(space())
             .then_ignore(ln())
             .then(Self::parse_attributes())
-            .map(|(((name, fields), traits), attributes)| Self {
-                name,
-                fields,
-                traits,
-                attributes,
-            })
+            .then(Self::parse_attributes_borrowed())
+            .map(
+                |((((name, fields), traits), attributes), attributes_borrowed)| Self {
+                    name,
+                    fields,
+                    traits,
+                    attributes,
+                    attributes_borrowed,
+                },
+            )
     }
 }
 
@@ -653,7 +669,13 @@ impl QueryDataStruct {
         registered_structs: &'a [TypeAnnotation],
         query_name: &Span<String>,
         name_suffix: Option<&str>,
-    ) -> (&'a [NullableIdent], Vec<String>, Span<String>, Vec<String>) {
+    ) -> (
+        &'a [NullableIdent],
+        Vec<String>,
+        Span<String>,
+        Vec<String>,
+        Vec<String>,
+    ) {
         if let Some(named) = &self.name {
             let registered = registered_structs.iter().find(|it| it.name == *named);
             (
@@ -665,6 +687,9 @@ impl QueryDataStruct {
                 named.clone(),
                 registered
                     .map(|it| it.attributes.clone())
+                    .unwrap_or_default(),
+                registered
+                    .map(|it| it.attributes_borrowed.clone())
                     .unwrap_or_default(),
             )
         } else {
@@ -678,6 +703,7 @@ impl QueryDataStruct {
                         name_suffix.unwrap_or_default()
                     )
                 }),
+                vec![],
                 vec![],
             )
         }
