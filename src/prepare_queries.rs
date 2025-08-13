@@ -199,6 +199,7 @@ pub(crate) struct Preparation {
 
 #[allow(clippy::result_large_err)]
 impl PreparedModule {
+    #[allow(clippy::too_many_arguments)]
     fn add(
         info: &ModuleInfo,
         map: &mut IndexMap<Span<String>, PreparedItem>,

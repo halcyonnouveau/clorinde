@@ -651,6 +651,20 @@ pub(crate) struct QueryDataStruct {
     pub idents: Option<Vec<NullableIdent>>,
 }
 
+/// Return type for name_and_fields method containing:
+/// - nullable_fields: `&'a [NullableIdent]`
+/// - traits: `Vec<String>`
+/// - name: `Span<String>`
+/// - attributes: `Vec<String>`
+/// - attributes_borrowed: `Vec<String>`
+type StructInfo<'a> = (
+    &'a [NullableIdent],
+    Vec<String>,
+    Span<String>,
+    Vec<String>,
+    Vec<String>,
+);
+
 impl QueryDataStruct {
     pub fn is_implicit(&self) -> bool {
         self.name.is_none()
@@ -669,13 +683,7 @@ impl QueryDataStruct {
         registered_structs: &'a [TypeAnnotation],
         query_name: &Span<String>,
         name_suffix: Option<&str>,
-    ) -> (
-        &'a [NullableIdent],
-        Vec<String>,
-        Span<String>,
-        Vec<String>,
-        Vec<String>,
-    ) {
+    ) -> StructInfo<'a> {
         if let Some(named) = &self.name {
             let registered = registered_structs.iter().find(|it| it.name == *named);
             (
