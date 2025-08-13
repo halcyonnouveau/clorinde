@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.1...clorinde-v1.1.0) - 2025-08-13
+
+### Added
+
+- [**breaking**] add custom attrs for borrowed structs ([#177](https://github.com/halcyonnouveau/clorinde/pull/177))
+- Add metadata ([#145](https://github.com/halcyonnouveau/clorinde/pull/145))
+
 ## [1.0.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.0...clorinde-v1.0.1) - 2025-08-02
 
 ### Fixed
