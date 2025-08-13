@@ -61,6 +61,7 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx, config: &Config) -> proc_ma
         traits,
         is_copy,
         attributes,
+        attributes_borrowed,
         ..
     } = row;
 
@@ -129,6 +130,13 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx, config: &Config) -> proc_ma
     };
 
     let borrowed_impl = if !is_copy {
+        let custom_attrs_borrowed = attributes_borrowed
+            .iter()
+            .map(|attr| {
+                syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!())
+            })
+            .collect::<Vec<_>>();
+
         let borrowed_name = format_ident!("{}Borrowed", name.to_string());
 
         let borrowed_fields_ty: Vec<_> = fields
@@ -165,7 +173,7 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx, config: &Config) -> proc_ma
             .collect::<Vec<_>>();
 
         quote! {
-            #(#[#custom_attrs])*
+            #(#[#custom_attrs_borrowed])*
             pub struct #borrowed_name<'a> {
                 #(#borrowed_fields_with_attrs,)*
             }

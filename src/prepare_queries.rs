@@ -129,6 +129,7 @@ pub(crate) struct PreparedItem {
     pub(crate) is_named: bool,
     pub(crate) is_ref: bool,
     pub(crate) attributes: Vec<String>,
+    pub(crate) attributes_borrowed: Vec<String>,
 }
 
 impl PreparedItem {
@@ -138,6 +139,7 @@ impl PreparedItem {
         traits: Vec<String>,
         is_implicit: bool,
         attributes: Vec<String>,
+        attributes_borrowed: Vec<String>,
     ) -> Self {
         Self {
             name,
@@ -147,6 +149,7 @@ impl PreparedItem {
             fields,
             traits,
             attributes,
+            attributes_borrowed,
         }
     }
 
@@ -196,6 +199,7 @@ pub(crate) struct Preparation {
 
 #[allow(clippy::result_large_err)]
 impl PreparedModule {
+    #[allow(clippy::too_many_arguments)]
     fn add(
         info: &ModuleInfo,
         map: &mut IndexMap<Span<String>, PreparedItem>,
@@ -204,6 +208,7 @@ impl PreparedModule {
         traits: Vec<String>,
         is_implicit: bool,
         attributes: Vec<String>,
+        attributes_borrowed: Vec<String>,
     ) -> Result<(usize, Vec<usize>), Error> {
         assert!(!fields.is_empty());
         match map.entry(name.clone()) {
@@ -230,8 +235,18 @@ impl PreparedModule {
                     traits.clone(),
                     is_implicit,
                     attributes.clone(),
+                    attributes_borrowed.clone(),
                 ));
-                Self::add(info, map, name, fields, traits, is_implicit, attributes)
+                Self::add(
+                    info,
+                    map,
+                    name,
+                    fields,
+                    traits,
+                    is_implicit,
+                    attributes,
+                    attributes_borrowed,
+                )
             }
         }
     }
@@ -244,6 +259,7 @@ impl PreparedModule {
         traits: Vec<String>,
         is_implicit: bool,
         attributes: Vec<String>,
+        attributes_borrowed: Vec<String>,
     ) -> Result<(usize, Vec<usize>), Error> {
         let nom = if fields.len() == 1 && is_implicit {
             name.map(|_| fields[0].unwrapped_name())
@@ -258,6 +274,7 @@ impl PreparedModule {
             traits,
             is_implicit,
             attributes,
+            attributes_borrowed,
         )
     }
 
@@ -275,6 +292,7 @@ impl PreparedModule {
             fields,
             vec![],
             is_implicit,
+            vec![],
             vec![],
         )
     }
@@ -541,10 +559,10 @@ fn prepare_query(
         .as_ref()
         .map_err(|e| Error::new_db_err(e, module_info, &sql_span, &name))?;
 
-    let (nullable_params_fields, _, params_name, _) =
+    let (nullable_params_fields, _, params_name, _, _) =
         param.name_and_fields(types, &name, Some("Params"));
 
-    let (nullable_row_fields, traits, row_name, row_attributes) =
+    let (nullable_row_fields, traits, row_name, row_attributes, row_attributes_borrowed) =
         row.name_and_fields(types, &name, None);
 
     let params_fields = {
@@ -659,6 +677,7 @@ fn prepare_query(
             traits,
             row.is_implicit(),
             row_attributes,
+            row_attributes_borrowed,
         )?)
     };
 

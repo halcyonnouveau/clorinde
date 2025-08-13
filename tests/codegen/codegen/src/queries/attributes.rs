@@ -29,7 +29,6 @@ pub struct BookAuthor2 {
     pub name: Option<String>,
     pub bio: String,
 }
-#[allow(deprecated)]
 pub struct BookAuthor2Borrowed<'a> {
     pub id: i32,
     pub name: Option<&'a str>,

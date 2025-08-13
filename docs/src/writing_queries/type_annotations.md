@@ -32,31 +32,48 @@ SELECT name, age FROM authors;
 ```
 
 ## Custom attributes
-You can add custom attributes to generated structs using the `--#` syntax. This allows you to add documentation, conditional compilation directives, or any other Rust attributes.
+You can add custom attributes to generated structs using the `--#` and `--&` syntax. This allows you to add documentation, conditional compilation directives, or any other Rust attributes.
+
+When types contain non-`Copy` fields (like `String`), Clorinde generates both an owned struct and a borrowed variant. You can specify attributes for each:
+- `--#` applies attributes to the owned struct
+- `--&` applies attributes to the borrowed struct
 
 ```sql
---: Author(age?) : Default, serde::Deserialize
+--: Author(age?, bio) : serde::Deserialize
 --# doc = "Represents an author in the system"
---# cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))
+--& cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))
 
 --! authors : Author
-SELECT name, age FROM authors;
+SELECT name, age, bio FROM authors;
 ```
 
 This will generate:
 
 ```rust
-#[derive(Default, serde::Deserialize, Debug, Clone, PartialEq)]
+#[derive(Default, serde::Deserialize, PartialEq)]
 #[doc = "Represents an author in the system"]
-#[cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))]
+#[derive(Clone)]
 pub struct Author {
     pub name: String,
     pub age: Option<i32>,
+    pub bio: String,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))]
+pub struct AuthorBorrowed<'a> {
+    pub name: &'a str,
+    pub age: Option<i32>,
+    pub bio: &'a str,
 }
 ```
 
 ```admonish note
-Custom attributes are declared with this token: `--#` and must come after the type annotation.
+Custom attributes are declared with these tokens:
+- `--#` for owned struct attributes
+- `--&` for borrowed struct attributes (only relevant when a borrowed variant is generated)
+
+Both must come after the type annotation.
 ```
 
 ## Inline types

@@ -1,5 +1,6 @@
 --: BookAuthor(id, name?, bio) : serde::Serialize, serde::Deserialize
 --# cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))
+--& cfg_attr(feature = "graphql", derive(async_graphql::SimpleObject))
 --: BookAuthor2(id, name?, bio) : serde::Serialize, serde::Deserialize
 --# allow(deprecated)
 
