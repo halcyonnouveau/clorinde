@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.1...clorinde-v2.0.0) - 2025-08-13
+## [1.1.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.1...clorinde-v1.1.0) - 2025-08-13
 
 ### Added
 
