@@ -105,7 +105,7 @@ For more granular control in addition to traits in type annotations, you can spe
 # Applied to all generated structs and postgres types
 derive-traits = ["Default"]
 
-[types.derive-traits-mapping]
+[types.type-traits-mapping]
 # Applied to specfic custom postgres types (eg. enums, domains, composites)
 fontaine_region = ["serde::Deserialize"]
 ```
