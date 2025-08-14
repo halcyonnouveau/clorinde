@@ -113,7 +113,7 @@ fontaine_region = ["serde::Deserialize"]
 This configuration will add the `Default` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
 
 ~~~admonish note
-PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `derive-traits-mapping`, you should use the lowercase form unless the type was explicitly created with quotes.
+PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `type-traits-mapping`, you should use the lowercase form unless the type was explicitly created with quotes.
 ~~~
 
 You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
@@ -174,16 +174,16 @@ static = ["LICENSE.txt", "build.rs"]
 static = [
     # Simple copy (copies to root with original filename)
     "README.md",
-    
+
     # Rename file during copy
     { path = "config.template.toml", destination = "config.toml" },
-    
+
     # Place file in subdirectory
     { path = "assets/logo.png", destination = "static/images/logo.png" },
-    
+
     # Hard link instead of copy (saves disk space for large files)
     { path = "large_asset.bin", hard-link = true },
-    
+
     # Combine renaming with hard linking
     { path = "data.json", destination = "resources/app_data.json", hard-link = true }
 ]
@@ -203,10 +203,10 @@ static = [
 static = [
     # Copy LICENSE to root as-is
     "LICENSE",
-    
+
     # Rename during copy
     { path = "template.env", destination = ".env.example" },
-    
+
     # Organize into subdirectories
     { path = "docs/api.md", destination = "documentation/api.md" },
     { path = "scripts/build.sh", destination = "tools/build.sh" }
