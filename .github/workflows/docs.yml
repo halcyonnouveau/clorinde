@@ -1,11 +1,11 @@
 name: Deploy book to GitHub pages
 on:
-  create:
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ startsWith(github.ref, 'refs/tags/clorinde-v') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write # To push a branch
