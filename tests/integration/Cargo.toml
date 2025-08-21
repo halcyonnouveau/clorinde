@@ -11,7 +11,7 @@ publish = false
 clorinde = { path = "../.." }
 
 # Create temporary projects for error tests.
-tempfile = "3.20"
+tempfile = "3.21"
 
 # Colored output
 owo-colors = "4.2"
