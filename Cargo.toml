@@ -41,7 +41,7 @@ clap = { version = "4.5", features = ["derive", "env"] }
 heck = "0.5"
 
 # Order-preserving map to work around borrowing issues
-indexmap = "2.10"
+indexmap = "2.11"
 
 # Generate temporary files
 tempfile = "3.21"
