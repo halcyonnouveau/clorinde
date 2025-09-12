@@ -90,6 +90,7 @@ impl Config {
 }
 
 impl Default for Config {
+    #[allow(deprecated)]
     fn default() -> Self {
         Self {
             podman: false,
@@ -100,7 +101,6 @@ impl Default for Config {
             destination: PathBuf::from_str("clorinde").unwrap(),
             sync: false,
             r#async: true,
-            #[allow(deprecated)]
             serialize: false,
             ignore_underscore_files: false,
             params_only: false,

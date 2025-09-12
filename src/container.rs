@@ -80,7 +80,7 @@ fn healthcheck(
         std::thread::sleep(std::time::Duration::from_millis(ms_per_retry));
         nb_retries += 1;
 
-        if nb_retries.is_multiple_of(slow_threshold) {
+        if nb_retries % slow_threshold == 0 {
             println!(
                 "Container startup slower than expected ({nb_retries} retries out of {max_retries})"
             );
