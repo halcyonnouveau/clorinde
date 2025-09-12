@@ -15,9 +15,9 @@ mod versions {
     // https://crates.io/crates/tokio-postgres
     pub const TOKIO_POSTGRES: &str = "0.7.13";
     // https://crates.io/crates/chrono
-    pub const CHRONO: &str = "0.4.41";
+    pub const CHRONO: &str = "0.4.42";
     // https://crates.io/crates/uuid
-    pub const UUID: &str = "1.18.0";
+    pub const UUID: &str = "1.18.1";
     // https://crates.io/crates/eui48
     pub const EUI48: &str = "1.1.0";
     // https://crates.io/crates/rust-decimal
@@ -25,7 +25,7 @@ mod versions {
     // https://crates.io/crates/serde
     pub const SERDE: &str = "1.0.219";
     // https://crates.io/crates/serde-json
-    pub const SERDE_JSON: &str = "1.0.142";
+    pub const SERDE_JSON: &str = "1.0.143";
     // https://crates.io/crates/futures
     pub const FUTURES: &str = "0.3.31";
     // https://crates.io/crates/deadpool-postgres

@@ -65,11 +65,10 @@ Changes that are cosmetic in nature and do not add anything substantial to the s
 
 #### **Development Setup**
 
-1. Ensure you have Rust installed (minimum version 1.70.0)
-2. Install PostgreSQL for testing
-3. Clone the repository: `git clone https://github.com/halcyonnouveau/clorinde.git`
-4. Run `cargo run --package test_integration -- --apply-codegen` to codegen the repo and all workspace packages
-5. Run `cargo test --all` to ensure all tests pass
+1. Ensure you have Rust installed
+2. Clone the repository: `git clone https://github.com/halcyonnouveau/clorinde.git`
+3. Run `cargo run --package test_integration -- --apply-codegen` to codegen the repo and all workspace packages
+4. Run `cargo test --all` to ensure all tests pass
 
 #### **Coding Standards**
 

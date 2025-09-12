@@ -7,7 +7,7 @@ edition = "2021"
 publish = false
 
 [dependencies.chrono]
-version = "0.4.41"
+version = "0.4.42"
 
 [dependencies.deadpool-postgres]
 version = "0.14.1"
