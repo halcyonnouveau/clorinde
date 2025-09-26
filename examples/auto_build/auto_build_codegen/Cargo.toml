@@ -10,25 +10,22 @@ publish = false
 version = "0.14.1"
 optional = true
 
-[dependencies.fallible-iterator]
-version = "0.2.0"
-
 [dependencies.futures]
 version = "0.3.31"
 
 [dependencies.postgres]
-version = "0.19.10"
+version = "0.19.11"
 optional = true
 
 [dependencies.postgres-protocol]
-version = "0.6.8"
+version = "0.6.9"
 
 [dependencies.postgres-types]
-version = "0.2.9"
+version = "0.2.10"
 features = ["derive"]
 
 [dependencies.tokio-postgres]
-version = "0.7.13"
+version = "0.7.14"
 default-features = false
 
 [features]

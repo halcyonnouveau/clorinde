@@ -17,9 +17,6 @@ path = "../db_types"
 version = "0.14.1"
 optional = true
 
-[dependencies.fallible-iterator]
-version = "0.2.0"
-
 [dependencies.futures]
 version = "0.3.31"
 
@@ -28,14 +25,14 @@ version = "0.19"
 features = ["with-time-0_3", "with-serde_json-1"]
 
 [dependencies.postgres-protocol]
-version = "0.6.8"
+version = "0.6.9"
 
 [dependencies.postgres-types]
-version = "0.2.9"
+version = "0.2.10"
 features = ["derive"]
 
 [dependencies.serde]
-version = "1.0.219"
+version = "1.0.227"
 features = ["derive"]
 
 [dependencies.time]

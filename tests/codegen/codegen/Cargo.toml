@@ -18,38 +18,35 @@ optional = true
 version = "1.1.0"
 default-features = false
 
-[dependencies.fallible-iterator]
-version = "0.2.0"
-
 [dependencies.futures]
 version = "0.3.31"
 
 [dependencies.postgres]
-version = "0.19.10"
+version = "0.19.11"
 features = ["with-chrono-0_4", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
 optional = true
 
 [dependencies.postgres-protocol]
-version = "0.6.8"
+version = "0.6.9"
 
 [dependencies.postgres-types]
-version = "0.2.9"
+version = "0.2.10"
 features = ["derive"]
 
 [dependencies.rust_decimal]
-version = "1.37.2"
+version = "1.38.0"
 features = ["db-postgres"]
 
 [dependencies.serde]
-version = "1.0.219"
+version = "1.0.227"
 features = ["derive"]
 
 [dependencies.serde_json]
-version = "1.0.143"
+version = "1.0.145"
 features = ["raw_value"]
 
 [dependencies.tokio-postgres]
-version = "0.7.13"
+version = "0.7.14"
 features = ["with-chrono-0_4", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
 default-features = false
 

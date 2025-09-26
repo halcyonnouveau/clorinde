@@ -7,13 +7,13 @@ use crate::config::{Config, UseWorkspaceDeps};
 
 mod versions {
     // https://crates.io/crates/postgres-types
-    pub const POSTGRES_TYPES: &str = "0.2.9";
+    pub const POSTGRES_TYPES: &str = "0.2.10";
     // https://crates.io/crates/postgres-protocol
-    pub const POSTGRES_PROTOCOL: &str = "0.6.8";
+    pub const POSTGRES_PROTOCOL: &str = "0.6.9";
     // https://crates.io/crates/postgres
-    pub const POSTGRES: &str = "0.19.10";
+    pub const POSTGRES: &str = "0.19.11";
     // https://crates.io/crates/tokio-postgres
-    pub const TOKIO_POSTGRES: &str = "0.7.13";
+    pub const TOKIO_POSTGRES: &str = "0.7.14";
     // https://crates.io/crates/chrono
     pub const CHRONO: &str = "0.4.42";
     // https://crates.io/crates/uuid
@@ -21,21 +21,15 @@ mod versions {
     // https://crates.io/crates/eui48
     pub const EUI48: &str = "1.1.0";
     // https://crates.io/crates/rust-decimal
-    pub const RUST_DECIMAL: &str = "1.37.2";
+    pub const RUST_DECIMAL: &str = "1.38.0";
     // https://crates.io/crates/serde
-    pub const SERDE: &str = "1.0.219";
+    pub const SERDE: &str = "1.0.227";
     // https://crates.io/crates/serde-json
-    pub const SERDE_JSON: &str = "1.0.143";
+    pub const SERDE_JSON: &str = "1.0.145";
     // https://crates.io/crates/futures
     pub const FUTURES: &str = "0.3.31";
     // https://crates.io/crates/deadpool-postgres
     pub const DEADPOOL_POSTGRES: &str = "0.14.1";
-    // https://crates.io/crates/fallible-iterator
-    // newest version is 0.3, but we want to keep 0.2 as that is what
-    // rust-postgres uses
-    // if https://github.com/sfackler/rust-postgres/pull/1248 is ever
-    // merged we can remove this and re-export from rust-postgres
-    pub const FALLIBLE_ITERATOR: &str = "0.2.0";
 }
 
 /// Register use of typed requiring specific dependencies
@@ -246,11 +240,6 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
     deps.add(
         "postgres-protocol",
         &DependencyBuilder::new(versions::POSTGRES_PROTOCOL).into_detail(),
-    );
-
-    deps.add(
-        "fallible-iterator",
-        &DependencyBuilder::new(versions::FALLIBLE_ITERATOR).into_detail(),
     );
 
     let mut client_features = Vec::new();

@@ -41,13 +41,18 @@ pub(crate) fn gen_lib(
 
             #[cfg(any(feature = "deadpool", feature = "wasm-async"))]
             pub use tokio_postgres;
+            #[cfg(any(feature = "deadpool", feature = "wasm-async"))]
+            pub use tokio_postgres::fallible_iterator;
 
             #[cfg(not(any(feature = "deadpool", feature = "wasm-async")))]
             pub use postgres;
+            #[cfg(not(any(feature = "deadpool", feature = "wasm-async")))]
+            pub use postgres::fallible_iterator;
         }
     } else {
         quote! {
             pub use postgres;
+            pub use postgres::fallible_iterator;
         }
     };
 
@@ -246,12 +251,12 @@ pub fn core_domain() -> proc_macro2::TokenStream {
 
 pub fn core_array() -> proc_macro2::TokenStream {
     quote! {
-        use fallible_iterator::FallibleIterator;
         use postgres_protocol::types::{array_from_sql, ArrayValues};
         use postgres_types::{FromSql, Kind, Type};
         use std::fmt::Debug;
         use std::marker::PhantomData;
 
+        use super::fallible_iterator::FallibleIterator;
         use super::utils::escape_domain;
 
         /// Iterator over the items in a PostgreSQL array. You only need this if you are

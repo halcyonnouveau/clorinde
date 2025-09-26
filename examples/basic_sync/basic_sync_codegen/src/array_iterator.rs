@@ -1,7 +1,7 @@
 // This file was generated with `clorinde`. Do not modify.
 
+use super::fallible_iterator::FallibleIterator;
 use super::utils::escape_domain;
-use fallible_iterator::FallibleIterator;
 use postgres_protocol::types::{ArrayValues, array_from_sql};
 use postgres_types::{FromSql, Kind, Type};
 use std::fmt::Debug;
