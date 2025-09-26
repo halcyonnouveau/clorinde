@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.1.0...clorinde-v1.1.1) - 2025-09-26
+
+### Changed
+
+- updated deps and removed fallible_iterator from generated cargo - now relying on reexported fallible_iterator from postgres/tokio-postgres
+
+### Fixed
+
+- replace unstable features for stable rust compatibility
+
 ## [1.1.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.0.1...clorinde-v1.1.0) - 2025-08-13
 
 ### Added
