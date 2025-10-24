@@ -258,4 +258,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Don't generate imports specific to async for the sync client
 - Clippy warnings in generated code
-- fix warning placment
+- fix warning placement
