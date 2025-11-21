@@ -22,7 +22,7 @@ default-features = false
 version = "0.3.31"
 
 [dependencies.postgres]
-version = "0.19.11"
+version = "0.19.12"
 features = ["with-chrono-0_4", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
 optional = true
 
@@ -30,15 +30,15 @@ optional = true
 version = "0.6.9"
 
 [dependencies.postgres-types]
-version = "0.2.10"
+version = "0.2.11"
 features = ["derive"]
 
 [dependencies.rust_decimal]
-version = "1.38.0"
+version = "1.39.0"
 features = ["db-postgres"]
 
 [dependencies.serde]
-version = "1.0.227"
+version = "1.0.228"
 features = ["derive"]
 
 [dependencies.serde_json]
@@ -46,7 +46,7 @@ version = "1.0.145"
 features = ["raw_value"]
 
 [dependencies.tokio-postgres]
-version = "0.7.14"
+version = "0.7.15"
 features = ["with-chrono-0_4", "with-uuid-1", "with-eui48-1", "with-serde_json-1"]
 default-features = false
 

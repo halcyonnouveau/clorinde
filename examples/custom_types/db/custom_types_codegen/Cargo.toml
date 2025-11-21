@@ -28,11 +28,11 @@ features = ["with-time-0_3", "with-serde_json-1"]
 version = "0.6.9"
 
 [dependencies.postgres-types]
-version = "0.2.10"
+version = "0.2.11"
 features = ["derive"]
 
 [dependencies.serde]
-version = "1.0.227"
+version = "1.0.228"
 features = ["derive"]
 
 [dependencies.time]
