@@ -21,6 +21,11 @@ quality = ["serde::Deserialize"]
 "pg_catalog.date" = { rust-type = "db_types::date::Date", attributes = [
     'serde(skip_serializing_if = "Option::is_none")',
 ] }
+# Example of borrowed-type: maps varchar to separate owned and borrowed Rust types
+[types.mapping."pg_catalog.varchar"]
+rust-type = "db_types::string::CustomString"
+borrowed-type = "db_types::string::CustomStringRef<'a>"
+is-copy = false
 
 [manifest.package]
 name = "custom_types_codegen"

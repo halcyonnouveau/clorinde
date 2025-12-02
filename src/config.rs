@@ -166,6 +166,9 @@ pub enum TypeMapping {
         /// The target Rust type to use in generated code
         #[serde(rename = "rust-type")]
         rust_type: String,
+        /// The borrowed counterpart of the Rust type, with explicit lifetime (e.g., `MyType<'a>`)
+        #[serde(default, rename = "borrowed-type")]
+        borrowed_type: Option<String>,
         /// Whether this type implements the `Copy` trait
         #[serde(default = "default_true", rename = "is-copy")]
         is_copy: bool,
@@ -187,6 +190,13 @@ impl TypeMapping {
                 attributes_borrowed,
                 ..
             } => (attributes.to_owned(), attributes_borrowed.to_owned()),
+        }
+    }
+
+    pub fn get_borrowed_type(&self) -> Option<&str> {
+        match self {
+            TypeMapping::Simple(_) => None,
+            TypeMapping::Detailed { borrowed_type, .. } => borrowed_type.as_deref(),
         }
     }
 }

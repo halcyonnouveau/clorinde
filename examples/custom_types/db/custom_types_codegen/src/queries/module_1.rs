@@ -3,7 +3,7 @@
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct Character {
     pub id: i32,
-    pub name: String,
+    pub name: db_types::string::CustomString,
     pub quality: crate::types::Quality,
     pub element: db_types::element::Element,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -11,7 +11,7 @@ pub struct Character {
 }
 pub struct CharacterBorrowed<'a> {
     pub id: i32,
-    pub name: &'a str,
+    pub name: db_types::string::CustomStringRef<'a>,
     pub quality: crate::types::Quality,
     pub element: db_types::element::Element,
     pub release_date: Option<db_types::date::Date>,
@@ -37,12 +37,12 @@ impl<'a> From<CharacterBorrowed<'a>> for Character {
 }
 #[derive(Debug, Clone, PartialEq, serde::Serialize, Hash)]
 pub struct SelectCharacterByElement {
-    pub name: String,
+    pub name: db_types::string::CustomString,
     pub element: db_types::element::Element,
     pub quality: crate::types::Quality,
 }
 pub struct SelectCharacterByElementBorrowed<'a> {
-    pub name: &'a str,
+    pub name: db_types::string::CustomStringRef<'a>,
     pub element: db_types::element::Element,
     pub quality: crate::types::Quality,
 }

@@ -3,6 +3,8 @@ This example shows how you can add custom types to be used. You need to create a
 
 The custom type crates are imported into the generated Clorinde crate through the manifest configuration.
 
+## Adding custom type dependencies
+
 You can specify custom type dependencies in the `[manifest.dependencies]` section:
 
 ```toml
@@ -35,3 +37,36 @@ You can specify multiple crates, and each one can use any of the standard Cargo 
 - Any combination of these options
 
 The configuration follows the same format as dependencies in `Cargo.toml`, and these dependencies will be merged with the PostgreSQL dependencies that Clorinde automatically generates based on your SQL queries.
+
+## Mapping PostgreSQL types to Rust types
+
+Use `types.mapping` to map PostgreSQL types to your custom Rust types:
+
+```toml
+[types.mapping]
+# Simple mapping
+"public.element" = "db_types::element::Element"
+
+# Detailed mapping with options
+[types.mapping."pg_catalog.date"]
+rust-type = "db_types::date::Date"
+is-copy = false
+attributes = ['serde(skip_serializing_if = "Option::is_none")']
+```
+
+## Borrowed type mappings
+
+When you have separate owned and borrowed versions of a type (similar to `String` and `&str`), you can specify a `borrowed-type`. This example demonstrates this with `CustomString` and `CustomStringRef<'a>`:
+
+```toml
+[types.mapping."pg_catalog.varchar"]
+rust-type = "db_types::string::CustomString"
+borrowed-type = "db_types::string::CustomStringRef<'a>"
+is-copy = false
+```
+
+This will use:
+- `CustomString` in owned structs (e.g., `Character`)
+- `CustomStringRef<'a>` in borrowed structs (e.g., `CharacterBorrowed<'a>`)
+
+Both types must implement `FromSql`. The owned type must also implement `ToSql`, and the borrowed type should implement `Into<OwnedType>` for the generated `From` implementation.

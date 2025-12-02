@@ -20,6 +20,8 @@ pub(crate) enum ClorindeType {
     Simple {
         pg_ty: Type,
         rust_name: String,
+        /// The borrowed counterpart type name, with explicit lifetime (e.g., `MyType<'a>`)
+        borrowed_name: Option<String>,
         is_copy: bool,
     },
     Array {
@@ -54,6 +56,10 @@ impl ClorindeType {
             {
                 false
             }
+            ClorindeType::Simple {
+                borrowed_name: Some(_),
+                ..
+            } => true,
             ClorindeType::Simple { .. } => !self.is_copy(),
             ClorindeType::Domain { inner, .. } | ClorindeType::Array { inner } => inner.is_ref(),
             _ => !self.is_copy(),
@@ -224,10 +230,21 @@ impl ClorindeType {
     /// Corresponding borrowed parameter type
     pub(crate) fn param_ty(&self, is_inner_nullable: bool, ctx: &GenCtx) -> String {
         match self {
-            ClorindeType::Simple { pg_ty, .. } => match *pg_ty {
-                Type::JSON | Type::JSONB => "&'a serde_json::value::Value".to_string(),
-                _ => self.brw_ty(is_inner_nullable, true, ctx),
-            },
+            ClorindeType::Simple {
+                pg_ty,
+                borrowed_name,
+                ..
+            } => {
+                // If user explicitly provides a borrowed type, use it
+                if borrowed_name.is_some() {
+                    return self.brw_ty(is_inner_nullable, true, ctx);
+                }
+                // Otherwise use default param type based on pg_ty
+                match *pg_ty {
+                    Type::JSON | Type::JSONB => "&'a serde_json::value::Value".to_string(),
+                    _ => self.brw_ty(is_inner_nullable, true, ctx),
+                }
+            }
             ClorindeType::Array { inner, .. } => {
                 let inner = inner.param_ty(is_inner_nullable, ctx);
                 let inner = if is_inner_nullable {
@@ -267,27 +284,37 @@ impl ClorindeType {
         let lifetime = if has_lifetime { "'a" } else { "" };
         match self {
             ClorindeType::Simple {
-                pg_ty, rust_name, ..
-            } => match *pg_ty {
-                Type::BYTEA => format!("&{lifetime} [u8]"),
-                Type::TEXT | Type::VARCHAR | Type::BPCHAR => format!("&{lifetime} str"),
-                Type::JSON | Type::JSONB => {
-                    format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
+                pg_ty,
+                rust_name,
+                borrowed_name,
+                ..
+            } => {
+                // If user explicitly provides a borrowed type, use it
+                if let Some(borrowed) = borrowed_name {
+                    return borrowed.clone();
                 }
-                ref ty
-                    if (ty.name() == "citext"
-                        || ty.name() == "ltree"
-                        || ty.name() == "lquery"
-                        || ty.name() == "ltxtquery") =>
-                {
-                    format!("&{lifetime} str")
+                // Otherwise use default borrowed type based on pg_ty
+                match *pg_ty {
+                    Type::BYTEA => format!("&{lifetime} [u8]"),
+                    Type::TEXT | Type::VARCHAR | Type::BPCHAR => format!("&{lifetime} str"),
+                    Type::JSON | Type::JSONB => {
+                        format!("postgres_types::Json<&{lifetime} serde_json::value::RawValue>")
+                    }
+                    ref ty
+                        if (ty.name() == "citext"
+                            || ty.name() == "ltree"
+                            || ty.name() == "lquery"
+                            || ty.name() == "ltxtquery") =>
+                    {
+                        format!("&{lifetime} str")
+                    }
+                    _ => match rust_name.as_str() {
+                        "String" => format!("&{lifetime} str"),
+                        "Vec<u8>" => format!("&{lifetime} [u8]"),
+                        _ => rust_name.to_string(),
+                    },
                 }
-                _ => match rust_name.as_str() {
-                    "String" => format!("&{lifetime} str"),
-                    "Vec<u8>" => format!("&{lifetime} [u8]"),
-                    _ => rust_name.to_string(),
-                },
-            },
+            }
             ClorindeType::Array { inner, .. } => {
                 let inner = inner.brw_ty(is_inner_nullable, has_lifetime, ctx);
                 let inner = if is_inner_nullable {
@@ -431,6 +458,7 @@ impl TypeRegistrar {
                 self.insert(ty, || ClorindeType::Simple {
                     pg_ty: ty.clone(),
                     rust_name: rust_name.to_string(),
+                    borrowed_name: None,
                     is_copy,
                 })
             }
@@ -461,22 +489,23 @@ impl TypeRegistrar {
         // check if there's a user-defined mapping first
         let mapping_result = if let Some(mapping) = self.config.get_type_mapping(ty) {
             match mapping {
-                TypeMapping::Simple(name) => Some((name.to_string(), true, true)),
+                TypeMapping::Simple(name) => Some((name.to_string(), None, true)),
                 TypeMapping::Detailed {
                     rust_type,
+                    borrowed_type,
                     is_copy,
-                    attributes: _,
-                    attributes_borrowed: _,
-                } => Some((rust_type.to_string(), *is_copy, true)),
+                    ..
+                } => Some((rust_type.to_string(), borrowed_type.clone(), *is_copy)),
             }
         } else {
             None
         };
 
-        if let Some((rust_name, is_copy, _)) = mapping_result {
+        if let Some((rust_name, borrowed_name, is_copy)) = mapping_result {
             return Ok(self.insert(ty, || ClorindeType::Simple {
                 pg_ty: ty.clone(),
                 rust_name,
+                borrowed_name,
                 is_copy,
             }));
         }

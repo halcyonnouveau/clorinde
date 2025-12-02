@@ -53,7 +53,7 @@ ctypes = { path = "../ctypes" }
 postgres_range = { version = "0.11.1", features = ["with-chrono-0_4"] }
 
 [types.mapping]
-# Map PostgreSQL types to custom Rust types
+# Simple mapping: just specify the Rust type
 "pg_catalog.date" = "ctypes::date::Date"
 "pg_catalog.tstzrange" = "postgres_range::Range<chrono::DateTime<chrono::FixedOffset>>"
 ```
@@ -62,25 +62,45 @@ Dependencies needed for your custom type mappings should be specified in `[manif
 
 The `types.mapping` table allows you to map PostgreSQL types to Rust types. You can use this to either override Clorinde's default mappings or add support for PostgreSQL types that aren't supported by default, such as types from extensions.
 
-~~~admonish note
-Your custom types must implement the [`ToSql`](https://docs.rs/postgres-types/latest/postgres_types/trait.ToSql.html) and [`FromSql`](https://docs.rs/postgres-types/latest/postgres_types/trait.FromSql.html)
-traits from the [`postgres-types`](https://crates.io/crates/postgres-types) crate:
+### Detailed mapping syntax
 
-```rust
-use postgres_types::{ToSql, FromSql};
+For more control, you can use the detailed mapping syntax:
 
-impl ToSql for CustomType {
-    // ...
-}
-
-impl FromSql for CustomType {
-    // ...
-}
+```toml
+[types.mapping."pg_catalog.date"]
+rust-type = "ctypes::date::Date"
+is-copy = false
+attributes = ['serde(skip_serializing_if = "Option::is_none")']
+attributes-borrowed = []
 ```
 
-See the [custom_types](https://github.com/halcyonnouveau/clorinde/blob/main/examples/custom_types) example for a reference implementation.
+The available options are:
+- **`rust-type`**: The Rust type to use (required)
+- **`is-copy`**: Whether the type implements `Copy` (default: `true`)
+- **`attributes`**: Rust attributes to apply to fields in owned structs
+- **`attributes-borrowed`**: Rust attributes to apply to fields in borrowed structs
 
-This ensures that your types can be properly serialized to and deserialized from PostgreSQL's wire format.
+### Borrowed type mappings
+
+When you have separate owned and borrowed versions of a type (similar to `String` and `&str`), you can specify a `borrowed-type`:
+
+```toml
+[types.mapping."pg_catalog.varchar"]
+rust-type = "my_crate::CustomString"
+borrowed-type = "my_crate::CustomStringRef<'a>"
+is-copy = false
+```
+
+This will use:
+- `my_crate::CustomString` in owned structs (e.g., `Character`)
+- `my_crate::CustomStringRef<'a>` in borrowed structs (e.g., `CharacterBorrowed<'a>`)
+
+~~~admonish note
+Both the owned type and borrowed type must implement [`FromSql`](https://docs.rs/postgres-types/latest/postgres_types/trait.FromSql.html) from the [`postgres-types`](https://crates.io/crates/postgres-types) crate. The owned type must also implement [`ToSql`](https://docs.rs/postgres-types/latest/postgres_types/trait.ToSql.html).
+
+Additionally, the borrowed type should implement `Into<OwnedType>` so the generated `From` implementation can convert borrowed structs to owned structs.
+
+See the [custom_types](https://github.com/halcyonnouveau/clorinde/blob/main/examples/custom_types) example for a reference implementation.
 ~~~
 
 ## Derive traits
