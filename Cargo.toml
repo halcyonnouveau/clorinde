@@ -32,7 +32,7 @@ thiserror = "2.0"
 miette = { version = "7.6", features = ["fancy"] }
 
 # Parser
-chumsky = "0.11"
+chumsky = "0.12"
 
 # CLI handling
 clap = { version = "4.5", features = ["derive", "env"] }
