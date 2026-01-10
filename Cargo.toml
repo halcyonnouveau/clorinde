@@ -24,7 +24,7 @@ tokio-postgres = "0.7"
 postgres-types = "0.2"
 
 # Async
-tokio = { version = "1.48", features = ["rt-multi-thread"] }
+tokio = { version = "1.49", features = ["rt-multi-thread"] }
 futures = "0.3"
 
 # Error handling and reporting
@@ -41,7 +41,7 @@ clap = { version = "4.5", features = ["derive", "env"] }
 heck = "0.5"
 
 # Order-preserving map to work around borrowing issues
-indexmap = "2.12"
+indexmap = "2.13"
 
 # Generate temporary files
 tempfile = "3.22"
