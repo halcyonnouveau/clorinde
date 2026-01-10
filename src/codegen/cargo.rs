@@ -17,7 +17,7 @@ mod versions {
     // https://crates.io/crates/chrono
     pub const CHRONO: &str = "0.4.42";
     // https://crates.io/crates/uuid
-    pub const UUID: &str = "1.18.1";
+    pub const UUID: &str = "1.19.0";
     // https://crates.io/crates/eui48
     pub const EUI48: &str = "1.1.0";
     // https://crates.io/crates/rust-decimal
@@ -25,7 +25,7 @@ mod versions {
     // https://crates.io/crates/serde
     pub const SERDE: &str = "1.0.228";
     // https://crates.io/crates/serde-json
-    pub const SERDE_JSON: &str = "1.0.145";
+    pub const SERDE_JSON: &str = "1.0.149";
     // https://crates.io/crates/futures
     pub const FUTURES: &str = "0.3.31";
     // https://crates.io/crates/deadpool-postgres
