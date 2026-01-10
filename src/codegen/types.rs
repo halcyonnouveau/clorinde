@@ -105,6 +105,16 @@ fn gen_custom_type(
         .into_iter()
         .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
 
+    let type_attrs: Vec<_> = config
+        .types
+        .type_attributes_mapping
+        .get(name)
+        .map(|v| v.as_slice())
+        .unwrap_or(&[])
+        .iter()
+        .map(|attr| syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!()))
+        .collect();
+
     match content {
         PreparedContent::Enum(variants) => {
             let variants_ident: Vec<_> = variants
@@ -122,6 +132,7 @@ fn gen_custom_type(
                 .collect();
 
             let enum_def = quote! {
+                #(#[#type_attrs])*
                 #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq #(,#trait_attrs)*)]
                 #[allow(non_camel_case_types)]
                 pub enum #struct_name_ident {
@@ -189,6 +200,7 @@ fn gen_custom_type(
                 .collect::<Vec<_>>();
 
             let struct_def = quote! {
+                #(#[#type_attrs])*
                 #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq #(,#trait_attrs)*)]
                 #[postgres(name = #name_lit)]
                 pub struct #struct_name_ident {

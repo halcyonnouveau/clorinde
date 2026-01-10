@@ -138,6 +138,31 @@ PostgreSQL identifiers (including type names) are case-insensitive unless quoted
 
 You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
 
+### Custom PostgreSQL type attributes
+For attributes that go outside the `#[derive(...)]` block (such as `#[repr(...)]`), use `type-attributes-mapping`:
+
+```toml
+[types.type-attributes-mapping]
+# Applied to specific custom postgres types (eg. enums, domains, composites)
+my_enum = ["repr(u8)"]
+```
+
+This configuration will generate:
+
+```rust
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MyEnum {
+    // ...
+}
+```
+
+This is useful for libraries that require specific attributes on types, such as [facet](https://facet.rs) which requires `#[repr]` on enums for reflection.
+
+~~~admonish note
+The same case-sensitivity rules apply as with `type-traits-mapping` - use lowercase type names unless the type was explicitly created with quotes in PostgreSQL.
+~~~
+
 ## Query field metadata
 This is an opt-in feature that generates lightweight metadata about each result-row struct.
 

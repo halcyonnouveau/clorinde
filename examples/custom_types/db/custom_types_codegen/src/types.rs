@@ -1,5 +1,6 @@
 // This file was generated with `clorinde`. Do not modify.
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, Hash, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub enum Quality {

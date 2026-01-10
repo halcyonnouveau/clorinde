@@ -108,6 +108,7 @@ impl Default for Config {
                 mapping: HashMap::new(),
                 derive_traits: vec![],
                 type_traits_mapping: HashMap::new(),
+                type_attributes_mapping: HashMap::new(),
             },
             manifest: default_manifest(),
             style: Style::default(),
@@ -155,6 +156,9 @@ pub struct Types {
     /// Mapping for custom postgres types (eg. domains, enums, etc) to derive traits
     #[serde(rename = "type-traits-mapping")]
     pub type_traits_mapping: HashMap<String, Vec<String>>,
+    /// Mapping for custom postgres types to arbitrary attributes (e.g., repr, cfg)
+    #[serde(default, rename = "type-attributes-mapping")]
+    pub type_attributes_mapping: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
