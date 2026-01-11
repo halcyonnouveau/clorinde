@@ -111,10 +111,6 @@ fn gen_custom_type(
         )
         .collect();
 
-    let trait_attrs = all_traits
-        .into_iter()
-        .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
-
     let type_attrs: Vec<_> = custom_config
         .map(|c| c.attributes.as_slice())
         .unwrap_or(&[])
@@ -134,6 +130,14 @@ fn gen_custom_type(
 
     match content {
         PreparedContent::Enum(variants) => {
+            // Filter out Default trait for enums as it requires #[default] on a variant
+            let trait_attrs = all_traits
+                .iter()
+                .filter(|t| t.as_str() != "Default")
+                .map(|t| {
+                    syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!())
+                });
+
             let variants_ident: Vec<_> = variants
                 .iter()
                 .map(|v| {
@@ -170,6 +174,10 @@ fn gen_custom_type(
             }
         }
         PreparedContent::Composite(fields) => {
+            let trait_attrs = all_traits.iter().map(|t| {
+                syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!())
+            });
+
             let fields_original_name: Vec<_> = fields
                 .iter()
                 .map(|p| syn::LitStr::new(&p.ident.db, proc_macro2::Span::call_site()))
