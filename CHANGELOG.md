@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.2.0...clorinde-v1.3.0) - 2026-01-11
+
+### Added
+
+- *(#214)* consolidate custom type config into types.custom section
+- *(#213)* add type-attributes-mapping to support attrs on generated type definitions
+
+### Fixed
+
+- strip Default trait from enums
+
 ## [1.2.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.1.1...clorinde-v1.2.0) - 2025-12-02
 
 ### Added
