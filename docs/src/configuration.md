@@ -117,51 +117,37 @@ This will add the traits to **all** structs. If you only want them added to spec
 Adding any `serde` trait will automatically add `serde` as a dependency in the package manifest. This is for backwards compatibility with the deprecated `serialize` config value.
 ~~~
 
-### Custom PostgreSQL type derive traits
-For more granular control in addition to traits in type annotations, you can specify traits that should only be derived for particular [custom PostgreSQL types](./introduction/types.html#custom-postgresql-types):
+### Custom PostgreSQL type configuration
+For more granular control over [custom PostgreSQL types](./introduction/types.html#custom-postgresql-types) (enums, composites, domains), use the `types.custom` section:
 
 ```toml
 [types]
 # Applied to all generated structs and postgres types
 derive-traits = ["Default"]
 
-[types.type-traits-mapping]
-# Applied to specific custom postgres types (eg. enums, domains, composites)
-fontaine_region = ["serde::Deserialize"]
+# Configuration for specific custom postgres types
+[types.custom.fontaine_region]
+derive-traits = ["serde::Deserialize"]
+attributes = ["repr(u8)"]
 ```
 
-This configuration will add the `Default` trait to all generated types (and structs), but will only add `serde::Deserialize` to the `fontaine_region` enum.
-
-~~~admonish note
-PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in the `type-traits-mapping`, you should use the lowercase form unless the type was explicitly created with quotes.
-~~~
-
-You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
-
-### Custom PostgreSQL type attributes
-For attributes that go outside the `#[derive(...)]` block (such as `#[repr(...)]`), use `type-attributes-mapping`:
-
-```toml
-[types.type-attributes-mapping]
-# Applied to specific custom postgres types (eg. enums, domains, composites)
-my_enum = ["repr(u8)"]
-```
-
-This configuration will generate:
+This configuration will add the `Default` trait to all generated types (and structs), but will only add `serde::Deserialize` and `#[repr(u8)]` to the `fontaine_region` enum:
 
 ```rust
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MyEnum {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Deserialize)]
+pub enum FontaineRegion {
     // ...
 }
 ```
 
-This is useful for libraries that require specific attributes on types, such as [facet](https://facet.rs) which requires `#[repr]` on enums for reflection.
+The `attributes` field is useful for libraries that require specific attributes on types, such as [facet](https://facet.rs) which requires `#[repr]` on enums for reflection.
 
 ~~~admonish note
-The same case-sensitivity rules apply as with `type-traits-mapping` - use lowercase type names unless the type was explicitly created with quotes in PostgreSQL.
+PostgreSQL identifiers (including type names) are case-insensitive unless quoted during creation. This means that a type created as `CREATE TYPE Fontaine_Region` will be stored as `fontaine_region` in the PostgreSQL system catalogs. When referencing custom PostgreSQL types in `types.custom`, you should use the lowercase form unless the type was explicitly created with quotes.
 ~~~
+
+You can combine global and type-specific derive traits - the traits will be merged for the specified custom PostgreSQL types.
 
 ## Query field metadata
 This is an opt-in feature that generates lightweight metadata about each result-row struct.

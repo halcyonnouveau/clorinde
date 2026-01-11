@@ -87,9 +87,19 @@ fn gen_custom_type(
         quote!()
     };
 
+    let custom_config = config.types.custom.get(name);
+
     let all_traits: Vec<&String> = traits
         .iter()
         .chain(config.types.derive_traits.iter())
+        // New config format
+        .chain(
+            custom_config
+                .map(|c| c.derive_traits.as_slice())
+                .unwrap_or(&[])
+                .iter(),
+        )
+        // Deprecated config format (for backwards compatibility)
         .chain(
             config
                 .types
@@ -105,13 +115,20 @@ fn gen_custom_type(
         .into_iter()
         .map(|t| syn::parse_str::<proc_macro2::TokenStream>(t).unwrap_or_else(|_| quote!()));
 
-    let type_attrs: Vec<_> = config
-        .types
-        .type_attributes_mapping
-        .get(name)
-        .map(|v| v.as_slice())
+    let type_attrs: Vec<_> = custom_config
+        .map(|c| c.attributes.as_slice())
         .unwrap_or(&[])
         .iter()
+        // Deprecated config format (for backwards compatibility)
+        .chain(
+            config
+                .types
+                .type_attributes_mapping
+                .get(name)
+                .map(|v| v.as_slice())
+                .unwrap_or(&[])
+                .iter(),
+        )
         .map(|attr| syn::parse_str::<proc_macro2::TokenStream>(attr).unwrap_or_else(|_| quote!()))
         .collect();
 

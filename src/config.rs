@@ -69,7 +69,22 @@ impl Config {
             }
         }
 
+        config.check_deprecated_fields();
+
         Ok(config)
+    }
+
+    fn check_deprecated_fields(&self) {
+        if !self.types.type_traits_mapping.is_empty() {
+            eprintln!(
+                "warning: `types.type-traits-mapping` is deprecated, use `types.custom` instead"
+            );
+        }
+        if !self.types.type_attributes_mapping.is_empty() {
+            eprintln!(
+                "warning: `types.type-attributes-mapping` is deprecated, use `types.custom` instead"
+            );
+        }
     }
 
     pub fn builder_from_file<P: AsRef<Path>>(path: P) -> Result<ConfigBuilder, ConfigError> {
@@ -107,6 +122,7 @@ impl Default for Config {
             types: Types {
                 mapping: HashMap::new(),
                 derive_traits: vec![],
+                custom: HashMap::new(),
                 type_traits_mapping: HashMap::new(),
                 type_attributes_mapping: HashMap::new(),
             },
@@ -153,12 +169,30 @@ pub struct Types {
     /// Derive traits added to all generated row structs and custom types
     #[serde(rename = "derive-traits")]
     pub derive_traits: Vec<String>,
+    /// Configuration for custom postgres types (enums, composites, domains)
+    #[serde(default)]
+    pub custom: HashMap<String, CustomTypeConfig>,
     /// Mapping for custom postgres types (eg. domains, enums, etc) to derive traits
-    #[serde(rename = "type-traits-mapping")]
+    /// Deprecated: use `custom` instead
+    #[serde(rename = "type-traits-mapping", default)]
     pub type_traits_mapping: HashMap<String, Vec<String>>,
     /// Mapping for custom postgres types to arbitrary attributes (e.g., repr, cfg)
-    #[serde(default, rename = "type-attributes-mapping")]
+    /// Deprecated: use `custom` instead
+    #[serde(rename = "type-attributes-mapping", default)]
     pub type_attributes_mapping: HashMap<String, Vec<String>>,
+}
+
+/// Configuration for a custom PostgreSQL type (enum, composite, or domain)
+#[derive(Debug, Deserialize, Clone, Default)]
+#[serde(default, deny_unknown_fields)]
+#[non_exhaustive]
+pub struct CustomTypeConfig {
+    /// Derive traits to add to this type
+    #[serde(rename = "derive-traits", default)]
+    pub derive_traits: Vec<String>,
+    /// Attributes to add to this type (e.g., repr(u8))
+    #[serde(default)]
+    pub attributes: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

@@ -10,11 +10,9 @@ enum-variant-camel-case = true
 [types]
 derive-traits = ["serde::Serialize", "Hash"]
 
-[types.type-traits-mapping]
-quality = ["serde::Deserialize"]
-
-[types.type-attributes-mapping]
-quality = ["repr(u8)"]
+[types.custom.quality]
+derive-traits = ["serde::Deserialize"]
+attributes = ["repr(u8)"]
 
 [types.mapping]
 "public.element" = "db_types::element::Element"
