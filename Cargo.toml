@@ -44,7 +44,7 @@ heck = "0.5"
 indexmap = "2.13"
 
 # Generate temporary files
-tempfile = "3.22"
+tempfile = "3.25"
 
 # Random generation
 rand = "0.9"
@@ -60,7 +60,7 @@ criterion = { version = "0.8", features = ["html_reports"] }
 postgres = "0.19"
 diesel = { version = "2.3", features = ["postgres"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
-tempfile = "3.22"
+tempfile = "3.25"
 generated = { path = "benches/generated" }
 
 [[bench]]
