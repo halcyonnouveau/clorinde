@@ -7,27 +7,27 @@ use crate::config::{Config, UseWorkspaceDeps};
 
 mod versions {
     // https://crates.io/crates/postgres-types
-    pub const POSTGRES_TYPES: &str = "0.2.11";
+    pub const POSTGRES_TYPES: &str = "0.2.12";
     // https://crates.io/crates/postgres-protocol
-    pub const POSTGRES_PROTOCOL: &str = "0.6.9";
+    pub const POSTGRES_PROTOCOL: &str = "0.6.10";
     // https://crates.io/crates/postgres
     pub const POSTGRES: &str = "0.19.12";
     // https://crates.io/crates/tokio-postgres
-    pub const TOKIO_POSTGRES: &str = "0.7.15";
+    pub const TOKIO_POSTGRES: &str = "0.7.16";
     // https://crates.io/crates/chrono
-    pub const CHRONO: &str = "0.4.42";
+    pub const CHRONO: &str = "0.4.43";
     // https://crates.io/crates/uuid
-    pub const UUID: &str = "1.19.0";
+    pub const UUID: &str = "1.21.0";
     // https://crates.io/crates/eui48
     pub const EUI48: &str = "1.1.0";
     // https://crates.io/crates/rust-decimal
-    pub const RUST_DECIMAL: &str = "1.39.0";
+    pub const RUST_DECIMAL: &str = "1.40.0";
     // https://crates.io/crates/serde
     pub const SERDE: &str = "1.0.228";
     // https://crates.io/crates/serde-json
     pub const SERDE_JSON: &str = "1.0.149";
     // https://crates.io/crates/futures
-    pub const FUTURES: &str = "0.3.31";
+    pub const FUTURES: &str = "0.3.32";
     // https://crates.io/crates/deadpool-postgres
     pub const DEADPOOL_POSTGRES: &str = "0.14.1";
 }

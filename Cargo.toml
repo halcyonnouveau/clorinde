@@ -47,11 +47,11 @@ indexmap = "2.13"
 tempfile = "3.22"
 
 # Random generation
-rand = "0.9"
+rand = "0.10"
 
 # Config handling
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.9"
+toml = "1.0"
 cargo_toml = "0.22"
 
 [dev-dependencies]

@@ -7,7 +7,7 @@ edition = "2021"
 publish = false
 
 [dependencies.chrono]
-version = "0.4.42"
+version = "0.4.43"
 features = ["serde"]
 
 [dependencies.db_types]
@@ -18,17 +18,17 @@ version = "0.14.1"
 optional = true
 
 [dependencies.futures]
-version = "0.3.31"
+version = "0.3.32"
 
 [dependencies.postgres]
 version = "0.19"
 features = ["with-time-0_3", "with-serde_json-1"]
 
 [dependencies.postgres-protocol]
-version = "0.6.9"
+version = "0.6.10"
 
 [dependencies.postgres-types]
-version = "0.2.11"
+version = "0.2.12"
 features = ["derive"]
 
 [dependencies.serde]

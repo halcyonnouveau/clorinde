@@ -28,4 +28,4 @@ futures = "0.3"
 ## Test fixtures ser/de
 serde = { version = "1.0", features = ["derive"] }
 ## Read/write fixture files
-toml = "0.9"
+toml = "1.0"

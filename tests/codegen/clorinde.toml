@@ -8,5 +8,8 @@ version = "0.0.0"
 edition = "2021"
 publish = false
 
+[manifest.dependencies]
+async-graphql = "7.2"
+
 [manifest.features]
 graphql = []
