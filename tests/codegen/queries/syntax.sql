@@ -70,3 +70,15 @@ SELECT
     e'-- another escape string' as c4,    -- and this
     $tag$-- dollar quoted here$tag$ as c5 -- finally this
 ;
+
+--! semicolon_in_string
+INSERT INTO syntax ("trick:y", async, enum) VALUES ('a; b', :async, :enum);
+--! semicolon_in_dollar_quote
+INSERT INTO syntax ("trick:y", async, enum) VALUES ($$a; b$$, :async, :enum);
+--! semicolon_in_tagged_dollar_quote
+INSERT INTO syntax ("trick:y", async, enum) VALUES ($tag$a; b$tag$, :async, :enum);
+--! semicolon_in_escape_string
+INSERT INTO syntax ("trick:y", async, enum) VALUES (E'a\; b', :async, :enum);
+--! semicolon_in_comment
+SELECT * FROM syntax -- ;where
+;

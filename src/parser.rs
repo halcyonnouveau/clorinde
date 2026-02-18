@@ -307,6 +307,183 @@ pub(crate) struct Query {
     pub(crate) attributes: Vec<String>,
 }
 
+/// Tracks SQL lexical context (strings, identifiers, comments, dollar quotes)
+/// to distinguish characters that are part of SQL syntax from those inside
+/// quoted or commented regions.
+struct SqlScanner {
+    chars: Vec<char>,
+    i: usize,
+    in_string: bool,
+    in_escape_string: bool,
+    in_identifier: bool,
+    in_comment: bool,
+    in_dollar_quote: bool,
+    dollar_tag: String,
+}
+
+impl SqlScanner {
+    fn new(sql: &str) -> Self {
+        Self {
+            chars: sql.chars().collect(),
+            i: 0,
+            in_string: false,
+            in_escape_string: false,
+            in_identifier: false,
+            in_comment: false,
+            in_dollar_quote: false,
+            dollar_tag: String::new(),
+        }
+    }
+
+    fn in_context(&self) -> bool {
+        self.in_string || self.in_identifier || self.in_comment || self.in_dollar_quote
+    }
+
+    /// Process the current character for context transitions.
+    /// Returns `true` if the character was consumed by context handling
+    /// (the caller should loop to the next character).
+    /// Returns `false` if the character is outside any context and not a
+    /// context-switching character (the caller should handle it and advance `i`).
+    fn process_context(&mut self) -> bool {
+        let i = self.i;
+        let c = self.chars[i];
+
+        match c {
+            '\'' => {
+                if !self.in_comment && !self.in_dollar_quote {
+                    if self.in_string {
+                        if i + 1 < self.chars.len() && self.chars[i + 1] == '\'' {
+                            self.i += 2;
+                            return true;
+                        }
+                        self.in_string = false;
+                        self.in_escape_string = false;
+                    } else if !self.in_identifier {
+                        self.in_string = true;
+                    }
+                }
+                self.i += 1;
+                true
+            }
+
+            'e' | 'E' => {
+                if !self.in_context() && i + 1 < self.chars.len() && self.chars[i + 1] == '\'' {
+                    self.i += 2;
+                    self.in_string = true;
+                    self.in_escape_string = true;
+                    return true;
+                }
+                if self.in_context() {
+                    self.i += 1;
+                    return true;
+                }
+                false
+            }
+
+            '\\' => {
+                if self.in_escape_string && i + 1 < self.chars.len() {
+                    self.i += 2;
+                    return true;
+                }
+                if self.in_context() {
+                    self.i += 1;
+                    return true;
+                }
+                false
+            }
+
+            '"' => {
+                if !self.in_string && !self.in_comment && !self.in_dollar_quote {
+                    if self.in_identifier {
+                        if i + 1 < self.chars.len() && self.chars[i + 1] == '"' {
+                            self.i += 2;
+                            return true;
+                        }
+                        self.in_identifier = false;
+                    } else {
+                        self.in_identifier = true;
+                    }
+                }
+                self.i += 1;
+                true
+            }
+
+            '-' => {
+                if !self.in_context() && i + 1 < self.chars.len() && self.chars[i + 1] == '-' {
+                    self.i += 2;
+                    self.in_comment = true;
+                    return true;
+                }
+                if self.in_context() {
+                    self.i += 1;
+                    return true;
+                }
+                false
+            }
+
+            '\n' => {
+                if self.in_comment {
+                    self.in_comment = false;
+                    self.i += 1;
+                    return true;
+                }
+                if self.in_context() {
+                    self.i += 1;
+                    return true;
+                }
+                false
+            }
+
+            '$' => {
+                if !self.in_context() {
+                    let tag_start = i + 1;
+                    let mut tag_end = tag_start;
+
+                    while tag_end < self.chars.len()
+                        && (self.chars[tag_end].is_alphanumeric() || self.chars[tag_end] == '_')
+                    {
+                        tag_end += 1;
+                    }
+
+                    if tag_end < self.chars.len() && self.chars[tag_end] == '$' {
+                        self.dollar_tag = self.chars[tag_start..tag_end].iter().collect();
+                        self.in_dollar_quote = true;
+                        self.i = tag_end + 1;
+                        return true;
+                    }
+                    return false;
+                }
+                if self.in_dollar_quote {
+                    let tag_length = self.dollar_tag.len();
+
+                    if i + 1 + tag_length < self.chars.len() {
+                        let potential_end: String =
+                            self.chars[i + 1..i + 1 + tag_length].iter().collect();
+
+                        if potential_end == self.dollar_tag && self.chars[i + 1 + tag_length] == '$'
+                        {
+                            self.in_dollar_quote = false;
+                            self.i = i + tag_length + 2;
+                            self.dollar_tag.clear();
+                            return true;
+                        }
+                    }
+                }
+                self.i += 1;
+                true
+            }
+
+            _ => {
+                if self.in_context() {
+                    self.i += 1;
+                    return true;
+                }
+                false
+            }
+        }
+    }
+}
+
 impl Query {
     /// Remove all comments from a query
     fn clean_sql_comments(sql: &str) -> String {
@@ -360,178 +537,69 @@ impl Query {
         result
     }
 
-    /// Extract bind parameters from SQL - context aware, more robust than using combinators
+    /// Extract bind parameters from SQL, using `SqlScanner` to skip
+    /// characters inside string literals, comments, and other quoted contexts.
     fn extract_bind_params(sql: &str) -> Vec<Span<String>> {
+        let mut s = SqlScanner::new(sql);
         let mut params = Vec::new();
-        let mut i = 0;
-        let chars: Vec<char> = sql.chars().collect();
 
-        struct ParseContext {
-            in_string: bool,
-            in_escape_string: bool,
-            in_identifier: bool,
-            in_comment: bool,
-            in_dollar_quote: bool,
-            dollar_tag: String,
-        }
-
-        let mut ctx = ParseContext {
-            in_string: false,
-            in_escape_string: false,
-            in_identifier: false,
-            in_comment: false,
-            in_dollar_quote: false,
-            dollar_tag: String::new(),
-        };
-
-        let in_context = |ctx: &ParseContext| -> bool {
-            ctx.in_string || ctx.in_identifier || ctx.in_comment || ctx.in_dollar_quote
-        };
-
-        while i < chars.len() {
-            let c = chars[i];
-
-            match c {
-                // Handle string literals
-                '\'' => {
-                    if !ctx.in_comment && !ctx.in_dollar_quote {
-                        if ctx.in_string {
-                            // Handle escaped quotes
-                            if i + 1 < chars.len() && chars[i + 1] == '\'' {
-                                i += 1; // Skip the escaped quote
-                            } else {
-                                ctx.in_string = false;
-                                ctx.in_escape_string = false;
-                            }
-                        } else {
-                            ctx.in_string = true;
-                        }
-                    }
-                }
-
-                // Handle escape strings (E'...' or e'...')
-                'e' | 'E' => {
-                    if !in_context(&ctx) && i + 1 < chars.len() && chars[i + 1] == '\'' {
-                        i += 1; // Skip the quote
-                        ctx.in_string = true;
-                        ctx.in_escape_string = true;
-                    }
-                }
-
-                // Handle backslash escapes in escape strings
-                '\\' => {
-                    if ctx.in_escape_string && i + 1 < chars.len() {
-                        i += 1; // Skip the escaped character
-                    }
-                }
-
-                // Handle quoted identifiers
-                '"' => {
-                    if !ctx.in_string && !ctx.in_comment && !ctx.in_dollar_quote {
-                        if ctx.in_identifier {
-                            // Handle escaped quotes
-                            if i + 1 < chars.len() && chars[i + 1] == '"' {
-                                i += 1; // Skip the escaped quote
-                            } else {
-                                ctx.in_identifier = false;
-                            }
-                        } else {
-                            ctx.in_identifier = true;
-                        }
-                    }
-                }
-
-                // Handle line comments
-                '-' => {
-                    if !in_context(&ctx) && i + 1 < chars.len() && chars[i + 1] == '-' {
-                        i += 1; // Skip the second dash
-                        ctx.in_comment = true;
-                    }
-                }
-
-                // End of line comment
-                '\n' => {
-                    if ctx.in_comment {
-                        ctx.in_comment = false;
-                    }
-                }
-
-                // Handle dollar-quoted strings
-                '$' => {
-                    if !in_context(&ctx) {
-                        // Start of dollar quote
-                        let tag_start = i + 1;
-                        let mut tag_end = tag_start;
-
-                        // Find end of tag
-                        while tag_end < chars.len()
-                            && (chars[tag_end].is_alphanumeric() || chars[tag_end] == '_')
-                        {
-                            tag_end += 1;
-                        }
-
-                        // Check for closing $
-                        if tag_end < chars.len() && chars[tag_end] == '$' {
-                            ctx.dollar_tag = sql[tag_start..tag_end].to_string();
-                            ctx.in_dollar_quote = true;
-                            i = tag_end; // Position at the closing $
-                        }
-                    } else if ctx.in_dollar_quote {
-                        // Potential end of dollar quote
-                        let tag_length = ctx.dollar_tag.len();
-
-                        if i + 1 + tag_length < chars.len() {
-                            let potential_end = &sql[i + 1..i + 1 + tag_length];
-
-                            if potential_end == ctx.dollar_tag
-                                && i + 1 + tag_length < chars.len()
-                                && chars[i + 1 + tag_length] == '$'
-                            {
-                                // Found matching end tag
-                                ctx.in_dollar_quote = false;
-                                i += tag_length + 1; // Skip to the end of the closing tag
-                                ctx.dollar_tag.clear();
-                            }
-                        }
-                    }
-                }
-
-                // Handle bind parameters
-                ':' => {
-                    if !in_context(&ctx) {
-                        // Skip type cast (::)
-                        if i + 1 < chars.len() && chars[i + 1] == ':' {
-                            i += 1;
-                        } else {
-                            // Extract parameter name
-                            let param_start = i + 1;
-                            let mut param_end = param_start;
-
-                            while param_end < chars.len()
-                                && (chars[param_end].is_alphanumeric() || chars[param_end] == '_')
-                            {
-                                param_end += 1;
-                            }
-
-                            if param_end > param_start {
-                                let param = sql[param_start..param_end].to_string();
-                                params.push(Span {
-                                    value: param,
-                                    span: (param_start..param_end).into(),
-                                });
-                                i = param_end - 1; // Position at the last character of the parameter
-                            }
-                        }
-                    }
-                }
-
-                _ => {}
+        while s.i < s.chars.len() {
+            if s.process_context() {
+                continue;
             }
 
-            i += 1;
+            if s.chars[s.i] == ':' {
+                if s.i + 1 < s.chars.len() && s.chars[s.i + 1] == ':' {
+                    s.i += 2; // skip type cast (::)
+                } else {
+                    let param_start = s.i + 1;
+                    let mut param_end = param_start;
+
+                    while param_end < s.chars.len()
+                        && (s.chars[param_end].is_alphanumeric() || s.chars[param_end] == '_')
+                    {
+                        param_end += 1;
+                    }
+
+                    if param_end > param_start {
+                        let param: String = s.chars[param_start..param_end].iter().collect();
+                        params.push(Span {
+                            value: param,
+                            span: (param_start..param_end).into(),
+                        });
+                        s.i = param_end;
+                    } else {
+                        s.i += 1;
+                    }
+                }
+            } else {
+                s.i += 1;
+            }
         }
 
         params
+    }
+
+    /// Find the character index of the statement-terminating semicolon.
+    /// Returns `None` if no terminating semicolon is found.
+    /// Uses `SqlScanner` to correctly skip semicolons inside string literals,
+    /// dollar-quoted strings, quoted identifiers, and comments.
+    fn find_statement_end(sql: &str) -> Option<usize> {
+        let mut s = SqlScanner::new(sql);
+
+        while s.i < s.chars.len() {
+            if s.process_context() {
+                continue;
+            }
+
+            if s.chars[s.i] == ';' {
+                return Some(s.i);
+            }
+
+            s.i += 1;
+        }
+
+        None
     }
 
     /// Remove duplicates from bind parameters while preserving order of first occurrence
@@ -543,45 +611,55 @@ impl Query {
             .collect()
     }
 
-    /// Parse sql query, normalizing named parameters
+    /// Parse sql query, normalizing named parameters.
+    /// Uses a context-aware state machine to find the statement-terminating
+    /// semicolon, correctly skipping semicolons inside string literals,
+    /// dollar-quoted strings, quoted identifiers, and comments.
     fn parse_sql_query<'src>() -> impl Parser<
         'src,
         &'src str,
         (String, SourceSpan, Vec<Span<String>>),
         extra::Err<Simple<'src, char>>,
     > {
-        // TODO(bug): Using none_of(";") breaks on the first semicolon it encounters, even if that semicolon is inside:
-        // - String literals: 'text with ; in it'
-        // - Dollar-quoted strings: $$text with ; in it$$
-        // - Comments: -- comment with ; in it
-        // We need proper SQL token awareness to know if a semicolon is part of these constructs or if it's the actual query terminator.
-        none_of(";")
-            .repeated()
-            .collect::<String>()
-            .then_ignore(just(";"))
-            .map_with(move |sql_str: String, e| {
-                let span: SimpleSpan = e.span();
-                let range: Range<usize> = span.start()..span.end();
-                let source_span: SourceSpan = range.into();
+        custom(|inp| {
+            let before = inp.cursor();
+            let remaining: &str = inp.slice_from(&before..);
 
-                let mut sql_str = Self::clean_sql_comments(&sql_str)
-                    .lines()
-                    .filter(|line| !line.trim().is_empty())
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                let bind_params = Self::extract_bind_params(&sql_str);
-                let dedup_params = Self::dedup_bind_params(bind_params.clone());
-
-                for bind_param in bind_params.iter().rev() {
-                    let index = dedup_params.iter().position(|bp| bp == bind_param).unwrap();
-                    let start = bind_param.span.offset() - 1;
-                    let end = start + bind_param.span.len();
-                    sql_str.replace_range(start..=end, &format!("${}", index + 1));
+            match Self::find_statement_end(remaining) {
+                Some(semi_char_pos) => {
+                    for _ in 0..semi_char_pos {
+                        inp.skip();
+                    }
+                    let sql: &str = inp.slice_since(&before..);
+                    inp.skip(); // skip the semicolon
+                    Ok(sql.to_string())
                 }
+                None => Err(Simple::new(None, inp.span_since(&before))),
+            }
+        })
+        .map_with(move |sql_str: String, e| {
+            let span: SimpleSpan = e.span();
+            let range: Range<usize> = span.start()..span.end();
+            let source_span: SourceSpan = range.into();
 
-                (sql_str, source_span, dedup_params)
-            })
+            let mut sql_str = Self::clean_sql_comments(&sql_str)
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let bind_params = Self::extract_bind_params(&sql_str);
+            let dedup_params = Self::dedup_bind_params(bind_params.clone());
+
+            for bind_param in bind_params.iter().rev() {
+                let index = dedup_params.iter().position(|bp| bp == bind_param).unwrap();
+                let start = bind_param.span.offset() - 1;
+                let end = start + bind_param.span.len();
+                sql_str.replace_range(start..=end, &format!("${}", index + 1));
+            }
+
+            (sql_str, source_span, dedup_params)
+        })
     }
 
     fn parse_comments<'src>()
@@ -816,5 +894,69 @@ pub(crate) mod error {
 
         #[label("unexpected token")]
         pub err_span: SourceSpan,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Query;
+
+    #[test]
+    fn find_statement_end_simple() {
+        assert_eq!(Query::find_statement_end("SELECT 1;"), Some(8));
+    }
+
+    #[test]
+    fn find_statement_end_single_quoted_string() {
+        assert_eq!(Query::find_statement_end("SELECT 'a;b';"), Some(12));
+    }
+
+    #[test]
+    fn find_statement_end_dollar_quoted_string() {
+        assert_eq!(Query::find_statement_end("SELECT $$a;b$$;"), Some(14));
+    }
+
+    #[test]
+    fn find_statement_end_tagged_dollar_quote() {
+        assert_eq!(Query::find_statement_end("SELECT $t$a;b$t$;"), Some(16));
+    }
+
+    #[test]
+    fn find_statement_end_escape_string() {
+        assert_eq!(Query::find_statement_end("SELECT E'a\\;b';"), Some(14));
+    }
+
+    #[test]
+    fn find_statement_end_double_quoted_identifier() {
+        assert_eq!(Query::find_statement_end("SELECT \"a;b\";"), Some(12));
+    }
+
+    #[test]
+    fn find_statement_end_line_comment() {
+        assert_eq!(
+            Query::find_statement_end("SELECT 1 -- comment;\n;"),
+            Some(21)
+        );
+    }
+
+    #[test]
+    fn find_statement_end_no_semicolon() {
+        assert_eq!(Query::find_statement_end("SELECT 1"), None);
+    }
+
+    #[test]
+    fn find_statement_end_multiple_contexts() {
+        assert_eq!(
+            Query::find_statement_end("SELECT 'a;b', $$c;d$$, \"e;f\";"),
+            Some(28)
+        );
+    }
+
+    #[test]
+    fn find_statement_end_escaped_quote_in_string() {
+        assert_eq!(
+            Query::find_statement_end("SELECT 'it''s ; here';"),
+            Some(21)
+        );
     }
 }
