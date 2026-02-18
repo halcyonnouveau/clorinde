@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.3.0...clorinde-v1.3.1) - 2026-02-18
+
+### Fixed
+
+- context-aware semicolon parsing in SQL queries ([#91](https://github.com/halcyonnouveau/clorinde/pull/91))
+
 ## [1.3.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.2.0...clorinde-v1.3.0) - 2026-01-11
 
 ### Added
