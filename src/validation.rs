@@ -285,14 +285,14 @@ pub(crate) fn validate_preparation(module: &PreparedModule) -> Result<(), Box<Er
             } else {
                 ((span, ty), prev)
             };
-            Err(Error::DuplicateName {
+            Err(Box::new(Error::DuplicateName {
                 src: (&module.info).into(),
                 name,
                 first: first.0,
                 first_ty: first.1,
                 second: second.0,
                 second_ty: second.1,
-            })
+            }))
         } else {
             Ok(())
         }

@@ -63,6 +63,10 @@ impl Config {
         let contents = fs::read_to_string(path)?;
         let mut config: Config = toml::from_str(&contents)?;
 
+        if config.manifest.package.is_none() {
+            config.manifest.package = default_manifest().package;
+        }
+
         if let Some(manifest) = &mut config.manifest.package {
             if manifest.edition == cargo_toml::Inheritable::Set(cargo_toml::Edition::E2015) {
                 manifest.edition = cargo_toml::Inheritable::Set(cargo_toml::Edition::E2021);
@@ -468,4 +472,60 @@ pub enum ConfigError {
 
 fn default_true() -> bool {
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn manifest_dependencies_without_package_preserves_default_package() {
+        let toml_content = r#"
+queries = "db/queries"
+
+[manifest.dependencies.jiff]
+version = "0.2"
+"#;
+
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+        tmpfile.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = Config::from_file(tmpfile.path()).unwrap();
+
+        let package = config
+            .manifest
+            .package
+            .expect("package section should be preserved when only dependencies are specified");
+        assert_eq!(package.name, "clorinde");
+        assert_eq!(
+            package.publish,
+            cargo_toml::Inheritable::Set(cargo_toml::Publish::Flag(false))
+        );
+    }
+
+    #[test]
+    fn explicit_manifest_package_is_respected() {
+        let toml_content = r#"
+queries = "db/queries"
+
+[manifest.package]
+name = "custom-name"
+version = "1.0.0"
+edition = "2021"
+publish = false
+"#;
+
+        let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+        tmpfile.write_all(toml_content.as_bytes()).unwrap();
+
+        let config = Config::from_file(tmpfile.path()).unwrap();
+
+        let package = config
+            .manifest
+            .package
+            .expect("package section should exist");
+        assert_eq!(package.name, "custom-name");
+        assert_eq!(package.version(), "1.0.0");
+    }
 }
