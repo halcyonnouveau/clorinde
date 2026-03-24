@@ -109,17 +109,9 @@ struct CommonArgs {
     /// Generate asynchronous rust code
     #[clap(long)]
     r#async: Option<bool>,
-
-    /// (DEPRECATED) Derive serde's `Serialize` trait for generated types.
-    #[clap(long)]
-    #[deprecated(
-        since = "1.0.0",
-        note = "please use the `types.derive-traits` configuration instead"
-    )]
-    serialize: Option<bool>,
 }
 
-#[allow(clippy::result_large_err, deprecated)]
+#[allow(clippy::result_large_err)]
 // Main entrypoint of the CLI. Parses the args and calls the appropriate routines.
 pub fn run() -> Result<(), Error> {
     let Args { action } = Args::parse();
@@ -129,7 +121,6 @@ pub fn run() -> Result<(), Error> {
         destination,
         sync,
         r#async,
-        serialize,
     } = action.args();
 
     let mut cfg = match config.is_file() {
@@ -141,14 +132,6 @@ pub fn run() -> Result<(), Error> {
     cfg.destination = destination.unwrap_or(cfg.destination);
     cfg.sync = sync.unwrap_or(cfg.sync);
     cfg.r#async = r#async.unwrap_or(false) || !cfg.sync;
-    cfg.serialize = serialize.unwrap_or(cfg.serialize);
-
-    if serialize.is_some() {
-        eprintln!(
-            "Warning: --serialize is deprecated (since 1.0.0), please use the `types.derive-traits` configuration instead"
-        );
-    }
-
     // Prevent wrong directory being accidentally deleted
     if !cfg.destination.ends_with("clorinde")
         && (cfg.destination.exists() && !cfg.destination.join("Cargo.toml").exists())

@@ -114,7 +114,7 @@ impl PreparedField {
 
 impl PreparedField {
     pub fn unwrapped_name(&self) -> String {
-        self.own_struct(&GenCtx::new(ModCtx::Types, false, false))
+        self.own_struct(&GenCtx::new(ModCtx::Types, false))
             .replace(['<', '>', '_'], "")
             .to_upper_camel_case()
     }

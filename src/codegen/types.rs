@@ -29,16 +29,14 @@ pub(crate) fn gen_type_modules(
 
     for (schema, types) in prepared {
         if schema == "public" {
-            #[allow(deprecated)]
-            let ctx = GenCtx::new(ModCtx::Types, config.r#async, config.serialize);
+            let ctx = GenCtx::new(ModCtx::Types, config.r#async);
             {
                 for ty in types {
                     tokens.extend(gen_custom_type(schema, ty, config, &ctx))
                 }
             }
         } else {
-            #[allow(deprecated)]
-            let ctx = GenCtx::new(ModCtx::SchemaTypes, config.r#async, config.serialize);
+            let ctx = GenCtx::new(ModCtx::SchemaTypes, config.r#async);
             {
                 let mut p_tokens = quote!();
                 for ty in types {
@@ -81,12 +79,6 @@ fn gen_custom_type(
     let name_lit = syn::LitStr::new(name, proc_macro2::Span::call_site());
 
     let copy_attr = if *is_copy { quote!(Copy,) } else { quote!() };
-    let ser_attr = if ctx.gen_derive {
-        quote!(serde::Serialize,)
-    } else {
-        quote!()
-    };
-
     let custom_config = config.types.custom.get(name);
 
     let all_traits: Vec<&String> = traits
@@ -154,7 +146,7 @@ fn gen_custom_type(
 
             let enum_def = quote! {
                 #(#[#type_attrs])*
-                #[derive(#ser_attr Debug, Clone, Copy, PartialEq, Eq #(,#trait_attrs)*)]
+                #[derive(Debug, Clone, Copy, PartialEq, Eq #(,#trait_attrs)*)]
                 #[allow(non_camel_case_types)]
                 pub enum #struct_name_ident {
                     #(#variants_ident,)*
@@ -226,7 +218,7 @@ fn gen_custom_type(
 
             let struct_def = quote! {
                 #(#[#type_attrs])*
-                #[derive(#ser_attr Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq #(,#trait_attrs)*)]
+                #[derive(Debug, postgres_types::FromSql, #copy_attr Clone, PartialEq #(,#trait_attrs)*)]
                 #[postgres(name = #name_lit)]
                 pub struct #struct_name_ident {
                     #(#fields_with_attrs,)*

@@ -4,7 +4,6 @@ use clorinde::{config::Config, conn::clorinde_conn};
 use criterion::Criterion;
 
 fn bench(c: &mut Criterion) {
-    clorinde::container::cleanup(false).ok();
     clorinde::container::setup(false, "docker.io/library/postgres:latest", 250).unwrap();
     let client = &clorinde_conn().unwrap();
     let tmp = tempfile::tempdir().unwrap();

@@ -80,12 +80,6 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx, config: &Config) -> proc_ma
 
     let copy_attr = if *is_copy { quote!(, Copy) } else { quote!() };
 
-    let ser_attr = if ctx.gen_derive {
-        quote!(serde::Serialize,)
-    } else {
-        quote!()
-    };
-
     let trait_attrs = traits
         .iter()
         .chain(config.types.derive_traits.iter())
@@ -122,7 +116,7 @@ fn gen_row_structs(row: &PreparedItem, ctx: &GenCtx, config: &Config) -> proc_ma
         .collect::<Vec<_>>();
 
     let main_struct = quote! {
-        #[derive(#ser_attr Debug, Clone, PartialEq #copy_attr #(,#trait_attrs)*)]
+        #[derive(Debug, Clone, PartialEq #copy_attr #(,#trait_attrs)*)]
         #(#[#custom_attrs])*
         pub struct #name_ident {
             #(#fields_with_attrs,)*
@@ -626,8 +620,7 @@ fn gen_query_fn(
 
 fn gen_query_module(module: &PreparedModule, config: &Config) -> proc_macro2::TokenStream {
     let mut tokens = quote!();
-    #[allow(deprecated)]
-    let ctx = GenCtx::new(ModCtx::Queries, config.r#async, config.serialize);
+    let ctx = GenCtx::new(ModCtx::Queries, config.r#async);
 
     // Import FieldMeta once per generated queries file (avoid duplicate imports per struct)
     if config.generate_field_metadata {
@@ -679,8 +672,7 @@ fn gen_specific(
     hierarchy: ModCtx,
     is_async: bool,
 ) -> proc_macro2::TokenStream {
-    #[allow(deprecated)]
-    let ctx = GenCtx::new(hierarchy, is_async, config.serialize);
+    let ctx = GenCtx::new(hierarchy, is_async);
 
     let imports = if is_async {
         quote! {

@@ -244,13 +244,11 @@ pub fn gen_cargo_file(dependency_analysis: &DependencyAnalysis, config: &Config)
 
     let mut client_features = Vec::new();
 
-    #[allow(deprecated)]
-    let needs_serde = config.serialize
-        || config
-            .types
-            .derive_traits
-            .iter()
-            .any(|t| t.contains("serde"));
+    let needs_serde = config
+        .types
+        .derive_traits
+        .iter()
+        .any(|t| t.contains("serde"));
 
     // Type dependencies
     if dependency_analysis.has_dependency() {

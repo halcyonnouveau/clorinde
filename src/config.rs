@@ -25,12 +25,6 @@ pub struct Config {
     pub sync: bool,
     /// Generate asynchronous rust code
     pub r#async: bool,
-    /// Derive serde's `Serialize` trait for generated types
-    #[deprecated(
-        since = "1.0.0",
-        note = "please use the `types.derive-traits` configuration instead"
-    )]
-    pub serialize: bool,
     /// Ignore query files prefixed with underscore
     #[serde(rename = "ignore-underscore-files")]
     pub ignore_underscore_files: bool,
@@ -109,7 +103,6 @@ impl Config {
 }
 
 impl Default for Config {
-    #[allow(deprecated)]
     fn default() -> Self {
         Self {
             podman: false,
@@ -120,7 +113,6 @@ impl Default for Config {
             destination: PathBuf::from_str("clorinde").unwrap(),
             sync: false,
             r#async: true,
-            serialize: false,
             ignore_underscore_files: false,
             params_only: false,
             types: Types {
@@ -343,17 +335,6 @@ impl ConfigBuilder {
     /// Enable or disable generation of field metadata for queries
     pub fn generate_field_metadata(mut self, generate: bool) -> Self {
         self.config.generate_field_metadata = generate;
-        self
-    }
-
-    /// Derive serde's `Serialize` trait for generated types
-    #[deprecated(
-        since = "1.0.0",
-        note = "please use the `types.derive-traits` configuration instead"
-    )]
-    #[allow(deprecated)]
-    pub fn serialize(mut self, serialize: bool) -> Self {
-        self.config.serialize = serialize;
         self
     }
 

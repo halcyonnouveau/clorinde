@@ -114,7 +114,7 @@ derive-traits = ["serde::Serialize", "serde::Deserialize", "Hash"]
 This will add the traits to **all** structs. If you only want them added to specific structs, see this section in ["Type annotations"](./writing_queries/type_annotations.html#derive-traits).
 
 ~~~admonish note
-Adding any `serde` trait will automatically add `serde` as a dependency in the package manifest. This is for backwards compatibility with the deprecated `serialize` config value.
+Adding any `serde` trait will automatically add `serde` as a dependency in the package manifest.
 ~~~
 
 ### Custom PostgreSQL type configuration

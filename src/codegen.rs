@@ -30,16 +30,13 @@ pub struct GenCtx {
     pub hierarchy: ModCtx,
     // Should use async client and generate async code
     pub is_async: bool,
-    // Should serializable struct
-    pub gen_derive: bool,
 }
 
 impl GenCtx {
-    pub fn new(hierarchy: ModCtx, is_async: bool, gen_derive: bool) -> Self {
+    pub fn new(hierarchy: ModCtx, is_async: bool) -> Self {
         Self {
             hierarchy,
             is_async,
-            gen_derive,
         }
     }
 
