@@ -54,7 +54,7 @@ pub(crate) fn run_errors_test(
 
             // Run codegen
             let result = clorinde::load_schema(client, &["schema.sql"])
-                .map_err(Error::from)
+                .map_err(|e| Error::from(Box::new(e)))
                 .and_then(|_| clorinde::gen_live(client, cfg));
 
             let err = result.unwrap_err().report();

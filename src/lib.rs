@@ -34,7 +34,6 @@ pub use cli::run;
 pub use error::Error;
 pub use load_schema::load_schema;
 
-#[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`,
 /// using a live database managed by you. Code generation settings are
 /// set using the `config` parameter.
@@ -43,10 +42,11 @@ pub fn gen_live(client: &Client, config: Config) -> Result<(), Error> {
     let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
         .map(parse_query_module)
-        .collect::<Result<_, parser::error::Error>>()?;
+        .collect::<Result<_, parser::error::Error>>()
+        .map_err(Box::new)?;
 
     // Generate
-    let prepared_modules = prepare(client, modules, &config)?;
+    let prepared_modules = prepare(client, modules, &config).map_err(Box::new)?;
     let generated = codegen::gen(prepared_modules, &config);
 
     // Write
@@ -55,7 +55,6 @@ pub fn gen_live(client: &Client, config: Config) -> Result<(), Error> {
     Ok(())
 }
 
-#[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`, using
 /// a container managed by clorinde. The database schema is created using `schema_files`.
 /// Code generation settings are set using the `config` parameter.
@@ -67,7 +66,8 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
     let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
         .map(parse_query_module)
-        .collect::<Result<_, parser::error::Error>>()?;
+        .collect::<Result<_, parser::error::Error>>()
+        .map_err(Box::new)?;
 
     container::setup(
         config.podman,
@@ -76,8 +76,8 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
     )?;
 
     let client = conn::clorinde_conn()?;
-    load_schema(&client, schema_files)?;
-    let prepared_modules = prepare(&client, modules, &config)?;
+    load_schema(&client, schema_files).map_err(Box::new)?;
+    let prepared_modules = prepare(&client, modules, &config).map_err(Box::new)?;
     let generated = codegen::gen(prepared_modules, &config);
     container::cleanup(config.podman)?;
 
@@ -87,7 +87,6 @@ pub fn gen_managed<P: AsRef<Path>>(schema_files: &[P], config: Config) -> Result
     Ok(())
 }
 
-#[allow(clippy::result_large_err)]
 /// Generates Rust queries from PostgreSQL queries located at `queries_path`, using
 /// a temporary database created on an existing PostgreSQL server. The database schema
 /// is created using `schema_files`. Code generation settings are set using the `config` parameter.
@@ -105,7 +104,8 @@ pub fn gen_fresh<P: AsRef<Path>>(
     let modules = read_query_modules(config.queries.as_ref(), &config)?
         .into_iter()
         .map(parse_query_module)
-        .collect::<Result<_, parser::error::Error>>()?;
+        .collect::<Result<_, parser::error::Error>>()
+        .map_err(Box::new)?;
 
     let server_client = conn::from_url(url)?;
 
@@ -128,9 +128,9 @@ pub fn gen_fresh<P: AsRef<Path>>(
             conn::set_search_path(&db_client, search_path)?;
         }
 
-        load_schema(&db_client, schema_files)?;
+        load_schema(&db_client, schema_files).map_err(Box::new)?;
 
-        let prepared_modules = prepare(&db_client, modules, &config)?;
+        let prepared_modules = prepare(&db_client, modules, &config).map_err(Box::new)?;
         let generated = codegen::gen(prepared_modules, &config);
 
         generated.persist(config.destination, config.static_files)?;

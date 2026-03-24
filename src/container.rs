@@ -14,6 +14,9 @@ fn is_installed(tool: &str) -> bool {
 }
 
 /// Starts Clorinde's database container and wait until it reports healthy.
+///
+/// Any existing `clorinde_postgres` container is removed first to avoid
+/// name conflicts left over from a previous failed run.
 pub fn setup(podman: bool, container_image: &str, container_wait: u64) -> Result<(), Error> {
     let command = if podman { "podman" } else { "docker" };
     if !is_installed(command) {
@@ -24,6 +27,9 @@ pub fn setup(podman: bool, container_image: &str, container_wait: u64) -> Result
             )),
         });
     }
+
+    // Clean up any stale container from a previous run
+    cleanup(podman).ok();
 
     spawn_container(podman, container_image)?;
     healthcheck(podman, 120, 50, container_wait)?;

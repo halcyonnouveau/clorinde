@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use rand::{RngExt, distr::Alphanumeric};
 
-use crate::{config::Config, conn, container, error::Error, gen_fresh, gen_live, gen_managed};
+use crate::{config::Config, conn, error::Error, gen_fresh, gen_live, gen_managed};
 
 /// Command line interface to interact with Clorinde SQL.
 #[derive(Parser, Debug)]
@@ -193,11 +193,7 @@ pub fn run() -> Result<(), Error> {
             cfg.container_image = container_image.unwrap_or(cfg.container_image);
             cfg.container_wait = container_wait.unwrap_or(cfg.container_wait);
 
-            // Run the generate command. If the command is unsuccessful, cleanup Clorinde's container
-            if let Err(e) = gen_managed(&schema_files, cfg.clone()) {
-                container::cleanup(cfg.podman).ok();
-                return Err(e);
-            }
+            gen_managed(&schema_files, cfg)?;
         }
         Action::Fresh {
             url,

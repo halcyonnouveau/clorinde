@@ -13,15 +13,15 @@ pub enum Error {
     /// An error while trying to read PostgreSQL query files.
     ReadQueries(#[from] crate::read_queries::error::Error),
     /// An error while trying to parse PostgreSQL query files.
-    ParseQueries(#[from] crate::parser::error::Error),
+    ParseQueries(#[from] Box<crate::parser::error::Error>),
     /// An error while trying to validate PostgreSQL query files.
     ValidateQueries(#[from] Box<crate::validation::error::Error>),
     /// An error while manipulating a container managed by Clorinde.
     Container(#[from] crate::container::error::Error),
     /// An error while trying to prepare PostgreSQL queries.
-    PrepareQueries(#[from] crate::prepare_queries::error::Error),
+    PrepareQueries(#[from] Box<crate::prepare_queries::error::Error>),
     /// An error while reading PostgreSQL schema files.
-    LoadSchema(#[from] crate::load_schema::error::Error),
+    LoadSchema(#[from] Box<crate::load_schema::error::Error>),
     /// An error while trying to write the generated crate to its destination.
     PersistCrate(#[from] PersistError),
     /// An error while trying to read the config flle
