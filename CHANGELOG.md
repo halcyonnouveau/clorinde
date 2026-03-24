@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.3.1...clorinde-v2.0.0) - 2026-03-24
+
+### Added
+
+- [**breaking**] remove deprecated `--serialize` CLI flag and config field
+
+### Fixed
+
+- clean up stale container on setup and box large error variants
+- restore default package section when manifest dependencies are specified without explicit package config
+
 ## [1.3.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.3.0...clorinde-v1.3.1) - 2026-02-18
 
 ### Fixed
