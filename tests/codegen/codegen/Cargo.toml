@@ -10,7 +10,7 @@ publish = false
 async-graphql = "7.2"
 
 [dependencies.chrono]
-version = "0.4.43"
+version = "0.4.44"
 features = ["serde"]
 
 [dependencies.deadpool-postgres]
@@ -54,7 +54,7 @@ features = ["with-chrono-0_4", "with-uuid-1", "with-eui48-1", "with-serde_json-1
 default-features = false
 
 [dependencies.uuid]
-version = "1.21.0"
+version = "1.22.0"
 features = ["serde"]
 
 [features]

@@ -7,7 +7,7 @@ edition = "2021"
 publish = false
 
 [dependencies.chrono]
-version = "0.4.43"
+version = "0.4.44"
 features = ["serde"]
 
 [dependencies.db_types]

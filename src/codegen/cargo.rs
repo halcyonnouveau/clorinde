@@ -15,9 +15,9 @@ mod versions {
     // https://crates.io/crates/tokio-postgres
     pub const TOKIO_POSTGRES: &str = "0.7.16";
     // https://crates.io/crates/chrono
-    pub const CHRONO: &str = "0.4.43";
+    pub const CHRONO: &str = "0.4.44";
     // https://crates.io/crates/uuid
-    pub const UUID: &str = "1.21.0";
+    pub const UUID: &str = "1.22.0";
     // https://crates.io/crates/eui48
     pub const EUI48: &str = "1.1.0";
     // https://crates.io/crates/rust-decimal
