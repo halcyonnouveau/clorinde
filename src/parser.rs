@@ -563,9 +563,12 @@ impl Query {
 
                     if param_end > param_start {
                         let param: String = s.chars[param_start..param_end].iter().collect();
+                        let byte_start: usize =
+                            s.chars[..param_start].iter().map(|c| c.len_utf8()).sum();
+                        let byte_end: usize = byte_start + param.len();
                         params.push(Span {
                             value: param,
-                            span: (param_start..param_end).into(),
+                            span: (byte_start..byte_end).into(),
                         });
                         s.i = param_end;
                     } else {
