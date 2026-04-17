@@ -904,7 +904,7 @@ pub(crate) mod error {
 mod tests {
     use std::sync::Arc;
 
-    use super::{parse_query_module, Query};
+    use super::{Query, parse_query_module};
     use crate::read_queries::ModuleInfo;
 
     #[test]
@@ -984,9 +984,6 @@ mod tests {
         let query = &module.queries[0];
         assert_eq!(query.bind_params.len(), 1);
         assert_eq!(query.bind_params[0].value, "v");
-        assert_eq!(
-            query.sql_str,
-            "SELECT \"à\" FROM t WHERE \"à\" = $1"
-        );
+        assert_eq!(query.sql_str, "SELECT \"à\" FROM t WHERE \"à\" = $1");
     }
 }
