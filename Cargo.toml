@@ -60,25 +60,25 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 tokio-postgres-rustls = { version = "0.13", optional = true }
 rustls-native-certs = { version = "0.8", optional = true }
 rustls-pemfile = { version = "2", optional = true }
-webpki-roots = { version = "0.26", optional = true }
 
 [features]
 default = ["tls"]
 # Enables rustls so `clorinde live`/`fresh` can talk to managed Postgres
-# services that require TLS (AWS RDS, Cloud SQL, Neon, Supabase, Aiven, etc.).
+# services that require TLS (Cloud SQL, Neon, Supabase, Aiven, AWS RDS, …).
 # Activated by `sslmode=require|verify-ca|verify-full` in the connection URL.
-# Trust store is the union of:
-#   * the OS native store (Keychain / ca-certificates / Schannel) — picks up
-#     internal corporate CAs the user already trusts, and
-#   * Mozilla's bundle via `webpki-roots` — guarantees common public CAs
-#     (Amazon Root CA 1, ISRG Root X1, …) are present even when the OS store
-#     omits them (e.g. macOS Keychain doesn't ship Amazon roots).
+#
+# Trust store mirrors libpq's behaviour:
+#   * OS native store (Keychain / ca-certificates / Schannel) — covers all
+#     publicly-rooted providers (Let's Encrypt, DigiCert, Amazon Trust
+#     Services, Google Trust Services, …) on a typical machine.
+#   * Optional `PGSSLROOTCERT` PEM bundle — for providers with private
+#     roots (notably AWS RDS / Aurora, which uses an internal `Amazon RDS
+#     Root CA …` hierarchy not present in any public store).
 tls = [
     "dep:rustls",
     "dep:tokio-postgres-rustls",
     "dep:rustls-native-certs",
     "dep:rustls-pemfile",
-    "dep:webpki-roots",
 ]
 
 [dev-dependencies]

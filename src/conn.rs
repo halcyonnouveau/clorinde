@@ -37,15 +37,18 @@ fn get_runtime() -> &'static Runtime {
     RUNTIME.get_or_init(|| Runtime::new().expect("Failed to create Tokio runtime"))
 }
 
-/// Build a rustls `ClientConfig` whose trust store is the union of:
+/// Build a rustls `ClientConfig` whose trust store mirrors libpq's
+/// behaviour:
 ///
 /// 1. **OS native store** (Keychain on macOS, ca-certificates on Linux,
-///    Schannel on Windows) — picks up corporate CAs the user already trusts.
-/// 2. **Mozilla bundle** (`webpki-roots`) — covers common public CAs
-///    (Amazon Root CA 1, ISRG Root X1, …) some OS stores omit.
-/// 3. **`PGSSLROOTCERT`** — libpq-compatible env var pointing at a PEM
-///    bundle. Used for providers whose roots are private (e.g. AWS RDS
-///    Aurora — point at `aws-rds-global-bundle.pem`).
+///    Schannel on Windows) — covers publicly-rooted providers (Let's
+///    Encrypt, DigiCert, Amazon Trust Services, Google Trust Services,
+///    …) and any corporate CAs the user has installed.
+/// 2. **`PGSSLROOTCERT`** — libpq-compatible env var pointing at a PEM
+///    bundle. For providers with private roots (notably AWS RDS / Aurora,
+///    which uses an internal `Amazon RDS Root CA …` hierarchy that is
+///    *not* in any public trust store), point at the provider's bundle
+///    (e.g. `aws-rds-global-bundle.pem`).
 ///
 /// Validates server certs by signature and chain; hostname verification is
 /// performed by the TLS layer.
@@ -59,10 +62,7 @@ fn build_rustls_config() -> Result<rustls::ClientConfig, Error> {
         let _ = roots.add(cert);
     }
 
-    // 2) Mozilla bundle (webpki-roots) — fills gaps the native store may miss.
-    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-    // 3) Optional libpq-compatible custom CA bundle.
+    // 2) Optional libpq-compatible custom CA bundle.
     if let Some(path) = std::env::var_os("PGSSLROOTCERT") {
         let pem = std::fs::read(&path).map_err(|e| {
             Error::Tls(format!(
