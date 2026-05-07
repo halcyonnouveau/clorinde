@@ -54,6 +54,33 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "1.1"
 cargo_toml = "0.22"
 
+# TLS (default-on; disable with `--no-default-features` if you only ever
+# point clorinde at a plain-text local Postgres and want a smaller dep tree)
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"], optional = true }
+tokio-postgres-rustls = { version = "0.13", optional = true }
+rustls-native-certs = { version = "0.8", optional = true }
+rustls-pemfile = { version = "2", optional = true }
+webpki-roots = { version = "0.26", optional = true }
+
+[features]
+default = ["tls"]
+# Enables rustls so `clorinde live`/`fresh` can talk to managed Postgres
+# services that require TLS (AWS RDS, Cloud SQL, Neon, Supabase, Aiven, etc.).
+# Activated by `sslmode=require|verify-ca|verify-full` in the connection URL.
+# Trust store is the union of:
+#   * the OS native store (Keychain / ca-certificates / Schannel) — picks up
+#     internal corporate CAs the user already trusts, and
+#   * Mozilla's bundle via `webpki-roots` — guarantees common public CAs
+#     (Amazon Root CA 1, ISRG Root X1, …) are present even when the OS store
+#     omits them (e.g. macOS Keychain doesn't ship Amazon roots).
+tls = [
+    "dep:rustls",
+    "dep:tokio-postgres-rustls",
+    "dep:rustls-native-certs",
+    "dep:rustls-pemfile",
+    "dep:webpki-roots",
+]
+
 [dev-dependencies]
 # Benchmarking
 criterion = { version = "0.8", features = ["html_reports"] }

@@ -111,7 +111,7 @@ pub fn gen_fresh<P: AsRef<Path>>(
 
     let create_db_query = format!("CREATE DATABASE \"{db_name}\"");
     futures::executor::block_on(server_client.execute(&create_db_query, &[]))
-        .map_err(conn::error::Error)?;
+        .map_err(conn::error::Error::Connection)?;
 
     let db_url = if url.contains('?') {
         format!("{url}&dbname={db_name}")
