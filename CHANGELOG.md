@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.4.1...clorinde-v2.0.0) - 2026-05-08
+
+### Added
+
+- add nullable-variant field attributes to type mappings
+
+### Fixed
+
+- detect workspace dependencies in Cargo.toml parsing ([#248](https://github.com/halcyonnouveau/clorinde/pull/248))
+
 ## [1.4.1](https://github.com/halcyonnouveau/clorinde/compare/clorinde-v1.4.0...clorinde-v1.4.1) - 2026-04-20
 
 ### Fixed
