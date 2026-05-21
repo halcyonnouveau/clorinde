@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Clorinde has been merged back into [Cornucopia](https://github.com/cornucopia-rs/cornucopia) and will no longer be maintained.
+
 <img src="https://raw.githubusercontent.com/halcyonnouveau/clorinde/refs/heads/main/docs/assets/clorinde_hat.png" alt="cool hat" style="max-width: 100%;">
 
 # Clorinde
