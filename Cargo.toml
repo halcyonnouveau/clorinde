@@ -54,6 +54,33 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "1.1"
 cargo_toml = "0.22"
 
+# TLS (default-on; disable with `--no-default-features` if you only ever
+# point clorinde at a plain-text local Postgres and want a smaller dep tree)
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"], optional = true }
+tokio-postgres-rustls = { version = "0.13", optional = true }
+rustls-native-certs = { version = "0.8", optional = true }
+rustls-pemfile = { version = "2", optional = true }
+
+[features]
+default = ["tls"]
+# Enables rustls so `clorinde live`/`fresh` can talk to managed Postgres
+# services that require TLS (Cloud SQL, Neon, Supabase, Aiven, AWS RDS, …).
+# Activated by `sslmode=require|verify-ca|verify-full` in the connection URL.
+#
+# Trust store mirrors libpq's behaviour:
+#   * OS native store (Keychain / ca-certificates / Schannel) — covers all
+#     publicly-rooted providers (Let's Encrypt, DigiCert, Amazon Trust
+#     Services, Google Trust Services, …) on a typical machine.
+#   * Optional `PGSSLROOTCERT` PEM bundle — for providers with private
+#     roots (notably AWS RDS / Aurora, which uses an internal `Amazon RDS
+#     Root CA …` hierarchy not present in any public store).
+tls = [
+    "dep:rustls",
+    "dep:tokio-postgres-rustls",
+    "dep:rustls-native-certs",
+    "dep:rustls-pemfile",
+]
+
 [dev-dependencies]
 # Benchmarking
 criterion = { version = "0.8", features = ["html_reports"] }
